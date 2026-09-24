@@ -43,8 +43,6 @@ func (a *API) installOnboardingRoutes(appAPI *gin.RouterGroup, router *gin.Engin
 	a.handle(appAPI, http.MethodPost, "/onboarding/session/rules", setup, a.recordOnboardingRules)
 	a.handle(appAPI, http.MethodPost, "/onboarding/session/test", setup, a.recordOnboardingTest)
 	a.handle(appAPI, http.MethodPost, "/onboarding/completion", setup, a.completeOnboarding)
-	a.handle(appAPI, http.MethodGet, "/adapter-policy", string(domain.PermissionOrganizationRead), a.getAdapterPolicy)
-	a.handle(appAPI, http.MethodPut, "/adapter-policy", string(domain.PermissionOrganizationSettingsWrite), a.setAdapterPolicy)
 
 	// The CLI surface acts on one session: the exchange is public (the
 	// setup code is the authorization) and the rest is the session's own.
@@ -291,30 +289,6 @@ func (a *API) completeOnboarding(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (a *API) getAdapterPolicy(c *gin.Context) {
-	policy, err := a.onboarding.AdapterPolicy(c.Request.Context(), currentPrincipal(c))
-	if err != nil {
-		a.writeError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, policy)
-}
-
-func (a *API) setAdapterPolicy(c *gin.Context) {
-	var request struct {
-		Tools []string `json:"tools"`
-	}
-	if !bind(c, &request) {
-		return
-	}
-	policy, err := a.onboarding.SetAdapterPolicy(c.Request.Context(), currentPrincipal(c), request.Tools)
-	if err != nil {
-		a.writeError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, policy)
-}
-
 // Machine surface.
 
 func (a *API) exchangeOnboardingSetupCode(c *gin.Context) {
@@ -420,7 +394,7 @@ func (a *API) enrollOnboarding(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"provider_url": result.ProviderURL, "enrollments": enrollments,
-		"policy": result.Policy, "hooks": result.Hooks, "session": result.Session,
+		"hooks": result.Hooks, "session": result.Session,
 	})
 }
 

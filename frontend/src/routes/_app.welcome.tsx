@@ -5,8 +5,8 @@ import { OnboardingScreen } from "../app/onboarding";
 
 /* The guided setup needs the whole chain: connecting agents and issuing
  * their credentials, writing and activating the pipeline and the
- * escalation path, the adapter policy, and finally deciding the request
- * the test produces. Mirrors domain.OnboardingPermissions. */
+ * escalation path, and finally deciding the request the test produces.
+ * Mirrors domain.OnboardingPermissions. */
 const ONBOARDING_PERMISSIONS = [
   "agent.write",
   "agent.credential.issue",
@@ -14,7 +14,6 @@ const ONBOARDING_PERMISSIONS = [
   "pipeline.activate",
   "escalation_path.write",
   "escalation_path.activate",
-  "organization.settings.write",
   "request.read",
   "request.decide",
 ];

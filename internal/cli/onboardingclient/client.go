@@ -139,13 +139,10 @@ type Enrollment struct {
 
 // EnrollResult is the one response that hands raw credentials over.
 type EnrollResult struct {
-	ProviderURL string       `json:"provider_url"`
-	Enrollments []Enrollment `json:"enrollments"`
-	Policy      struct {
-		Tools []string `json:"tools"`
-	} `json:"policy"`
-	Hooks   map[string]HookPlan      `json:"hooks"`
-	Session domain.OnboardingSession `json:"session"`
+	ProviderURL string                   `json:"provider_url"`
+	Enrollments []Enrollment             `json:"enrollments"`
+	Hooks       map[string]HookPlan      `json:"hooks"`
+	Session     domain.OnboardingSession `json:"session"`
 }
 
 // Enroll mints one agent instance per selected runtime.

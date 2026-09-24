@@ -7,8 +7,8 @@ Status: draft · Last updated: 2026-09-24
 
 ## Summary
 
-A new organization starts empty: no agents, no pipeline, no escalation
-path, and an adapter policy that gates nothing. The guided setup takes a
+A new organization starts empty: no agents, no pipeline, and no
+escalation path. The guided setup takes a
 person from their first sign-in to a request they decided themselves, in
 one sitting, without leaving the product except to paste one command:
 
@@ -40,7 +40,7 @@ one sitting, without leaving the product except to paste one command:
    discovered provisions the agents: the server writes an escalation
    path that notifies this person, one agent per runtime with a starting
    pipeline that sends the suggested tools to a human and lets the rest
-   run, and the adapter policy; the CLI enrolls one agent instance per
+   run; the CLI enrolls one agent instance per
    runtime and installs the hooks, behind a status line under the step's
    question that disappears once they are connected. The step asks how
    the person wants to set up their rules and offers three tiles, none
@@ -122,7 +122,7 @@ human sessions, agent credentials (`whc_`), and provisioner tokens
 
 ### Who writes what
 
-Provisioning (path, pipelines, adapter policy) runs under the person's
+Provisioning (path, pipelines) runs under the person's
 browser session with their ordinary permissions and audit attribution.
 Agent credentials are the exception: they are handed to the CLI once, so
 the CLI-initiated `enroll` call mints them. It does so with a delegated
@@ -165,8 +165,6 @@ requires `OnboardingPermissions` unless noted):
 | `POST /api/v1/onboarding/session/rules` | `{}` | 200 S with `rules_set_at`, status unchanged; allowed in `installed` and `tested` |
 | `POST /api/v1/onboarding/session/test` | `{"request_id": "..."}` | 200 S in `tested` with `test_request_id` and `tested_at`; 400 `test_request_unknown` (not the organization's), `test_request_not_enrolled` (not from an agent this session enrolled), `test_request_pending` (not decided yet) |
 | `POST /api/v1/onboarding/completion` | `{"outcome": "finished" \| "skipped"}` | 204. `finished` needs no open session or one in `tested`. Requires only `agent.write` |
-| `GET /api/v1/adapter-policy` | | 200 `{"tools": [...]}` (`organization.read`; writes need `organization.settings.write`) |
-| `PUT /api/v1/adapter-policy` | `{"tools": [...]}` | 200 same. Entries are `path.Match` globs, at most 500 |
 
 Machine surface (`/api/onboarding/v1`, Bearer `who_` except the exchange):
 
@@ -288,8 +286,6 @@ abandoned.
   gated list with the active revision's; onboarding never removes a
   tool. The assistant then replaces the revision with the person's own
   rules.
-- Adapter policy `tools` = the union of every suggested canonical tool
-  name across runtimes, written through `PUT /api/v1/adapter-policy`.
 - One agent per runtime (slug the runtime key, reused when present) with
   one instance named after the machine's hostname.
 - Per runtime a hook plan: the catch-all matcher (`.*`) for runtimes

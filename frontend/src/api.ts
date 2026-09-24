@@ -15,7 +15,6 @@ import type {
   AgentListStatus,
   AgentStatus,
   AgentSummary,
-  AdapterPolicy,
   ToolPresentation,
   ToolPresentationInput,
   ToolPresentationsPage,
@@ -719,12 +718,6 @@ export const api = {
     request<{ policy: OrganizationPolicy }>(`${APP_API_BASE}/organization/policy`, {
       method: "PATCH",
       body: JSON.stringify(patch),
-    }),
-  adapterPolicy: () => request<AdapterPolicy>(`${APP_API_BASE}/adapter-policy`),
-  setAdapterPolicy: (tools: string[]) =>
-    request<AdapterPolicy>(`${APP_API_BASE}/adapter-policy`, {
-      method: "PUT",
-      body: JSON.stringify({ tools }),
     }),
   /* The organization's own tool presentations with the shipped catalog
    * they layer over; writes need organization.settings.write. */

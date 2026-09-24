@@ -159,7 +159,6 @@ const readTeams = () => api.teams().then((result) => result.teams);
 const readAgents = () => api.agents().then((result) => result.agents);
 const readPaths = () => api.escalationPaths("all").then((result) => result.escalation_paths);
 const readEndpoints = () => api.webhookEndpoints().then((result) => result.webhook_endpoints);
-const readAdapterPolicy = () => api.adapterPolicy().then((result) => result.tools);
 
 /* The body while a read is on its way or went wrong; null once there
  * is a value to show, so each card renders its own facts. */
@@ -1158,30 +1157,14 @@ function RequestCard({ id }: { id: string }) {
   );
 }
 
-/* Go's path.Match for the gating globs, as far as the policies use it:
- * * spans anything but a slash, ? one character. */
-function globMatches(pattern: string, value: string): boolean {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
-  return new RegExp(`^${escaped}$`).test(value);
-}
-
 /* A tool is the name its server defines, with the server the request
- * or the page recorded beside it. The card reads whether the
- * organization holds calls to it, from the hooks' adapter policy and
- * from what the edition knows of the server, when the reader may see
- * those. */
+ * or the page recorded beside it. Whether a call to it waits for a
+ * person is the pipeline's decision, so the card names the tool and its
+ * server and nothing more; the edition may know the server's display
+ * name. */
 function ToolCard({ tool, server }: { tool: string; server?: string }) {
-  const access = useAccess();
   const auditLinkFor = useAuditLinks();
-  const policy = useSharedIf(access.holdsAnywhere("organization.read"), "adapter-policy", readAdapterPolicy, null);
   const edition = extensions.toolReference({ tool, server });
-  const hookPattern =
-    policy.status === "ready" && policy.value
-      ? (policy.value.find((pattern) => globMatches(pattern, tool)) ?? null)
-      : null;
-  const editionPattern = edition?.pattern ?? null;
-  const gated = hookPattern !== null || editionPattern !== null;
-  const known = (policy.status === "ready" && policy.value !== null) || edition !== null;
   return (
     <>
       <Title
@@ -1191,29 +1174,15 @@ function ToolCard({ tool, server }: { tool: string; server?: string }) {
         wrap
       />
       <HoverCardBody>
-        <HoverCardFacts>
-          {known ? (
-            <HoverCardFact term="Gated">{gated ? "Yes" : "No"}</HoverCardFact>
-          ) : null}
-          {server ? (
+        {server ? (
+          <HoverCardFacts>
             <HoverCardFact term="Server" mono>
               <span className="truncate">{edition ? edition.serverName : server}</span>
             </HoverCardFact>
-          ) : null}
-          {editionPattern ? (
-            <HoverCardFact term={editionPattern.term} mono>
-              <span className="truncate">{editionPattern.value}</span>
-            </HoverCardFact>
-          ) : null}
-          {hookPattern ? (
-            <HoverCardFact term="Hook pattern" mono>
-              <span className="truncate">{hookPattern}</span>
-            </HoverCardFact>
-          ) : null}
-        </HoverCardFacts>
-        {!server && !known ? (
+          </HoverCardFacts>
+        ) : (
           <HoverCardNote>The runtime's own tool, named as the agent asked.</HoverCardNote>
-        ) : null}
+        )}
       </HoverCardBody>
     </>
   );

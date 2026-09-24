@@ -226,9 +226,12 @@ func (a *API) router() *gin.Engine {
 	a.handle(aapRuntime, http.MethodPost, "/requests", string(domain.PermissionRequestCreate), a.createApproval)
 	a.handle(aapRuntime, http.MethodGet, "/requests/:id", string(domain.PermissionRequestRead), a.getApproval)
 	a.handle(aapRuntime, http.MethodDelete, "/requests/:id", string(domain.PermissionRequestCreate), a.cancelApproval)
-	a.handle(aapRuntime, http.MethodGet, "/policy", string(domain.PermissionRequestCreate), a.adapterPolicy)
 
-	a.handle(router.Group("/api/v1", a.machineAuth()), http.MethodPut, "/agent_instances/self/tool_catalog", AccessSelf, a.reportToolCatalog)
+	// The instance's own product surface, outside AAP: what the credential
+	// resolves to (the CLI's authentication probe) and its tool catalogue.
+	machine := router.Group("/api/v1", a.machineAuth())
+	a.handle(machine, http.MethodGet, "/agent_instances/self", AccessSelf, a.agentInstanceSelf)
+	a.handle(machine, http.MethodPut, "/agent_instances/self/tool_catalog", AccessSelf, a.reportToolCatalog)
 
 	appAPI := router.Group("/api/v1", a.principalAuth(), a.sameOrigin())
 	a.handle(appAPI, http.MethodGet, "/me", AccessSelf, a.enrichedMe)
@@ -765,19 +768,6 @@ func (a *API) events(c *gin.Context) {
 			c.Writer.Flush()
 		}
 	}
-}
-
-func (a *API) adapterPolicy(c *gin.Context) {
-	principal := currentPrincipal(c)
-	policy, err := a.identities.GetAdapterPolicy(c.Request.Context(), application.GetAdapterPolicyInput{
-		OrganizationID: principal.OrganizationID,
-	})
-	if err != nil {
-		a.writeError(c, err)
-		return
-	}
-	c.Header("ETag", fmt.Sprintf("\"%x\"", policy))
-	c.Data(http.StatusOK, "application/json", policy)
 }
 
 func (a *API) listAgents(c *gin.Context) {

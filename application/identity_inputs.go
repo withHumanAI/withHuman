@@ -351,14 +351,6 @@ func (input GetOrganizationPolicyInput) Validate() error {
 	return requiredID("organization ID", input.OrganizationID)
 }
 
-type GetAdapterPolicyInput struct {
-	OrganizationID domain.ID
-}
-
-func (input GetAdapterPolicyInput) Validate() error {
-	return requiredID("organization ID", input.OrganizationID)
-}
-
 // UpdateOrganizationPolicyInput replaces the settable policy fields and
 // audits the change as organization.policy_updated.
 type UpdateOrganizationPolicyInput struct {

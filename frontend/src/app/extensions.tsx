@@ -269,12 +269,9 @@ export interface ToolSourceEntry {
 }
 
 /* What an edition can tell about a tool mention's server: the server's
- * display name in place of the alias the mention carries, and the
- * server's own gating pattern that matches the tool, under the
- * edition's term for it; null when no pattern does. */
+ * display name in place of the alias the mention carries. */
 export interface ToolReferenceFacts {
   serverName: string;
-  pattern: { term: string; value: string } | null;
 }
 
 export interface ToolMention {

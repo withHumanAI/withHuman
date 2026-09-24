@@ -282,8 +282,8 @@ func TestOnboardingRoutesSeparateTheTwoCredentialClasses(t *testing.T) {
 	if response := serve(router, onboardingRequest(http.MethodGet, "/api/onboarding/v1/session", nil, false, "whc_"+uuid.NewString()+"_secret")); response.Code != http.StatusUnauthorized {
 		t.Fatalf("agent credential on machine surface: %d", response.Code)
 	}
-	if response := serve(router, onboardingRequest(http.MethodGet, "/api/aap/v1/policy", nil, false, exchanged.Token)); response.Code != http.StatusUnauthorized {
-		t.Fatalf("whb_ on the AAP surface: %d", response.Code)
+	if response := serve(router, onboardingRequest(http.MethodGet, "/api/v1/agent_instances/self", nil, false, exchanged.Token)); response.Code != http.StatusUnauthorized {
+		t.Fatalf("whb_ on the instance surface: %d", response.Code)
 	}
 	if response := serve(router, onboardingRequest(http.MethodGet, "/api/v1/onboarding/session", nil, false, exchanged.Token)); response.Code != http.StatusUnauthorized {
 		t.Fatalf("whb_ on the human surface: %d", response.Code)

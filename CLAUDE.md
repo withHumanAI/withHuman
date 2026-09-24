@@ -778,8 +778,8 @@ recorded in this file with both the reason and the replacement rule.
   (`tested`, checked against an enrolled agent) and finishes, which
   requires `tested`. Provisioning (the escalation path that notifies
   the person, one starting pipeline revision per runtime's agent that
-  sends the suggested tools to a human and approves the rest, the
-  adapter policy) runs under the person's own session when they reach
+  sends the suggested tools to a human and approves the rest) runs
+  under the person's own session when they reach
   the rules step; enrollment is the one CLI-initiated write that mints,
   under a principal rebuilt from the session's membership at that
   moment, because agent credentials are handed to the CLI once and
@@ -809,9 +809,11 @@ recorded in this file with both the reason and the replacement rule.
   `read_reference` serve lives in `internal/mcpreference`.
   `organizations.onboarding_completed_at` drives the `/welcome` redirect
   through `/me`'s `onboarding.required`; finishing or skipping sets it.
-  The adapter policy hooks read is now writable at
-  `PUT /api/v1/adapter-policy` behind `organization.settings.write`
-  (read behind `organization.read`).
+  No adapter policy exists: every call an adapter or the gateway
+  intercepts becomes a request, and the pipeline decides. The CLI checks
+  a saved instance credential against `GET /api/v1/agent_instances/self`
+  (machine bearer, `self`), which answers with the agent slug and
+  instance id the credential resolves to.
 - An agent is identified by its slug (`agents.slug`, pattern
   `^[a-z0-9][a-z0-9._-]{0,62}$`, chosen once at creation or first
   connect, immutable) and shown by its editable name. The slug is what

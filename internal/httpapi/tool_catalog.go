@@ -8,6 +8,15 @@ import (
 	"github.com/withHumanAI/withHuman/internal/toolcatalog"
 )
 
+// agentInstanceSelf answers with the identity the instance credential
+// resolved to. The CLI reads it to learn whether a saved credential still
+// authenticates; the document carries nothing beyond what the credential
+// itself names.
+func (a *API) agentInstanceSelf(c *gin.Context) {
+	principal := currentPrincipal(c)
+	c.JSON(http.StatusOK, gin.H{"agent_slug": principal.AgentSlug, "agent_instance_id": principal.AgentInstanceID})
+}
+
 func (a *API) reportToolCatalog(c *gin.Context) {
 	if a.toolCatalog == nil {
 		a.writeError(c, domain.ErrNotFound)

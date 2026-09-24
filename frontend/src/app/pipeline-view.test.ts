@@ -50,7 +50,6 @@ describe("loading a pipeline from a review link", () => {
     vi.spyOn(api, "runtimeConfig").mockRejectedValue(new Error("No optional block configuration"));
     vi.spyOn(api, "agents").mockResolvedValue({ agents: [] });
     vi.spyOn(api, "approvals").mockResolvedValue({ requests: [] });
-    vi.spyOn(api, "adapterPolicy").mockResolvedValue({ tools: [] });
   }
 
   it.each(["", "release"])("loads the pinned revision separately from the active revision for scope %s", async (agentSlug) => {

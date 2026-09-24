@@ -300,8 +300,8 @@ func (e *StepError) Error() string { return e.Err.Error() }
 func (e *StepError) Unwrap() error { return e.Err }
 
 // Provision writes the generated objects under the person's own
-// authority: the path, one agent and its starting pipeline per selected
-// runtime, and the adapter policy. It needs the person to have passed
+// authority: the path and one agent with its starting pipeline per
+// selected runtime. It needs the person to have passed
 // the notification steps, because the path it writes notifies them. On
 // failure the session keeps its status and records the error.
 func (s *Service) Provision(ctx context.Context, principal domain.Principal) (domain.OnboardingSession, error) {
@@ -355,10 +355,8 @@ func (s *Service) provision(ctx context.Context, principal domain.Principal, ses
 		EscalationPathKey: pathKey, EscalationPathName: PathName(displayName), EscalationPathRevision: pathRevision,
 		Pipelines: map[string]domain.OnboardingGeneratedPipeline{},
 	}
-	var everySuggested []string
 	for _, runtime := range session.SelectedRuntimes {
 		suggested := SuggestedToolNames(session, runtime)
-		everySuggested = append(everySuggested, suggested...)
 		// An agent type's pipeline exists from its first agent, so the
 		// agent comes first; enrollment later reuses it.
 		if _, err := s.ensureAgent(ctx, principal, runtime); err != nil {
@@ -370,18 +368,6 @@ func (s *Service) provision(ctx context.Context, principal domain.Principal, ses
 		}
 		generated.Pipelines[runtime] = result
 	}
-	existing := domain.AdapterPolicy{}
-	if raw, err := s.identities.GetAdapterPolicy(ctx, application.GetAdapterPolicyInput{OrganizationID: principal.OrganizationID}); err == nil {
-		_ = json.Unmarshal(raw, &existing)
-	}
-	policy, err := s.identities.SetAdapterPolicy(ctx, application.SetAdapterPolicyInput{
-		OrganizationID: principal.OrganizationID, ActorMembershipID: principal.MembershipID,
-		Tools: Union(existing.Tools, everySuggested), Now: s.clock.Now(),
-	})
-	if err != nil {
-		return domain.OnboardingGenerated{}, fmt.Errorf("adapter policy: %w", err)
-	}
-	generated.PolicyTools = policy.Tools
 	return generated, nil
 }
 
@@ -640,35 +626,6 @@ func (s *Service) RecordRules(ctx context.Context, principal domain.Principal) (
 	})
 }
 
-// AdapterPolicy reads the organization's gate list.
-func (s *Service) AdapterPolicy(ctx context.Context, principal domain.Principal) (domain.AdapterPolicy, error) {
-	if err := requireHuman(principal, domain.PermissionOrganizationRead, domain.OrganizationResource()); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	raw, err := s.identities.GetAdapterPolicy(ctx, application.GetAdapterPolicyInput{OrganizationID: principal.OrganizationID})
-	if err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	policy := domain.AdapterPolicy{}
-	if err := json.Unmarshal(raw, &policy); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	if policy.Tools == nil {
-		policy.Tools = []string{}
-	}
-	return policy, nil
-}
-
-// SetAdapterPolicy replaces the organization's gate list.
-func (s *Service) SetAdapterPolicy(ctx context.Context, principal domain.Principal, tools []string) (domain.AdapterPolicy, error) {
-	if err := requireHuman(principal, domain.PermissionOrganizationSettingsWrite, domain.OrganizationResource()); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	return s.identities.SetAdapterPolicy(ctx, application.SetAdapterPolicyInput{
-		OrganizationID: principal.OrganizationID, ActorMembershipID: principal.MembershipID, Tools: tools, Now: s.clock.Now(),
-	})
-}
-
 // ExchangeResult is what the CLI receives for a setup code.
 type ExchangeResult struct {
 	Token       string
@@ -839,7 +796,6 @@ func (s *Service) ReportError(ctx context.Context, session domain.OnboardingSess
 type EnrollResult struct {
 	ProviderURL string
 	Enrollments []Enrollment
-	Policy      domain.AdapterPolicy
 	Hooks       map[string]HookPlan
 	Session     domain.OnboardingSession
 }
@@ -869,8 +825,7 @@ func (s *Service) Enroll(ctx context.Context, session domain.OnboardingSession) 
 		"hostname": session.Machine.Hostname, "os": session.Machine.OS, "arch": session.Machine.Arch,
 		"cli_version": session.Machine.CLIVersion, "onboarding_session_id": session.ID,
 	})
-	result := EnrollResult{ProviderURL: strings.TrimRight(s.config.PublicOrigin, "/"), Hooks: PlanHooks(session),
-		Policy: domain.AdapterPolicy{Tools: session.Generated.PolicyTools}}
+	result := EnrollResult{ProviderURL: strings.TrimRight(s.config.PublicOrigin, "/"), Hooks: PlanHooks(session)}
 	var records []domain.OnboardingEnrollment
 	for _, runtime := range session.SelectedRuntimes {
 		agent, err := s.ensureAgent(ctx, principal, runtime)

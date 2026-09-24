@@ -3,7 +3,6 @@ package authn
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -185,14 +184,6 @@ func (repository *identityRepositoryStub) GetOrganizationPolicy(context.Context,
 
 func (repository *identityRepositoryStub) UpdateOrganizationPolicy(context.Context, application.UpdateOrganizationPolicyInput) (domain.OrganizationPolicy, error) {
 	return repository.policy, nil
-}
-
-func (*identityRepositoryStub) GetAdapterPolicy(context.Context, application.GetAdapterPolicyInput) (json.RawMessage, error) {
-	return json.RawMessage(`{}`), nil
-}
-
-func (*identityRepositoryStub) SetAdapterPolicy(_ context.Context, input application.SetAdapterPolicyInput) (domain.AdapterPolicy, error) {
-	return domain.AdapterPolicy{Tools: input.Tools}, nil
 }
 
 func (repository *identityRepositoryStub) GetOrganization(context.Context, application.GetOrganizationInput) (domain.Organization, error) {

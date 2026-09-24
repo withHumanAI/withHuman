@@ -193,25 +193,6 @@ func (input CompleteOnboardingInput) Validate() error {
 	return nil
 }
 
-// SetAdapterPolicyInput replaces the organization's adapter policy, the
-// gate list every hook reads from GET /api/aap/v1/policy.
-type SetAdapterPolicyInput struct {
-	OrganizationID    domain.ID
-	ActorMembershipID domain.ID
-	Tools             []string
-	Now               time.Time
-}
-
-func (input SetAdapterPolicyInput) Validate() error {
-	if err := requiredID("organization ID", input.OrganizationID); err != nil {
-		return err
-	}
-	if input.Now.IsZero() {
-		return fmt.Errorf("now is required: %w", domain.ErrInvalid)
-	}
-	return domain.ValidateAdapterPolicyTools(input.Tools)
-}
-
 // GetAgentBySlugInput looks an agent up by its slug, which names exactly
 // one agent of the organization, live or archived.
 type GetAgentBySlugInput struct {

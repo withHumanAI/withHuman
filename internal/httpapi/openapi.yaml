@@ -135,7 +135,7 @@ x-withhuman-permissions:
     dangerous: false
   - key: organization.settings.write
     area: organization
-    description: Change organization settings, policy, and the adapter policy
+    description: Change organization settings and policy
     holders: [human, api_key]
     resource: organization
     dangerous: false
@@ -677,24 +677,6 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "409": { description: An instance with this name already exists for the agent }
-  /api/aap/v1/policy:
-    get:
-      summary: Retrieve the adapter policy
-      operationId: getAdapterPolicy
-      x-withhuman-permission: request.create
-      description: "Returns the organization's adapter policy: the tools whose calls must be approved before they run. An adapter applies it locally, holding calls to listed tools for approval and letting every other call through without contacting the provider. Cache the response and refresh it in the background; the `ETag` header changes when the policy changes."
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200":
-          description: The current policy
-          headers:
-            ETag:
-              description: Changes whenever the policy changes.
-              schema: { type: string }
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AdapterPolicy" }
-        "401": { $ref: "#/components/responses/Error" }
   /api/aap/v1/requests:
     post:
       summary: Create an approval request
@@ -4442,7 +4424,7 @@ paths:
       x-withhuman-permission: agent.write
       x-withhuman-credential-kinds: [session, personal_api_key]
       security: [{ cookieAuth: [] }, { apiKeyAuth: [] }]
-      description: Allowed in tools_discovered with channels_set_at stamped (400 channels_not_set otherwise). Creates and activates the escalation path that notifies the caller, one agent and its starting pipeline per selected runtime (the suggested tools to a human, the rest approved), and the adapter policy, then moves the session to provisioning. On failure the session keeps its status with last_error set and the answer is 502 onboarding_provision_failed.
+      description: Allowed in tools_discovered with channels_set_at stamped (400 channels_not_set otherwise). Creates and activates the escalation path that notifies the caller, and one agent and its starting pipeline per selected runtime (the suggested tools to a human, the rest approved), then moves the session to provisioning. On failure the session keeps its status with last_error set and the answer is 502 onboarding_provision_failed.
       responses:
         "200":
           description: The session in provisioning
@@ -4634,43 +4616,6 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/OrganizationPolicyEnvelope" }
-        "400": { $ref: "#/components/responses/Error" }
-        "401": { $ref: "#/components/responses/Error" }
-        "403": { $ref: "#/components/responses/Error" }
-  /api/v1/adapter-policy:
-    get:
-      summary: Read the adapter policy
-      operationId: getAdapterPolicyForAdmins
-      x-withhuman-permission: organization.read
-      x-withhuman-credential-kinds: [session, personal_api_key, organization_api_key]
-      security: [{ cookieAuth: [] }, { apiKeyAuth: [] }]
-      description: Requires organization.read. The same document GET /api/aap/v1/policy serves to hooks.
-      responses:
-        "200":
-          description: The gate list
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AdapterPolicy" }
-        "401": { $ref: "#/components/responses/Error" }
-        "403": { $ref: "#/components/responses/Error" }
-    put:
-      summary: Replace the adapter policy
-      operationId: setAdapterPolicy
-      x-withhuman-permission: organization.settings.write
-      x-withhuman-credential-kinds: [session, personal_api_key]
-      security: [{ cookieAuth: [] }, { apiKeyAuth: [] }]
-      description: Requires organization.settings.write. Entries are path.Match globs on canonical tool names, at most 500; the stored list is sorted and deduplicated.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AdapterPolicy" }
-      responses:
-        "200":
-          description: The stored gate list
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AdapterPolicy" }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
@@ -4883,18 +4828,17 @@ paths:
       description: Allowed in provisioning. Runs with a principal rebuilt from the session starter's current membership; the credentials in the answer exist nowhere else. Moves the session to enrolled; a repeat is 409 onboarding_session_state.
       responses:
         "200":
-          description: Credentials, the gate list, and the hook plans
+          description: Credentials and the hook plans
           content:
             application/json:
               schema:
                 type: object
-                required: [provider_url, enrollments, policy, hooks, session]
+                required: [provider_url, enrollments, hooks, session]
                 properties:
                   provider_url: { type: string, format: uri }
                   enrollments:
                     type: array
                     items: { $ref: "#/components/schemas/OnboardingEnrollmentIssued" }
-                  policy: { $ref: "#/components/schemas/AdapterPolicy" }
                   hooks:
                     type: object
                     additionalProperties: { $ref: "#/components/schemas/OnboardingHookPlan" }
@@ -5401,6 +5345,26 @@ paths:
         schema:
           type: integer
           minimum: 1
+  /api/v1/agent_instances/self:
+    get:
+      summary: Read the calling instance's identity
+      operationId: getAgentInstanceSelf
+      x-withhuman-permission: self
+      x-withhuman-credential-kinds: [agent_instance]
+      security: [{ bearerAuth: [] }]
+      description: >-
+        Answers with the agent and instance the credential resolves to. The
+        withhuman CLI reads it to check that a saved credential still
+        authenticates. Nothing about which calls to hold comes from the
+        provider: an adapter sends every intercepted call and the pipeline
+        decides. This product endpoint is outside AAP.
+      responses:
+        "200":
+          description: The calling instance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentInstanceSelf" }
+        "401": { $ref: "#/components/responses/Error" }
   /api/v1/agent_instances/self/tool_catalog:
     put:
       tags: [Agents]
@@ -7040,16 +7004,13 @@ components:
       properties:
         provisioner: { $ref: "#/components/schemas/AgentProvisioner" }
         credential: { $ref: "#/components/schemas/IssuedCredential" }
-    AdapterPolicy:
+    AgentInstanceSelf:
       type: object
-      description: The tools an adapter must hold for approval.
-      required: [tools]
+      description: The identity an instance credential resolves to.
+      required: [agent_slug, agent_instance_id]
       properties:
-        tools:
-          type: array
-          description: "Tool names, or glob patterns over them, such as `Bash` or `deploy_*`. A call to any other tool runs without approval."
-          items: { type: string }
-          example: [Bash, deploy_*, mcp__github__*]
+        agent_slug: { type: string, example: claude-code }
+        agent_instance_id: { type: string, format: uuid }
     ToolPresentationKind:
       type: string
       description: "How one argument renders. `text` is a short value; `prose` long plain text; `markdown` and `html` are rendered (HTML in a sandbox that runs no script and loads nothing, with the source one click away); `code` is a mono block labelled with `language`; `shell` a command line; `diff` a unified diff at `path` or the pair at `before` and `after`; `path` a file path; `url` a link shown, never followed; `email` an address; `reference` an opaque identifier; `enum` a badge; `datetime` an instant in the reader's locale; `list` an array rendered per `item`; `json` pretty-printed structure."

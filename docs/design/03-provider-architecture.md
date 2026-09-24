@@ -115,8 +115,7 @@ stateless Go process apart from its active HTTP connections.
 
 It owns:
 
-- AAP endpoints for creating requests, reading decisions, long-polling, and
-  retrieving adapter policy.
+- AAP endpoints for creating requests, reading decisions, and long-polling.
 - Product endpoints for the reviewer queue, decisions, audit history, and
   administration, shared by the web and native mobile clients.
 - Agent administration, runtime-instance enrollment, and instance credential

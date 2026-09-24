@@ -131,7 +131,7 @@ curl --silent --fail --cookie "$cookie_jar" --header 'Content-Type: application/
 enrolled_instance=$(curl --silent --fail --header 'Content-Type: application/json' \
   --data "{\"enrollment_code\":\"$enrollment_code\"}" "$origin/auth/agent_enrollments/token")
 enrollment_token=$(printf '%s' "$enrolled_instance" | jq -r .credential.token)
-curl --silent --fail --header "Authorization: Bearer $enrollment_token" "$origin/api/aap/v1/policy" | jq -e 'type == "object"' >/dev/null
+curl --silent --fail --header "Authorization: Bearer $enrollment_token" "$origin/api/v1/agent_instances/self" | jq -e '.agent_slug | length > 0' >/dev/null
 
 agent=$(curl --silent --fail --cookie "$cookie_jar" --header 'Content-Type: application/json' \
   --data "{\"slug\":\"smoke-$unique\",\"name\":\"Smoke $unique\"}" "$app_api/agents")
@@ -163,10 +163,10 @@ minted=$(curl --silent --fail --header "Authorization: Bearer $provisioner_token
   --data '{"instance_metadata":{"region":"smoke"},"ttl_seconds":3600}' "$origin/api/aap/v1/instances")
 printf '%s' "$minted" | jq -e '.agent_instance.name | length > 0' >/dev/null
 minted_token=$(printf '%s' "$minted" | jq -r .credential.token)
-curl --silent --fail --header "Authorization: Bearer $minted_token" "$origin/api/aap/v1/policy" >/dev/null
-provisioner_on_aap_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  --header "Authorization: Bearer $provisioner_token" "$origin/api/aap/v1/policy")
-test "$provisioner_on_aap_status" = "401"
+curl --silent --fail --header "Authorization: Bearer $minted_token" "$origin/api/v1/agent_instances/self" >/dev/null
+provisioner_on_instance_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+  --header "Authorization: Bearer $provisioner_token" "$origin/api/v1/agent_instances/self")
+test "$provisioner_on_instance_status" = "401"
 instance_token_mint_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
   --header "Authorization: Bearer $minted_token" --request POST "$origin/api/aap/v1/instances")
 test "$instance_token_mint_status" = "401"

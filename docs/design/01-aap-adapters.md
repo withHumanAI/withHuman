@@ -138,16 +138,22 @@ withHuman core as `withhuman-gateway`. Differences from the wrapper:
   refresh tokens and client secrets never leave it either.
 - **Tool identity is namespaced.** Aggregated tools are advertised as
   `<server-slug>__<tool>`; slugs never contain underscores, so the
-  split is unambiguous. Gate matching uses the downstream tool name,
-  and the request carries the AAP tool identity (the spec's "Tool
-  Identity" section): `tool` is the name the downstream server defines
-  and `server` is the gateway slug. The gateway is the first place where
-  trusted server identity is actually available: a gate can be scoped to
-  one registered server rather than to a bare tool name, and only here
-  is `server` more than a label the adapter observed.
+  split is unambiguous. The request carries the AAP tool identity (the
+  spec's "Tool Identity" section): `tool` is the name the downstream
+  server defines and `server` is the gateway slug. The gateway is the
+  first place where trusted server identity is actually available: a
+  pipeline condition on `/request/server` can be scoped to one
+  registered server rather than to a bare tool name, and only here is
+  `server` more than a label the adapter observed.
+- **Every call is a request.** The gateway classifies nothing itself:
+  like the hooks, it creates a request for every call the agent's tool
+  access allows and acts on the pipeline's verdict (decided 2026-09-24;
+  the per-server gated-tool list and the adapter policy it used to
+  consult are gone). A call the pipeline decides on its own comes back
+  terminal on create, so only a human decision waits.
 - Same progress-notification keepalive toward the calling host.
-- Same fail-closed stance: an unreachable provider means the gated call
-  does not run.
+- Same fail-closed stance: an unreachable provider means the call does
+  not run.
 
 **Scope of the first version.** Tools only: `tools/list` and
 `tools/call`. Resources, prompts, sampling, and elicitation are not

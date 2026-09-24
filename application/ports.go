@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/withHumanAI/withHuman/domain"
@@ -34,8 +33,6 @@ type IdentityRepository interface {
 	GetMembership(ctx context.Context, input GetMembershipInput) (domain.Membership, error)
 	GetOrganizationPolicy(ctx context.Context, input GetOrganizationPolicyInput) (domain.OrganizationPolicy, error)
 	UpdateOrganizationPolicy(ctx context.Context, input UpdateOrganizationPolicyInput) (domain.OrganizationPolicy, error)
-	GetAdapterPolicy(ctx context.Context, input GetAdapterPolicyInput) (json.RawMessage, error)
-	SetAdapterPolicy(ctx context.Context, input SetAdapterPolicyInput) (domain.AdapterPolicy, error)
 	GetOrganization(ctx context.Context, input GetOrganizationInput) (domain.Organization, error)
 	FindOrganizationBySlug(ctx context.Context, input FindOrganizationBySlugInput) (domain.Organization, error)
 	ResolveExternalIdentity(ctx context.Context, input ResolveExternalIdentityInput) (domain.User, error)

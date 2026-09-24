@@ -130,7 +130,7 @@ func RenderSpecCredentialKinds(doc []byte) []byte {
 		if OrganizationKeyAllowed(method, routePath, access) {
 			kinds = append(kinds, "organization_api_key")
 		}
-		if path == "/api/v1/agent_instances/self/tool_catalog" {
+		if path == "/api/v1/agent_instances/self" || path == "/api/v1/agent_instances/self/tool_catalog" {
 			kinds = []string{"agent_instance"}
 		}
 		if path == "/api/v1/api_keys/verify" {

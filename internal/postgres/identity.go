@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -368,59 +366,4 @@ func (s *Store) UpdateOrganizationPolicy(ctx context.Context, input application.
 		return domain.OrganizationPolicy{}, err
 	}
 	return after, nil
-}
-
-// SetAdapterPolicy replaces the organization's gate list. The stored
-// document is normalised (sorted, deduplicated) so identical selections
-// produce identical ETags for the hooks that poll it.
-func (s *Store) SetAdapterPolicy(ctx context.Context, input application.SetAdapterPolicyInput) (domain.AdapterPolicy, error) {
-	if err := input.Validate(); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	tools := append([]string(nil), input.Tools...)
-	sort.Strings(tools)
-	tools = slices.Compact(tools)
-	if tools == nil {
-		tools = []string{}
-	}
-	policy := domain.AdapterPolicy{Tools: tools}
-	document, err := json.Marshal(policy)
-	if err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	defer tx.Rollback(ctx)
-	command, err := tx.Exec(ctx, `UPDATE organization_policies SET adapter_policy = $2 WHERE organization_id = $1`,
-		input.OrganizationID, document)
-	if err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	if command.RowsAffected() == 0 {
-		return domain.AdapterPolicy{}, domain.ErrNotFound
-	}
-	data, _ := json.Marshal(map[string]any{"tools_count": len(tools)})
-	if err := s.appendAuditEvent(ctx, tx, domain.AuditEvent{
-		OrganizationID: input.OrganizationID, EventType: "adapter_policy.updated",
-		ActorType: domain.ActorHuman, ActorID: input.ActorMembershipID,
-		SubjectType: "organization", SubjectID: input.OrganizationID,
-		Data: data, OccurredAt: input.Now,
-	}); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	return policy, tx.Commit(ctx)
-}
-
-func (s *Store) GetAdapterPolicy(ctx context.Context, input application.GetAdapterPolicyInput) (json.RawMessage, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-	var policy json.RawMessage
-	err := s.pool.QueryRow(ctx, `SELECT adapter_policy FROM organization_policies WHERE organization_id=$1`, input.OrganizationID).Scan(&policy)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, domain.ErrNotFound
-	}
-	return policy, err
 }

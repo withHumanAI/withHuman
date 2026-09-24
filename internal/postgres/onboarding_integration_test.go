@@ -16,7 +16,7 @@ import (
 // Exercises the onboarding repository against real PostgreSQL: one open
 // session per member with supersession, the single-use setup code, the
 // who_ resolution joins, the optimistic status-checked write, expiry,
-// completion marking the organization, and the adapter policy writer.
+// and completion marking the organization.
 func TestOnboardingRepositoryAgainstRealPostgres(t *testing.T) {
 	server := embeddedpgtest.Start(t)
 	ctx := context.Background()
@@ -184,19 +184,6 @@ func TestOnboardingRepositoryAgainstRealPostgres(t *testing.T) {
 		OrganizationID: orgID, SessionID: third, Patch: domain.OnboardingSessionPatch{ClearLastError: true}, Now: now.Add(2 * time.Minute),
 	}); !errors.Is(err, domain.ErrOnboardingExpired) {
 		t.Fatalf("expired session: %v", err)
-	}
-
-	// Adapter policy: normalised on write, served verbatim to adapters.
-	policy, err := store.SetAdapterPolicy(ctx, application.SetAdapterPolicyInput{OrganizationID: orgID, ActorMembershipID: membershipID, Tools: []string{"deploy_*", "Bash", "Bash"}, Now: now})
-	if err != nil || len(policy.Tools) != 2 || policy.Tools[0] != "Bash" {
-		t.Fatalf("SetAdapterPolicy: %v %+v", err, policy)
-	}
-	raw, err := store.GetAdapterPolicy(ctx, application.GetAdapterPolicyInput{OrganizationID: orgID})
-	if err != nil || string(raw) != `{"tools": ["Bash", "deploy_*"]}` && string(raw) != `{"tools":["Bash","deploy_*"]}` {
-		t.Fatalf("GetAdapterPolicy: %v %s", err, raw)
-	}
-	if _, err := store.SetAdapterPolicy(ctx, application.SetAdapterPolicyInput{OrganizationID: domain.ID(uuid.NewString()), Tools: nil, Now: now}); !errors.Is(err, domain.ErrNotFound) {
-		t.Fatalf("policy for unknown organization: %v", err)
 	}
 
 	// The agent lookup by slug onboarding uses to reuse agents.

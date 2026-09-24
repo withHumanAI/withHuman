@@ -1417,11 +1417,6 @@ export interface OnboardingBegin {
   setup_command: string;
 }
 
-/* The tool globs the adapters send through a human. */
-export interface AdapterPolicy {
-  tools: string[];
-}
-
 export type MFAMode = "optional" | "reviewers_required" | "everyone_required";
 export type UnroutedRequestsPolicy = "any_reviewer" | "break_glass_only";
 export type RequestVisibilityPolicy = "all_readers" | "routed_only";

@@ -35,7 +35,6 @@ type Provider struct {
 	changed     chan struct{}
 	enrolled    bool
 	credentials map[string]string // whc_ token -> runtime
-	policyTools []string
 	requests    map[string]map[string]any
 	exchanges   int
 }
@@ -69,7 +68,7 @@ func NewProvider(t *testing.T) *Provider {
 	mux.HandleFunc("POST /api/onboarding/v1/session/enroll", p.auth(p.enroll))
 	mux.HandleFunc("PUT /api/onboarding/v1/session/install-results", p.auth(p.putInstallResults))
 	mux.HandleFunc("PUT /api/onboarding/v1/session/error", p.auth(p.putError))
-	mux.HandleFunc("GET /api/aap/v1/policy", p.aapAuth(p.aapPolicy))
+	mux.HandleFunc("GET /api/v1/agent_instances/self", p.aapAuth(p.instanceSelf))
 	mux.HandleFunc("POST /api/aap/v1/requests", p.aapAuth(p.aapCreate))
 	mux.HandleFunc("GET /api/aap/v1/requests/{id}", p.aapAuth(p.aapGet))
 	p.Server = httptest.NewServer(mux)
@@ -386,7 +385,6 @@ func (p *Provider) enroll(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"provider_url": p.Server.URL,
 		"enrollments":  enrollments,
-		"policy":       map[string]any{"tools": p.policyTools},
 		"hooks":        hooks,
 		"session":      p.session,
 	})
@@ -470,18 +468,13 @@ func (h *Human) Provision() error {
 	}
 	now := time.Now().UTC()
 	p.session.ChannelsSetAt = &now
-	union := map[string]bool{}
 	pipelines := map[string]domain.OnboardingGeneratedPipeline{}
 	for _, runtime := range p.session.SelectedRuntimes {
-		for _, tool := range p.session.SuggestedTools(runtime) {
-			union[tool.Name] = true
-		}
 		pipelines[runtime] = domain.OnboardingGeneratedPipeline{Revision: 2, ReplacedActiveRevision: 1}
 	}
-	p.policyTools = sortedKeys(union)
 	p.session.Generated = domain.OnboardingGenerated{
 		EscalationPathKey: "notify-test-owner", EscalationPathName: "Notify Test Owner", EscalationPathRevision: 1,
-		Pipelines: pipelines, PolicyTools: p.policyTools,
+		Pipelines: pipelines,
 	}
 	p.bump()
 	return nil
@@ -538,13 +531,14 @@ func (p *Provider) aapAuth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// aapPolicy is the reachability probe `withhuman agent install` uses; the CLI
-// no longer reads the gate list, the provider's pipeline applies it.
-func (p *Provider) aapPolicy(w http.ResponseWriter, _ *http.Request) {
+// instanceSelf is the authentication probe `withhuman agent install`
+// uses: the identity the instance credential resolves to.
+func (p *Provider) instanceSelf(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	p.mu.Lock()
-	tools := append([]string(nil), p.policyTools...)
+	runtime := p.credentials[token]
 	p.mu.Unlock()
-	writeJSON(w, http.StatusOK, map[string]any{"tools": tools})
+	writeJSON(w, http.StatusOK, map[string]any{"agent_slug": runtime, "agent_instance_id": "instance-" + runtime})
 }
 
 func (p *Provider) aapCreate(w http.ResponseWriter, r *http.Request) {

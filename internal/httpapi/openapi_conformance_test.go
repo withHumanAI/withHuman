@@ -250,7 +250,7 @@ func TestContractSecurityMatchesBrowserOnlyRoutes(t *testing.T) {
 			continue
 		}
 		name := route.Method + " " + route.Path
-		if route.Path == "/api/v1/agent_instances/self/tool_catalog" {
+		if route.Path == "/api/v1/agent_instances/self" || route.Path == "/api/v1/agent_instances/self/tool_catalog" {
 			if len(schemes) != 1 || schemes[0] != "bearerAuth" {
 				t.Errorf("%s must accept only the instance bearer", name)
 			}

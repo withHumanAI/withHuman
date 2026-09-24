@@ -40,14 +40,14 @@ func TestAgentEnrollmentAndRepair(t *testing.T) {
 						t.Errorf("invalid catalogue report: %+v, %v", report, err)
 					}
 					w.WriteHeader(http.StatusNoContent)
-				case "/api/aap/v1/policy":
+				case "/api/v1/agent_instances/self":
 					probes++
 					if scenario == "rejected" {
 						w.WriteHeader(401)
 					} else if scenario == "unavailable" {
 						w.WriteHeader(503)
 					} else {
-						w.Write([]byte(`{}`))
+						w.Write([]byte(`{"agent_slug":"coding-agents","agent_instance_id":"instance"}`))
 					}
 				case "/auth/agent_enrollments":
 					begins++

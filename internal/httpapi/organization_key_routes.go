@@ -65,5 +65,4 @@ var organizationKeyRoutes = map[routeKey]struct{}{
 	{Method: "POST", Path: "/api/v1/teams/:id/escalation-policy/revisions/:revision/activate"}:                    {},
 	{Method: "DELETE", Path: "/api/v1/teams/:id/escalation-policy/active"}:                                        {},
 	{Method: "GET", Path: "/api/v1/organization/policy"}:                                                          {},
-	{Method: "GET", Path: "/api/v1/adapter-policy"}:                                                               {},
 }

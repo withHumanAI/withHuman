@@ -154,7 +154,7 @@ var humansOnly = []PermissionHolder{HolderHuman}
 
 var corePermissions = []PermissionDefinition{
 	{Key: PermissionOrganizationRead, Description: "Read organization settings and policy", Holders: managementHolders, Resource: ResourceOrganization},
-	{Key: PermissionOrganizationSettingsWrite, Description: "Change organization settings, policy, and the adapter policy", Holders: humans, Resource: ResourceOrganization},
+	{Key: PermissionOrganizationSettingsWrite, Description: "Change organization settings and policy", Holders: humans, Resource: ResourceOrganization},
 	{Key: PermissionOrganizationDelete, Description: "Schedule the organization for deletion", Holders: humans, Resource: ResourceOrganization, Dangerous: true},
 	{Key: PermissionMembershipRead, Description: "List members and pending invitations", Holders: managementHolders, Resource: ResourceOrganization},
 	{Key: PermissionMembershipInvite, Description: "Invite people and manage pending invitations", Holders: humans, Resource: ResourceOrganization},

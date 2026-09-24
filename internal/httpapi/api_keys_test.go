@@ -233,9 +233,9 @@ func TestAPIKeyBearerRefusals(t *testing.T) {
 	}
 	// A key never opens the agent surface.
 	response = httptest.NewRecorder()
-	router.ServeHTTP(response, apiKeyRequest(http.MethodGet, "/api/aap/v1/policy", nil, false, "whk_"+apiKeyTestKeyID+"_secret", ""))
+	router.ServeHTTP(response, apiKeyRequest(http.MethodGet, "/api/v1/agent_instances/self", nil, false, "whk_"+apiKeyTestKeyID+"_secret", ""))
 	if response.Code != http.StatusUnauthorized {
-		t.Fatalf("key on /api/aap = %d, want 401", response.Code)
+		t.Fatalf("key on the instance surface = %d, want 401", response.Code)
 	}
 }
 

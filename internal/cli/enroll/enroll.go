@@ -40,9 +40,12 @@ func HTTPClient(given *http.Client) *http.Client {
 	return &client
 }
 
-// Accepts probes authentication only; adapter filtering never reads provider policy.
+// Accepts reports whether the saved credential still authenticates, by
+// reading the instance's own identity document. Nothing about which
+// calls to hold comes from the provider: every intercepted call is sent
+// and the provider's pipeline decides.
 func Accepts(ctx context.Context, client *http.Client, cred credential.Credential) (bool, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cred.ProviderURL+"/api/aap/v1/policy", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cred.ProviderURL+"/api/v1/agent_instances/self", nil)
 	if err != nil {
 		return false, err
 	}

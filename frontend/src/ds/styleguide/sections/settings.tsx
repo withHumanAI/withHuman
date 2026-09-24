@@ -137,14 +137,14 @@ function DurationTagDemo() {
         />
       </SettingRow>
       <SettingRow
-        label="Gated tools (read only)"
+        label="Reserved names (read only)"
         description="Disabled: the chips stay, nothing can be added or removed."
       >
         <TagInput
-          aria-label="Gated tools"
+          aria-label="Reserved names"
           mono
           disabled
-          value={["create_refund", "deploy_*"]}
+          value={["admin", "owner"]}
           onChange={() => undefined}
           className="w-64"
         />

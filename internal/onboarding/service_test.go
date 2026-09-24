@@ -218,8 +218,6 @@ type identityStub struct {
 	application.IdentityRepository
 	membership domain.Membership
 	user       domain.User
-	policy     []string
-	setPolicy  []string
 }
 
 // rolesStub answers the delegated principal's grant load with whatever
@@ -243,19 +241,6 @@ func (s *identityStub) GetUser(context.Context, application.GetUserInput) (domai
 
 func (s *identityStub) GetMembership(context.Context, application.GetMembershipInput) (domain.Membership, error) {
 	return s.membership, nil
-}
-
-func (s *identityStub) GetAdapterPolicy(context.Context, application.GetAdapterPolicyInput) (json.RawMessage, error) {
-	raw, _ := json.Marshal(domain.AdapterPolicy{Tools: s.policy})
-	return raw, nil
-}
-
-func (s *identityStub) SetAdapterPolicy(_ context.Context, input application.SetAdapterPolicyInput) (domain.AdapterPolicy, error) {
-	if err := input.Validate(); err != nil {
-		return domain.AdapterPolicy{}, err
-	}
-	s.setPolicy = input.Tools
-	return domain.AdapterPolicy{Tools: input.Tools}, nil
 }
 
 // agentsStub holds the organization's agents by slug, archived ones
@@ -428,7 +413,6 @@ func newHarness() *harness {
 		identities: &identityStub{
 			membership: domain.Membership{ID: membershipID, UserID: userID, OrganizationID: orgID, Status: domain.MembershipActive},
 			user:       domain.User{ID: userID, DisplayName: "Chris Battarbee"},
-			policy:     []string{"deploy_*"},
 		},
 		roles:     &rolesStub{grants: principal.Grants},
 		agents:    agents,
@@ -603,9 +587,6 @@ func TestGuidedSetupHappyPath(t *testing.T) {
 	if h.pipelines.created["codex"][0].CEL.EscalationPath != "notify-chris-battarbee" || h.pipelines.created["codex"][1].Always == nil || h.pipelines.created["codex"][1].Always.Outcome != approvalblock.Approve {
 		t.Fatalf("pipeline blocks: %+v", h.pipelines.created["codex"])
 	}
-	if strings.Join(h.identities.setPolicy, ",") != "Bash,create_refund,customer,deploy_*" {
-		t.Fatalf("adapter policy should union the existing list: %v", h.identities.setPolicy)
-	}
 	if session.Generated.Pipelines["codex"].Revision != 2 || session.Generated.Pipelines["codex"].ReplacedActiveRevision != 1 {
 		t.Fatalf("generated pipelines: %+v", session.Generated.Pipelines)
 	}
@@ -632,9 +613,6 @@ func TestGuidedSetupHappyPath(t *testing.T) {
 	}
 	if enrolled.Hooks["claude-code"].Matcher != ".*" || enrolled.Hooks["codex"].Matcher != ".*" {
 		t.Fatalf("hook plans: %+v", enrolled.Hooks)
-	}
-	if strings.Join(enrolled.Policy.Tools, ",") != "Bash,create_refund,customer,deploy_*" {
-		t.Fatalf("policy handed to the CLI: %v", enrolled.Policy.Tools)
 	}
 	if len(enrolled.Session.Enrollments) != 2 || enrolled.Session.Enrollments[0].CredentialID == "" {
 		t.Fatalf("session enrollments: %+v", enrolled.Session.Enrollments)
@@ -843,16 +821,6 @@ func TestAuthorization(t *testing.T) {
 	agent := domain.Principal{ActorType: domain.ActorAgent, OrganizationID: h.principal.OrganizationID}.WithGrants(h.principal.Grants)
 	if _, err := h.service.Get(ctx, agent); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("agent principal: %v", err)
-	}
-	if _, err := h.service.SetAdapterPolicy(ctx, reviewer, []string{"Bash"}); !errors.Is(err, domain.ErrForbidden) {
-		t.Fatalf("reviewer may not write the policy: %v", err)
-	}
-	if _, err := h.service.SetAdapterPolicy(ctx, h.principal, []string{"["}); !errors.Is(err, domain.ErrInvalid) {
-		t.Fatalf("malformed glob: %v", err)
-	}
-	policy, err := h.service.SetAdapterPolicy(ctx, h.principal, []string{"Bash", "deploy_*"})
-	if err != nil || len(policy.Tools) != 2 {
-		t.Fatalf("SetAdapterPolicy: %v %+v", err, policy)
 	}
 	required, _, err := h.service.Required(ctx, h.principal)
 	if err == nil && !required {

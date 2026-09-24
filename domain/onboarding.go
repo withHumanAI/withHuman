@@ -2,8 +2,6 @@ package domain
 
 import (
 	"encoding/json"
-	"fmt"
-	"path"
 	"time"
 )
 
@@ -56,13 +54,12 @@ func (s OnboardingStatus) Valid() bool {
 }
 
 // OnboardingPermissions is the authority a person needs to run the guided
-// setup: it connects agents, writes a pipeline, an escalation path, and
-// the adapter policy, and ends with the person deciding a request.
+// setup: it connects agents, writes a pipeline and an escalation path,
+// and ends with the person deciding a request.
 var OnboardingPermissions = []Permission{
 	PermissionAgentWrite, PermissionAgentCredentialIssue,
 	PermissionPipelineWrite, PermissionPipelineActivate,
 	PermissionEscalationPathWrite, PermissionEscalationPathActivate,
-	PermissionOrganizationSettingsWrite,
 	PermissionRequestRead, PermissionRequestDecide,
 }
 
@@ -168,7 +165,6 @@ type OnboardingGenerated struct {
 	EscalationPathName     string                                 `json:"escalation_path_name"`
 	EscalationPathRevision int64                                  `json:"escalation_path_revision"`
 	Pipelines              map[string]OnboardingGeneratedPipeline `json:"pipelines"`
-	PolicyTools            []string                               `json:"policy_tools"`
 }
 
 // OnboardingEnrollment records the agent, instance, and credential id
@@ -409,9 +405,6 @@ func (s OnboardingSession) MarshalJSON() ([]byte, error) {
 	if copy.Generated.Pipelines == nil {
 		copy.Generated.Pipelines = map[string]OnboardingGeneratedPipeline{}
 	}
-	if copy.Generated.PolicyTools == nil {
-		copy.Generated.PolicyTools = []string{}
-	}
 	if copy.Enrollments == nil {
 		copy.Enrollments = []OnboardingEnrollment{}
 	}
@@ -422,31 +415,4 @@ func (s OnboardingSession) MarshalJSON() ([]byte, error) {
 		copy.TestCommands = map[string]OnboardingTestCommand{}
 	}
 	return json.Marshal(copy)
-}
-
-// AdapterPolicy is the document GET /api/aap/v1/policy serves: the glob
-// patterns, on canonical tool names, that hooks hold for a decision.
-type AdapterPolicy struct {
-	Tools []string `json:"tools"`
-}
-
-// MaxAdapterPolicyTools bounds the gate list.
-const MaxAdapterPolicyTools = 500
-
-// ValidateAdapterPolicyTools checks a gate list: every entry a non-empty
-// path.Match pattern of at most 128 bytes, at most MaxAdapterPolicyTools
-// entries.
-func ValidateAdapterPolicyTools(tools []string) error {
-	if len(tools) > MaxAdapterPolicyTools {
-		return fmt.Errorf("at most %d tools may be gated: %w", MaxAdapterPolicyTools, ErrInvalid)
-	}
-	for _, tool := range tools {
-		if tool == "" || len(tool) > 128 {
-			return fmt.Errorf("gated tool patterns must be 1 to 128 bytes: %w", ErrInvalid)
-		}
-		if _, err := path.Match(tool, ""); err != nil {
-			return fmt.Errorf("gated tool pattern %q is malformed: %w", tool, ErrInvalid)
-		}
-	}
-	return nil
 }

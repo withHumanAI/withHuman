@@ -71,8 +71,8 @@ func TestExecutableAdapters(t *testing.T) {
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
-				if r.URL.Path == "/api/aap/v1/policy" {
-					w.Write([]byte(`{"tools":[]}`))
+				if r.URL.Path == "/api/v1/agent_instances/self" {
+					w.Write([]byte(`{"agent_slug":"fixture","agent_instance_id":"instance"}`))
 					return
 				}
 				if r.Method != "POST" || r.URL.Path != "/api/aap/v1/requests" {
