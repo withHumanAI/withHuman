@@ -147,6 +147,21 @@ Provider selection is `--url`, `WITHHUMAN_URL`, the saved enrollment, then
 passes the complete `<origin>/api/aap` URL to the library. Every intercepted
 call reaches the provider; pipeline rules determine whether human review is needed.
 
+A provider can offer MCP servers to every agent (`agent_mcp_servers` in its
+`/api/runtime-config`; the hosted edition offers its MCP gateway). Both
+`onboard` and `agent install` read that list and register each server with
+the runtime as a stdio MCP server that runs `withhuman mcp <runtime>
+<server>`: the CLI's own relay, which reads the instance credential from
+the credential store and forwards the runtime's frames to the endpoint
+with it. The credential is never written into a runtime's configuration.
+Claude Code (`~/.claude.json`), Codex (`~/.codex/config.toml`), Hermes
+(`~/.hermes/config.yaml`) and OpenClaw (`openclaw.json`, when it is strict
+JSON) are edited in place; DeepSeek Harness gets a snippet to paste and Pi
+has no MCP client. The saved enrollment records the servers so
+`agent eject` removes the entries again, and tool discovery leaves them
+out: their tools are the provider's own catalogue. Restart the runtime
+after installing so it starts the relay.
+
 `agent discover` checks local runtime presence and installation status. It
 never contacts a provider or discovers MCP tools. `onboard` retains MCP tool
 discovery, the browser selection flow, provisioning and test instructions.
@@ -161,8 +176,8 @@ pin that directory using `AAP_CONFIG_DIR` and invoke the absolute path of
 this withHuman executable. Keep the installed executable at that path.
 Standalone AAP configuration is separate.
 
-Installation prints changed paths, runtime restart requirements and consent
-steps. An incomplete registration returns failure and retains state for
+Installation prints changed paths (hook files and MCP server entries),
+runtime restart requirements and consent steps. An incomplete registration returns failure and retains state for
 repair or `agent eject`. Eject removes only recorded local integration and
 credentials, preserving unrelated settings and later user edits. Revoke
 remote instance credentials from the website.

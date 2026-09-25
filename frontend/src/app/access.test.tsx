@@ -33,6 +33,7 @@ const runtimeConfig = {
     { key: "github", label: "GitHub" },
   ],
   cli_download_url: "",
+  agent_mcp_servers: [],
 };
 
 beforeEach(async () => {

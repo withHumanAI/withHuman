@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -20,16 +21,20 @@ func (hermes) configPath(env Env) string {
 }
 
 func (h hermes) load(env Env) (*yaml.Node, error) {
-	content, existed, err := readFile(h.configPath(env))
+	content, existed, err := configfile.ReadFile(h.configPath(env))
 	if err != nil {
 		return nil, err
 	}
-	return loadYAMLMapping(content, existed)
+	return configfile.LoadYAMLMapping(content, existed)
 }
 
 // servers reads mcp_servers: <name>: {command, args, env} or {url, headers}.
-func (hermes) servers(root *yaml.Node, source string) []mcpServer {
-	configured := yamlGet(root, "mcp_servers")
+func (h hermes) servers(env Env, root *yaml.Node, source string) []mcpServer {
+	return env.ownServers(h.configuredServers(root, source))
+}
+
+func (hermes) configuredServers(root *yaml.Node, source string) []mcpServer {
+	configured := configfile.YAMLGet(root, "mcp_servers")
 	if configured == nil || configured.Kind != yaml.MappingNode {
 		return nil
 	}
@@ -40,14 +45,14 @@ func (hermes) servers(root *yaml.Node, source string) []mcpServer {
 			continue
 		}
 		spec := mcpclient.Spec{Name: name}
-		if url := yamlString(entry, "url"); url != "" {
+		if url := configfile.YAMLString(entry, "url"); url != "" {
 			spec.URL = url
-			spec.Headers = yamlStringMap(entry, "headers")
+			spec.Headers = configfile.YAMLStringMap(entry, "headers")
 		} else {
-			spec.Command = yamlString(entry, "command")
-			spec.Args = yamlStrings(entry, "args")
-			spec.Env = yamlStringMap(entry, "env")
-			spec.Cwd = yamlString(entry, "cwd")
+			spec.Command = configfile.YAMLString(entry, "command")
+			spec.Args = configfile.YAMLStrings(entry, "args")
+			spec.Env = configfile.YAMLStringMap(entry, "env")
+			spec.Cwd = configfile.YAMLString(entry, "cwd")
 		}
 		if spec.Command == "" && spec.URL == "" {
 			continue
@@ -62,5 +67,5 @@ func (h hermes) Discover(ctx context.Context, env Env, _ Detection) (Discovered,
 	if err != nil {
 		return Discovered{}, err
 	}
-	return discover(ctx, h.Key(), h.servers(root, h.configPath(env))), nil
+	return discover(ctx, h.Key(), h.servers(env, root, h.configPath(env))), nil
 }

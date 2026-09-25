@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"path/filepath"
 
 	"github.com/withHumanAI/withHuman/agentruntime"
@@ -23,12 +24,12 @@ func (claudeCode) settingsPath(env Env) string {
 func (claudeCode) servers(env Env) ([]mcpServer, error) {
 	var servers []mcpServer
 	userConfig := filepath.Join(env.Home, ".claude.json")
-	content, existed, err := readFile(userConfig)
+	content, existed, err := configfile.ReadFile(userConfig)
 	if err != nil {
 		return nil, err
 	}
 	if existed {
-		doc, err := loadJSONObject(content, true)
+		doc, err := configfile.LoadJSONObject(content, true)
 		if err != nil {
 			return nil, fmt.Errorf("cannot discover tools from Claude Code configuration: %w", err)
 		}
@@ -45,12 +46,12 @@ func (claudeCode) servers(env Env) ([]mcpServer, error) {
 	}
 	if env.Cwd != "" {
 		projectConfig := filepath.Join(env.Cwd, ".mcp.json")
-		content, existed, err := readFile(projectConfig)
+		content, existed, err := configfile.ReadFile(projectConfig)
 		if err != nil {
 			return nil, err
 		}
 		if existed {
-			doc, err := loadJSONObject(content, true)
+			doc, err := configfile.LoadJSONObject(content, true)
 			if err != nil {
 				return nil, fmt.Errorf("cannot discover tools from project MCP configuration: %w", err)
 			}
@@ -59,7 +60,7 @@ func (claudeCode) servers(env Env) ([]mcpServer, error) {
 			}
 		}
 	}
-	return dedupeServers(servers), nil
+	return env.ownServers(dedupeServers(servers)), nil
 }
 
 // Discover probes every configured server, lending remote ones the OAuth

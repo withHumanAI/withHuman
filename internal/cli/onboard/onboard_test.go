@@ -15,8 +15,9 @@ import (
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/clitest"
 	"github.com/withHumanAI/withHuman/internal/cli/credential"
-
 	"github.com/withHumanAI/withHuman/internal/cli/discovery"
+	"github.com/withHumanAI/withHuman/internal/cli/installation"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
 )
 
 func TestMain(m *testing.M) {
@@ -68,6 +69,7 @@ func newFixture(t *testing.T) *fixture {
 
 func TestSetupEndToEnd(t *testing.T) {
 	provider := clitest.NewProvider(t)
+	provider.AgentMCPServers = []domain.AgentMCPServer{{Name: "withhuman", URL: provider.URL() + "/gateway/mcp", Label: "withHuman MCP gateway"}}
 	f := newFixture(t)
 	var stdout, stderr bytes.Buffer
 	done := make(chan error, 1)
@@ -172,8 +174,20 @@ func TestSetupEndToEnd(t *testing.T) {
 	}
 	wantHermes := strings.ReplaceAll(readFile(t, filepath.Join("testdata", "hermes.yaml.golden")), "{{BINARY}}", testBinary)
 	wantHermes = strings.ReplaceAll(wantHermes, "{{CONFIG}}", filepath.Join(f.config, "aap"))
+	wantHermes = strings.ReplaceAll(wantHermes, "{{WITHHUMAN_CONFIG}}", f.config)
 	if got := readFile(t, f.hermesConfig); got != wantHermes {
 		t.Fatalf("hermes config.yaml:\n%s\nwant:\n%s", got, wantHermes)
+	}
+	// The provider's gateway is registered with Claude Code as the relay,
+	// beside the person's own servers, without the credential.
+	claudeJSON := readFile(t, filepath.Join(f.home, ".claude.json"))
+	for _, want := range []string{`"fixture": {`, `"withhuman": {`, `"command": "` + testBinary + `"`, `"claude-code",`, `"WITHHUMAN_CONFIG_DIR": "` + f.config + `"`} {
+		if !strings.Contains(claudeJSON, want) {
+			t.Fatalf(".claude.json lacks %s:\n%s", want, claudeJSON)
+		}
+	}
+	if strings.Contains(claudeJSON, "whc_") {
+		t.Fatal("credential written into .claude.json")
 	}
 
 	// Install results and test commands on the session.
@@ -181,7 +195,9 @@ func TestSetupEndToEnd(t *testing.T) {
 		t.Fatalf("install results = %+v", session.InstallResults)
 	}
 	for _, result := range session.InstallResults {
-		if !result.OK || result.Manual || len(result.Changes) != 1 {
+		// The hook file and the MCP registration: two changes each, Hermes's
+		// both on config.yaml.
+		if !result.OK || result.Manual || len(result.Changes) != 2 {
 			t.Fatalf("install result = %+v", result)
 		}
 	}
@@ -217,6 +233,13 @@ func TestSetupEndToEnd(t *testing.T) {
 		if err := adapter.Uninstall(); err != nil {
 			t.Fatal(err)
 		}
+		cred, err := credential.Load(f.config, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := installation.Remove(key, *cred, mcpservers.Env{Home: f.home, Binary: testBinary, ConfigDir: f.config}); err != nil {
+			t.Fatal(err)
+		}
 		if err := credential.Delete(f.config, key); err != nil {
 			t.Fatal(err)
 		}
@@ -230,6 +253,9 @@ func TestSetupEndToEnd(t *testing.T) {
 	}
 	if agents, _ := credential.List(f.config); len(agents) != 0 {
 		t.Fatalf("credentials left after eject: %v", agents)
+	}
+	if got := readFile(t, filepath.Join(f.home, ".claude.json")); strings.Contains(got, "withhuman") || !strings.Contains(got, `"fixture"`) {
+		t.Fatalf(".claude.json after eject:\n%s", got)
 	}
 
 }

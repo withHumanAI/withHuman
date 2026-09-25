@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"maps"
 	"os/user"
 	"path/filepath"
@@ -35,7 +36,7 @@ func claudeCredentialsPath(env Env) string {
 // tokens live in the credentials store, never in the MCP configuration,
 // so a configuration-only probe would reach the servers unauthenticated.
 func claudeMCPTokens(ctx context.Context, env Env) map[string]string {
-	content, existed, err := readFile(claudeCredentialsPath(env))
+	content, existed, err := configfile.ReadFile(claudeCredentialsPath(env))
 	if err == nil && existed {
 		return parseClaudeMCPTokens(content, time.Now())
 	}

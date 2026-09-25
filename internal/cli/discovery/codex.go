@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"path/filepath"
 
 	"github.com/withHumanAI/withHuman/agentruntime"
@@ -20,18 +21,22 @@ func (codex) configPath(env Env) string {
 // codexTrustNote tells the person what was recorded on their behalf.
 
 func (c codex) load(env Env) (map[string]any, error) {
-	content, existed, err := readFile(c.configPath(env))
+	content, existed, err := configfile.ReadFile(c.configPath(env))
 	if err != nil {
 		return nil, err
 	}
-	return loadTOML(content, existed)
+	return configfile.LoadTOML(content, existed)
 }
 
 // servers reads [mcp_servers.<name>] tables: command/args/env for stdio,
 // url plus http_headers for streamable HTTP. A table with enabled = false
 // is one Codex itself will not start.
-func (codex) servers(table map[string]any, source string) []mcpServer {
-	configured, ok := tomlTableIfPresent(table, "mcp_servers")
+func (c codex) servers(env Env, table map[string]any, source string) []mcpServer {
+	return env.ownServers(c.configuredServers(table, source))
+}
+
+func (codex) configuredServers(table map[string]any, source string) []mcpServer {
+	configured, ok := configfile.TOMLTableIfPresent(table, "mcp_servers")
 	if !ok {
 		return nil
 	}
@@ -45,14 +50,14 @@ func (codex) servers(table map[string]any, source string) []mcpServer {
 			continue
 		}
 		spec := mcpclient.Spec{Name: name}
-		if url := tomlString(entry, "url"); url != "" {
+		if url := configfile.TOMLString(entry, "url"); url != "" {
 			spec.URL = url
-			spec.Headers = tomlStringMap(entry["http_headers"])
+			spec.Headers = configfile.TOMLStringMap(entry["http_headers"])
 		} else {
-			spec.Command = tomlString(entry, "command")
-			spec.Args = tomlStrings(entry["args"])
-			spec.Env = tomlStringMap(entry["env"])
-			spec.Cwd = tomlString(entry, "cwd")
+			spec.Command = configfile.TOMLString(entry, "command")
+			spec.Args = configfile.TOMLStrings(entry["args"])
+			spec.Env = configfile.TOMLStringMap(entry["env"])
+			spec.Cwd = configfile.TOMLString(entry, "cwd")
 		}
 		if spec.Command == "" && spec.URL == "" {
 			continue
@@ -72,11 +77,11 @@ func (c codex) Discover(ctx context.Context, env Env, det Detection) (Discovered
 		if err != nil {
 			return Discovered{}, err
 		}
-		return discover(ctx, c.Key(), c.servers(table, c.configPath(env))), nil
+		return discover(ctx, c.Key(), c.servers(env, table, c.configPath(env))), nil
 	}
 	statuses, err := codexServerStatuses(ctx, det.BinaryPath, filepath.Join(env.Home, ".codex"))
 	if err != nil {
 		return Discovered{}, err
 	}
-	return codexDiscovered(statuses), nil
+	return codexDiscovered(env, statuses), nil
 }

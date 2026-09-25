@@ -60,6 +60,11 @@ type Config struct {
 	// CLIDownloadURL is where the onboarding page sends people for the
 	// withhuman CLI (install.sh and the per-version binaries).
 	CLIDownloadURL string
+	// AgentMCPServers are the MCP servers this deployment offers every
+	// enrolled agent (the hosted gateway); the CLI registers them with each
+	// runtime it installs. Reported as agent_mcp_servers, empty in the
+	// open edition.
+	AgentMCPServers []domain.AgentMCPServer
 }
 
 type pipelineReadiness interface {
@@ -402,6 +407,10 @@ func (a *API) runtimeConfig(c *gin.Context) {
 	if a.auth != nil {
 		providers = a.auth.SocialProviders()
 	}
+	agentMCPServers := []domain.AgentMCPServer{}
+	if a.config.AgentMCPServers != nil {
+		agentMCPServers = a.config.AgentMCPServers
+	}
 	payload := gin.H{
 		"public_origin": a.config.PublicOrigin, "version": a.config.Version,
 		"bootstrap_enabled": a.config.BootstrapEnabled,
@@ -413,6 +422,7 @@ func (a *API) runtimeConfig(c *gin.Context) {
 		"discord_enabled":         a.discord != nil && a.discord.Configured(),
 		"social_providers":        providers,
 		"cli_download_url":        a.config.CLIDownloadURL,
+		"agent_mcp_servers":       agentMCPServers,
 	}
 	for key, value := range a.config.Extras {
 		payload[key] = value
@@ -427,7 +437,7 @@ var runtimeConfigKeys = map[string]bool{
 	"setup_assistant_enabled": true, "webhook_enabled": true,
 	"slack_enabled": true, "discord_enabled": true,
 	"social_providers": true,
-	"cli_download_url": true,
+	"cli_download_url": true, "agent_mcp_servers": true,
 }
 
 // RuntimeConfigExtras validates an edition's runtime-config entries for

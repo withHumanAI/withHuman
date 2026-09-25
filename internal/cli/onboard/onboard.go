@@ -27,7 +27,9 @@ import (
 	"github.com/withHumanAI/withHuman/internal/cli/discovery"
 	"github.com/withHumanAI/withHuman/internal/cli/enroll"
 	"github.com/withHumanAI/withHuman/internal/cli/installation"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
 	"github.com/withHumanAI/withHuman/internal/cli/onboardingclient"
+	"github.com/withHumanAI/withHuman/internal/cli/runtimeconfig"
 )
 
 // Options configures one run. Zero values mean the real machine.
@@ -66,6 +68,10 @@ type runner struct {
 	adapters map[agentruntime.Key]discovery.Adapter
 	client   *onboardingclient.Client
 	version  int64
+	// servers are the MCP servers the provider offers its agents, read
+	// from runtime-config once connected: left out of tool discovery and
+	// registered with every runtime at install.
+	servers []domain.AgentMCPServer
 }
 
 func newRunner(opts Options) (*runner, error) {
@@ -164,6 +170,12 @@ func (r *runner) run(ctx context.Context) error {
 	r.client = client
 	r.version = exchanged.Session.Version
 	r.event("connected", fmt.Sprintf("Connected to %s (session %s).", client.BaseURL, exchanged.SessionID), map[string]any{"session_id": exchanged.SessionID, "provider_url": client.BaseURL})
+	provider, err := runtimeconfig.Fetch(ctx, r.opts.HTTP, client.BaseURL)
+	if err != nil {
+		return r.fail(ctx, "provider_config_failed", err)
+	}
+	r.servers = provider.AgentMCPServers
+	r.env.ProviderServers = r.servers
 
 	detections, err := r.detect()
 	if err != nil {
@@ -363,7 +375,7 @@ func (r *runner) install(ctx context.Context, detections []domain.OnboardingDete
 			ProviderURL: providerURL, Token: enrollment.Credential.Token, CredentialID: enrollment.Credential.ID,
 			ExpiresAt: enrollment.Credential.ExpiresAt, AgentSlug: enrollment.Agent.Slug, AgentName: enrollment.Agent.Name,
 			InstanceName: enrollment.AgentInstance.Name, Runtime: enrollment.Runtime,
-		})
+		}, r.servers, mcpservers.Env{Home: r.env.Home, Binary: r.env.Binary, ConfigDir: r.opts.ConfigDir, Getenv: r.env.Getenv})
 		result.Adapter = enrollment.Runtime
 		report := installation.Report(result, err)
 		r.event("runtime_installed", describeInstall(agentruntime.Key(enrollment.Runtime), report), map[string]any{"runtime": enrollment.Runtime, "result": report})

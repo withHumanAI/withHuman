@@ -1,4 +1,5 @@
-// Package installation connects provider enrollment to the public AAP library.
+// Package installation connects provider enrollment to the public AAP
+// library and registers the provider's agent MCP servers beside the hook.
 package installation
 
 import (
@@ -8,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/agentapprovalprotocol/agentapprovalprotocol/adapters"
+	"github.com/withHumanAI/withHuman/agentruntime"
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/credential"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
 )
 
 func New(configDir string, env adapters.Environment) (*adapters.Manager, error) {
@@ -29,41 +32,81 @@ func Origin(value string) (string, error) {
 	return strings.TrimRight(u.String(), "/"), nil
 }
 
+// Result is one runtime's installation: the hook the AAP library
+// registered and the provider's MCP servers registered beside it.
+type Result struct {
+	Adapter  string
+	Complete bool
+	Changes  []adapters.FileChange
+	Notes    []string
+	// Manual, Message and Snippet describe an MCP server registration the
+	// CLI could not write and the person has to paste.
+	Manual  bool
+	Message string
+	Snippet string
+}
+
 // Install stores the one-time enrollment before installation so local failures
-// can be repaired without enrolling another instance. Secrets never enter reports.
-func Install(manager *adapters.Manager, configDir, key string, cred credential.Credential) (adapters.InstallResult, error) {
+// can be repaired without enrolling another instance, installs the hook,
+// then registers the provider's MCP servers with the runtime under the
+// same credential. Secrets never enter reports.
+func Install(manager *adapters.Manager, configDir, key string, cred credential.Credential, servers []domain.AgentMCPServer, env mcpservers.Env) (Result, error) {
+	result := Result{Adapter: key}
 	adapter, err := manager.Lookup(key)
 	if err != nil {
-		return adapters.InstallResult{}, err
+		return result, err
 	}
 	origin, err := Origin(cred.ProviderURL)
 	if err != nil {
-		return adapters.InstallResult{}, err
+		return result, err
 	}
-	cred.ProviderURL, cred.Runtime = origin, key
+	cred.ProviderURL, cred.Runtime, cred.MCPServers = origin, key, servers
 	if cred.Token == "" {
-		return adapters.InstallResult{}, fmt.Errorf("enrollment returned no instance credential")
+		return result, fmt.Errorf("enrollment returned no instance credential")
 	}
 	if _, err := credential.Save(configDir, key, cred); err != nil {
-		return adapters.InstallResult{}, err
+		return result, err
 	}
 	// A failed registration can leave plugin files in place. Remove its
 	// recorded changes before retrying, so unchanged assets cannot be mistaken
 	// for a successful runtime registration by the pinned library.
 	status, err := adapter.Status()
 	if err != nil {
-		return adapters.InstallResult{Adapter: key}, err
+		return result, err
 	}
 	if status.Configured && !status.Complete {
 		if err := adapter.Uninstall(); err != nil {
-			return adapters.InstallResult{Adapter: key}, err
+			return result, err
 		}
 	}
-	return adapter.Install(cred.Token, origin+"/api/aap")
+	installed, err := adapter.Install(cred.Token, origin+"/api/aap")
+	result.Complete, result.Changes, result.Notes = installed.Complete, installed.Changes, installed.Notes
+	if err != nil || !installed.Complete {
+		return result, err
+	}
+	registered, err := mcpservers.Install(env, mcpservers.Registration{Runtime: agentruntime.Key(key), Servers: servers})
+	for _, change := range registered.Changes {
+		result.Changes = append(result.Changes, adapters.FileChange{Path: change.Path, Action: change.Action})
+	}
+	result.Notes = append(result.Notes, registered.Notes...)
+	result.Manual, result.Message, result.Snippet = registered.Manual, registered.Message, registered.Snippet
+	if err != nil {
+		return result, fmt.Errorf("register the provider's MCP servers with %s: %w", key, err)
+	}
+	return result, nil
 }
 
-func Report(result adapters.InstallResult, err error) domain.OnboardingInstallResult {
-	report := domain.OnboardingInstallResult{Runtime: result.Adapter, OK: result.Complete && err == nil, Notes: result.Notes}
+// Remove takes the registered MCP servers out of the runtime after the
+// AAP library ejected its hook.
+func Remove(key string, cred credential.Credential, env mcpservers.Env) (mcpservers.Result, error) {
+	return mcpservers.Remove(env, mcpservers.Registration{Runtime: agentruntime.Key(key), Servers: cred.MCPServers})
+}
+
+func Report(result Result, err error) domain.OnboardingInstallResult {
+	report := domain.OnboardingInstallResult{
+		Runtime: result.Adapter, OK: result.Complete && err == nil, Notes: result.Notes,
+		Manual: result.Manual, Message: result.Message, Snippet: result.Snippet,
+	}
 	for _, change := range result.Changes {
 		report.Changes = append(report.Changes, domain.OnboardingFileChange{Path: change.Path, Action: change.Action})
 	}

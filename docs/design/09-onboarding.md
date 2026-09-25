@@ -326,11 +326,31 @@ user config directory plus `withhuman`. The library stores its state under
 `<config>/aap`. Generated hooks pin that directory and this executable's
 absolute path, then call the internal `hook <runtime>` command.
 
-`onboard` runs: exchange, detect, report, wait for runtime selection,
-discover tools, report, wait for provisioning, enroll, save credentials,
-install adapters, report and print test commands. Library results preserve
-changed files and restart or consent notes. Incomplete registration fails
-and remains repairable or ejectable.
+`onboard` runs: exchange, read the provider's runtime-config, detect,
+report, wait for runtime selection, discover tools, report, wait for
+provisioning, enroll, save credentials, install adapters, register the
+provider's MCP servers, report and print test commands. Library results
+preserve changed files and restart or consent notes. Incomplete
+registration fails and remains repairable or ejectable.
+
+The provider's MCP servers are `agent_mcp_servers` in `/api/runtime-config`
+(`domain.AgentMCPServer`: `name`, `url`, `label`; core reports an empty
+list, an edition fills it through `runtime.ServerOptions.AgentMCPServers`;
+the hosted edition offers its gateway as `withhuman`). The CLI registers
+each one with the runtime as a stdio MCP server running `withhuman mcp
+<runtime> <server>` with `WITHHUMAN_CONFIG_DIR` pinned, the CLI's own
+relay (`internal/cli/mcpproxy`): it loads the instance credential from
+the store and forwards the runtime's JSON-RPC frames to the endpoint as a
+streamable-HTTP client with that bearer, so the credential never enters a
+runtime's configuration and runtimes without a streamable-HTTP client are
+served all the same. `internal/cli/mcpservers` owns the per-runtime
+entries (Claude Code's `~/.claude.json`, Codex's `config.toml`, Hermes's
+`config.yaml`, OpenClaw's `openclaw.json` when strict JSON; DeepSeek
+Harness gets a snippet; Pi has no MCP client). The enrollment record
+carries `mcp_servers` so `agent eject` removes the entries and
+`refresh-tools` knows them, and discovery leaves the relay out: its tools
+are the provider's own catalogue (the hosted gateway's `gateway` source),
+never an instance report.
 
 `agent install` validates one runtime, resolves the provider from `--url`,
 `WITHHUMAN_URL`, saved enrollment or the hosted default, then authorizes in

@@ -7727,7 +7727,7 @@ components:
       type: object
       description: "What the frontend needs to know about this deployment before anyone signs in. An edition adds entries of its own (the hosted edition's signup_enabled, billing_enabled, and the phone and push channel flags); it never changes the ones listed here."
       additionalProperties: true
-      required: [public_origin, version, bootstrap_enabled, social_providers, setup_assistant_enabled, webhook_enabled, slack_enabled, discord_enabled]
+      required: [public_origin, version, bootstrap_enabled, social_providers, setup_assistant_enabled, webhook_enabled, slack_enabled, discord_enabled, agent_mcp_servers]
       properties:
         public_origin: { type: string, format: uri }
         version: { type: string }
@@ -7741,6 +7741,18 @@ components:
           type: array
           description: Social login providers registered by this edition, in display order
           items: { $ref: "#/components/schemas/SocialProvider" }
+        agent_mcp_servers:
+          type: array
+          description: "MCP servers this deployment offers every enrolled agent (the hosted edition's gateway), which the withhuman CLI registers with each runtime it installs as its own relay, authenticated with the instance credential. Empty in the open edition."
+          items: { $ref: "#/components/schemas/AgentMCPServer" }
+    AgentMCPServer:
+      type: object
+      additionalProperties: false
+      required: [name, url, label]
+      properties:
+        name: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,62}$', example: withhuman, description: "The key the runtime knows the server by; it prefixes the server's tools in the runtime's tool names." }
+        url: { type: string, format: uri, example: "https://app.withhuman.ai/gateway/mcp", description: The streamable HTTP endpoint. }
+        label: { type: string, example: withHuman MCP gateway, description: What the CLI calls the server to a person. }
     SocialProvider:
       type: object
       required: [key, label]

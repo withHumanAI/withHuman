@@ -22,12 +22,16 @@ import (
 
 	"github.com/agentapprovalprotocol/agentapprovalprotocol/adapters"
 	"github.com/withHumanAI/withHuman/agentruntime"
+	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/catalogclient"
 	"github.com/withHumanAI/withHuman/internal/cli/credential"
 	"github.com/withHumanAI/withHuman/internal/cli/discovery"
 	"github.com/withHumanAI/withHuman/internal/cli/enroll"
 	"github.com/withHumanAI/withHuman/internal/cli/installation"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpproxy"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
 	"github.com/withHumanAI/withHuman/internal/cli/onboard"
+	"github.com/withHumanAI/withHuman/internal/cli/runtimeconfig"
 	"github.com/withHumanAI/withHuman/internal/cli/upgrade"
 )
 
@@ -107,6 +111,8 @@ func (a *app) run(ctx context.Context, args []string) (int, error) {
 		err = a.agent(ctx, args[1:])
 	case "hook":
 		err = a.hook(ctx, args[1:])
+	case "mcp":
+		err = a.mcp(ctx, args[1:])
 	case "upgrade":
 		fs := a.flags("upgrade")
 		if err = fs.Parse(args[1:]); err == nil {
@@ -294,6 +300,13 @@ func (a *app) install(ctx context.Context, manager *adapters.Manager, args []str
 		return err
 	}
 	client := enroll.HTTPClient(a.http)
+	// What the provider offers every agent (the hosted gateway) is public
+	// and read before enrollment, so a provider the CLI cannot read stops
+	// the run before a credential is minted.
+	provider, err := runtimeconfig.Fetch(ctx, client, origin)
+	if err != nil {
+		return err
+	}
 	reuse := saved != nil && saved.ProviderURL == origin && saved.ExpiresAt.After(time.Now()) && (*agent == "" || *agent == saved.AgentSlug) && (*instance == "" || *instance == saved.InstanceName)
 	if reuse {
 		reuse, err = enroll.Accepts(ctx, client, *saved)
@@ -314,12 +327,19 @@ func (a *app) install(ctx context.Context, manager *adapters.Manager, args []str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	result, err := installation.Install(manager, a.configDir, adapter.Key(), *saved)
+	mcpEnv, err := a.mcpEnv()
+	if err != nil {
+		return err
+	}
+	result, err := installation.Install(manager, a.configDir, adapter.Key(), *saved, provider.AgentMCPServers, mcpEnv)
 	for _, change := range result.Changes {
 		fmt.Fprintf(a.stdout, "%s: %s\n", change.Action, change.Path)
 	}
 	for _, note := range result.Notes {
 		fmt.Fprintln(a.stdout, note)
+	}
+	if result.Manual {
+		fmt.Fprintf(a.stdout, "%s\n\n%s\n", result.Message, result.Snippet)
 	}
 	if err != nil {
 		return err
@@ -332,6 +352,71 @@ func (a *app) install(ctx context.Context, manager *adapters.Manager, args []str
 		fmt.Fprintf(a.stderr, "Tool discovery could not be published. Run withhuman agent refresh-tools %s --agent %s to retry: %v\n", adapter.Key(), saved.AgentSlug, err)
 	}
 	return nil
+}
+
+// mcpEnv is the machine the provider's MCP servers are registered on: the
+// relay entries pin this executable and configuration directory the way
+// the hooks do.
+func (a *app) mcpEnv() (mcpservers.Env, error) {
+	home := a.env.Home
+	if home == "" {
+		resolved, err := os.UserHomeDir()
+		if err != nil {
+			return mcpservers.Env{}, err
+		}
+		home = resolved
+	}
+	binary := a.env.Executable
+	if binary == "" {
+		resolved, err := os.Executable()
+		if err != nil {
+			return mcpservers.Env{}, err
+		}
+		if linked, err := filepath.EvalSymlinks(resolved); err == nil {
+			resolved = linked
+		}
+		binary = resolved
+	}
+	binary, err := filepath.Abs(binary)
+	if err != nil {
+		return mcpservers.Env{}, err
+	}
+	return mcpservers.Env{Home: home, Binary: binary, ConfigDir: a.configDir, Getenv: a.getenv}, nil
+}
+
+// mcp is the relay a runtime starts for one provider-offered MCP server:
+// it reads the instance credential the install stored and forwards the
+// runtime's frames to the server with it.
+func (a *app) mcp(ctx context.Context, args []string) error {
+	if len(args) != 2 {
+		return errUsage
+	}
+	runtime, name := args[0], args[1]
+	cred, err := credential.Load(a.configDir, runtime)
+	if err != nil {
+		return fmt.Errorf("%w; run withhuman agent install %s", err, runtime)
+	}
+	var server *domain.AgentMCPServer
+	for i := range cred.MCPServers {
+		if cred.MCPServers[i].Name == name {
+			server = &cred.MCPServers[i]
+		}
+	}
+	if server == nil {
+		return fmt.Errorf("%s is not registered for %s; run withhuman agent install %s", name, runtime, runtime)
+	}
+	if !cred.ExpiresAt.After(time.Now()) {
+		return fmt.Errorf("the %s instance credential has expired; run withhuman agent install %s", runtime, runtime)
+	}
+	var client http.Client
+	if a.http != nil {
+		client = *a.http
+	}
+	// A tool call waits as long as its approval does, so no timeout; the
+	// runtime closing stdin ends every call.
+	client.Timeout = 0
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return mcpproxy.Run(ctx, a.stdin, a.stdout, server.URL, cred.Token, &client)
 }
 
 // chooseRuntime only inspects the local machine; enrollment starts after a choice.
@@ -412,8 +497,31 @@ func (a *app) eject(adapter *adapters.Adapter, args []string) error {
 			return errors.New("eject cancelled")
 		}
 	}
+	// The enrollment record says which MCP server entries are ours. A record
+	// that cannot be read must not keep the hook in place, so eject goes on
+	// and says what it left behind.
+	saved, err := credential.Load(a.configDir, adapter.Key())
+	if err != nil && !errors.Is(err, credential.ErrNotFound) {
+		fmt.Fprintf(a.stderr, "The saved enrollment could not be read, so any MCP server entries the install added were left in place: %v\n", err)
+	}
 	if err := adapter.Uninstall(); err != nil {
 		return err
+	}
+	if saved != nil {
+		mcpEnv, err := a.mcpEnv()
+		if err != nil {
+			return err
+		}
+		removed, err := installation.Remove(adapter.Key(), *saved, mcpEnv)
+		for _, change := range removed.Changes {
+			fmt.Fprintf(a.stdout, "%s: %s\n", change.Action, change.Path)
+		}
+		for _, note := range removed.Notes {
+			fmt.Fprintln(a.stdout, note)
+		}
+		if err != nil {
+			return err
+		}
 	}
 	if err := credential.Delete(a.configDir, adapter.Key()); err != nil {
 		return err
@@ -473,6 +581,7 @@ func (a *app) refreshTools(ctx context.Context, runtime string, cred credential.
 		env.Home = a.env.Home
 	}
 	env.Getenv = a.getenv
+	env.ProviderServers = cred.MCPServers
 	if a.env.LookPath != nil {
 		env.LookPath = a.env.LookPath
 	}

@@ -3,6 +3,7 @@ package discovery
 import (
 	"github.com/agentapprovalprotocol/agentapprovalprotocol/adapters"
 	"github.com/withHumanAI/withHuman/agentruntime"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"github.com/withHumanAI/withHuman/internal/cli/installation"
 )
 
@@ -40,7 +41,7 @@ func (c codex) Detect(env Env) (Detection, error) {
 	if err != nil {
 		return d, err
 	}
-	d.MCPServers = detectionServers(c.servers(table, d.ConfigPath))
+	d.MCPServers = detectionServers(c.servers(env, table, d.ConfigPath))
 	return d, nil
 }
 func (h hermes) Detect(env Env) (Detection, error) {
@@ -52,7 +53,7 @@ func (h hermes) Detect(env Env) (Detection, error) {
 	if err != nil {
 		return d, err
 	}
-	d.MCPServers = detectionServers(h.servers(root, d.ConfigPath))
+	d.MCPServers = detectionServers(h.servers(env, root, d.ConfigPath))
 	return d, nil
 }
 func (o openClaw) Detect(env Env) (Detection, error) {
@@ -60,13 +61,13 @@ func (o openClaw) Detect(env Env) (Detection, error) {
 	if err != nil || !d.Installed {
 		return d, err
 	}
-	raw, existed, err := readFile(o.configPath(env))
+	raw, existed, err := configfile.ReadFile(o.configPath(env))
 	if err != nil {
 		return d, err
 	}
-	if doc, err := loadJSONObject(raw, existed); err == nil {
+	if doc, err := configfile.LoadJSONObject(raw, existed); err == nil {
 		if obj, ok := doc.Root.ObjectIfPresent("mcpServers"); ok {
-			d.MCPServers = detectionServers(claudeStyleServers(obj, d.ConfigPath, env.Cwd))
+			d.MCPServers = detectionServers(env.ownServers(claudeStyleServers(obj, d.ConfigPath, env.Cwd)))
 		}
 	}
 	return d, nil

@@ -9,3 +9,12 @@ hooks:
       fail_closed: true
 plugins:
   hook_callback_timeout: 330
+mcp_servers:
+  withhuman:
+    command: {{BINARY}}
+    args:
+      - mcp
+      - hermes
+      - withhuman
+    env:
+      WITHHUMAN_CONFIG_DIR: {{WITHHUMAN_CONFIG}}

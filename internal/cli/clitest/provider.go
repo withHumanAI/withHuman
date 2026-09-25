@@ -29,6 +29,9 @@ type Provider struct {
 	// Decision is the terminal status every AAP request gets; tests set it
 	// to exercise a hook's deny and expiry paths.
 	Decision string
+	// AgentMCPServers is what runtime-config offers every agent; a test
+	// sets it to stand in for the hosted gateway.
+	AgentMCPServers []domain.AgentMCPServer
 
 	mu          sync.Mutex
 	session     domain.OnboardingSession
@@ -61,6 +64,7 @@ func NewProvider(t *testing.T) *Provider {
 	}
 	p.Human = &Human{p: p}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/runtime-config", p.runtimeConfig)
 	mux.HandleFunc("POST /api/onboarding/v1/sessions/exchange", p.exchange)
 	mux.HandleFunc("GET /api/onboarding/v1/session", p.auth(p.getSession))
 	mux.HandleFunc("PUT /api/onboarding/v1/session/detections", p.auth(p.putDetections))
@@ -184,6 +188,13 @@ func (p *Provider) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+func (p *Provider) runtimeConfig(w http.ResponseWriter, _ *http.Request) {
+	p.mu.Lock()
+	servers := append([]domain.AgentMCPServer{}, p.AgentMCPServers...)
+	p.mu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]any{"public_origin": p.Server.URL, "version": "test", "agent_mcp_servers": servers})
 }
 
 func (p *Provider) exchange(w http.ResponseWriter, r *http.Request) {

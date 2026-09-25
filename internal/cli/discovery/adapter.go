@@ -5,6 +5,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/withHumanAI/withHuman/agentruntime"
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/mcpclient"
+	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
 )
 
 // Env is everything an adapter reads from the machine. Zero-value
@@ -37,6 +39,35 @@ type Env struct {
 	Run func(ctx context.Context, name string, args ...string) ([]byte, error)
 	// Getenv reads an environment variable.
 	Getenv func(key string) string
+	// ProviderServers are the MCP servers the provider offers its agents
+	// (the hosted gateway), which the CLI registers with the runtime. Their
+	// tools are the provider's own catalogue, so discovery leaves them out.
+	ProviderServers []domain.AgentMCPServer
+}
+
+// providerServer reports whether a configured server is one the provider
+// offered, by the name the CLI registered it under or by its URL.
+func (e Env) providerServer(name string, spec mcpclient.Spec) bool {
+	if mcpservers.IsRelay(spec.Command, spec.Args) {
+		return true
+	}
+	for _, server := range e.ProviderServers {
+		if server.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// ownServers drops the provider's servers from a runtime's list.
+func (e Env) ownServers(servers []mcpServer) []mcpServer {
+	out := servers[:0]
+	for _, server := range servers {
+		if !e.providerServer(server.Name, server.Spec) {
+			out = append(out, server)
+		}
+	}
+	return out
 }
 
 func (e Env) lookPath(name string) (string, error) {
@@ -210,7 +241,7 @@ func reportTools(tools []mcpclient.Tool) []domain.OnboardingReportedTool {
 // claudeStyleServers reads an `mcpServers` object in the shape Claude Code
 // (and the runtimes that copied it) use: stdio entries carry
 // command/args/env, remote entries carry type http|sse with url/headers.
-func claudeStyleServers(object *jsonObject, source, cwd string) []mcpServer {
+func claudeStyleServers(object *configfile.JSONObject, source, cwd string) []mcpServer {
 	var servers []mcpServer
 	for _, name := range object.Keys() {
 		entry, ok := object.ObjectIfPresent(name)
@@ -221,16 +252,16 @@ func claudeStyleServers(object *jsonObject, source, cwd string) []mcpServer {
 		switch strings.ToLower(entry.String("type")) {
 		case "http", "sse", "streamable-http", "streamable_http":
 			spec.URL = entry.String("url")
-			spec.Headers = jsonStringMap(entry, "headers")
+			spec.Headers = entry.StringMap("headers")
 		default:
 			if url := entry.String("url"); url != "" && entry.String("command") == "" {
 				spec.URL = url
-				spec.Headers = jsonStringMap(entry, "headers")
+				spec.Headers = entry.StringMap("headers")
 				break
 			}
 			spec.Command = entry.String("command")
-			spec.Args = jsonStrings(entry, "args")
-			spec.Env = jsonStringMap(entry, "env")
+			spec.Args = entry.Strings("args")
+			spec.Env = entry.StringMap("env")
 			if cwd := entry.String("cwd"); cwd != "" {
 				spec.Cwd = cwd
 			}
@@ -241,34 +272,6 @@ func claudeStyleServers(object *jsonObject, source, cwd string) []mcpServer {
 		servers = append(servers, mcpServer{Name: name, Source: source, Spec: spec})
 	}
 	return servers
-}
-
-func jsonStrings(object *jsonObject, key string) []string {
-	array, ok := object.Array(key)
-	if !ok {
-		return nil
-	}
-	out := make([]string, 0, len(array))
-	for _, item := range array {
-		if s, ok := item.(string); ok {
-			out = append(out, s)
-		}
-	}
-	return out
-}
-
-func jsonStringMap(object *jsonObject, key string) map[string]string {
-	child, ok := object.ObjectIfPresent(key)
-	if !ok {
-		return nil
-	}
-	out := map[string]string{}
-	for _, name := range child.Keys() {
-		if s, ok := child.values[name].(string); ok {
-			out[name] = s
-		}
-	}
-	return out
 }
 
 // dedupeServers keeps the first server of each name, in order.

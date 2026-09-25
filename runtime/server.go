@@ -122,6 +122,11 @@ type ServerOptions struct {
 	// AssistantModel drives the guided setup's assistant; nil leaves the
 	// rules step with its starting rules and the by-hand table.
 	AssistantModel application.ToolUseModel
+	// AgentMCPServers are the MCP servers the edition offers every enrolled
+	// agent (the hosted gateway), reported by /api/runtime-config as
+	// agent_mcp_servers so the withhuman CLI registers them with each
+	// runtime it installs. The open edition offers none.
+	AgentMCPServers []domain.AgentMCPServer
 }
 
 // Server is a composed withHuman product server. The exported fields are
@@ -216,6 +221,9 @@ func NewServer(ctx context.Context, options ServerOptions) (*Server, error) {
 	}
 	extras, err := httpapi.RuntimeConfigExtras(options.RuntimeConfig)
 	if err != nil {
+		return nil, err
+	}
+	if err := domain.ValidateAgentMCPServers(options.AgentMCPServers); err != nil {
 		return nil, err
 	}
 	if options.Frontend == nil {
@@ -362,7 +370,7 @@ func NewServer(ctx context.Context, options ServerOptions) (*Server, error) {
 		Config: httpapi.Config{
 			PublicOrigin: cfg.PublicOrigin, CookieSecure: cookieSecure(cfg.PublicOrigin), Version: options.Version,
 			BootstrapEnabled: cfg.BootstrapSecret != "", Extras: extras,
-			CLIDownloadURL: cfg.CLIDownloadURL,
+			CLIDownloadURL: cfg.CLIDownloadURL, AgentMCPServers: options.AgentMCPServers,
 		},
 	})
 	if len(cfg.TrustedProxyCIDRs) == 0 {

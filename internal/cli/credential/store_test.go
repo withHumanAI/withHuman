@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -36,7 +37,7 @@ func TestSaveLoadListDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if *loaded != cred {
+	if !reflect.DeepEqual(*loaded, cred) {
 		t.Fatalf("loaded = %+v, want %+v", *loaded, cred)
 	}
 	agents, err := List(dir)

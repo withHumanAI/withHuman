@@ -146,9 +146,12 @@ is part of the hosted edition, in the `withhuman_saas` module. Core has no
 gateway process and the single binary embeds none: agents call their MCP
 servers directly and withHuman sees those calls through the agent's hooks.
 What core keeps for it is generic: the `sealbox` sealer, the `authz`
-checks, and the tool catalogue's external source seam
+checks, the tool catalogue's external source seam
 (`application.ToolSource`, registered by an edition through
-`runtime.Server.RegisterToolSource`).
+`runtime.Server.RegisterToolSource`), and the `agent_mcp_servers`
+runtime-config entry (`runtime.ServerOptions.AgentMCPServers`) through
+which an edition has the `withhuman` CLI connect every runtime it
+installs to such a server.
 ## Webhook endpoints and webhook blocks
 
 A webhook block posts the request to a service the organization runs and

@@ -150,6 +150,9 @@ export const api = {
       discord_enabled: boolean;
       social_providers: SocialProvider[];
       cli_download_url: string;
+      /* MCP servers this deployment offers every enrolled agent (the
+       * hosted gateway); the CLI registers them at install. */
+      agent_mcp_servers: { name: string; url: string; label: string }[];
     }>("/api/runtime-config"),
   bootstrap: (input: Record<string, string>) =>
     request<{ principal: Principal }>("/auth/bootstrap", {

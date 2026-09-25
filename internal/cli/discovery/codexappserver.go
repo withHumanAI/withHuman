@@ -104,10 +104,12 @@ func listCodexServerStatuses(ctx context.Context, process *jsonrpc.Process) ([]c
 // server Codex is not logged in to, or could not list, lands in Errors.
 // A server with an empty catalog and no error is one Codex has disabled
 // (or one with nothing to gate) and is left out.
-func codexDiscovered(statuses []codexServerStatus) Discovered {
+func codexDiscovered(env Env, statuses []codexServerStatus) Discovered {
 	out := Discovered{Builtin: builtinTools(agentruntime.Codex), MCP: map[string][]domain.OnboardingReportedTool{}}
 	for _, status := range statuses {
 		switch {
+		case env.providerServer(status.Name, mcpclient.Spec{}):
+			continue
 		case status.AuthStatus == codexNotLoggedIn:
 			message := "Codex is not logged in to this server"
 			if status.ToolsError != nil {

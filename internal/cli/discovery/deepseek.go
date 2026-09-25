@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"os"
 	"path/filepath"
 	"sort"
@@ -55,14 +56,14 @@ func (d deepSeek) servers(env Env) ([]mcpServer, error) {
 		filepath.Join(d.home(env), "mcp.json"),
 		filepath.Join(d.home(env), "config.json"),
 	} {
-		content, existed, err := readFile(path)
+		content, existed, err := configfile.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
 		if !existed {
 			continue
 		}
-		doc, err := loadJSONObject(content, true)
+		doc, err := configfile.LoadJSONObject(content, true)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +71,7 @@ func (d deepSeek) servers(env Env) ([]mcpServer, error) {
 			servers = append(servers, claudeStyleServers(object, path, env.Cwd)...)
 		}
 	}
-	return dedupeServers(servers), nil
+	return env.ownServers(dedupeServers(servers)), nil
 }
 
 func (d deepSeek) Discover(ctx context.Context, env Env, _ Detection) (Discovered, error) {

@@ -691,8 +691,10 @@ recorded in this file with both the reason and the replacement rule.
   (`Check`, `Scope`, `HoldsAnywhere`, the typed `Denied`) so an edition's
   services authorize exactly as core's do, the `gateway` permission
   holder and `ActorGateway` actor kind as vocabulary an edition's
-  machine principal uses, the AAP `server` field on every request, and
-  the tool catalogue's external source seam (below). The gateway's own
+  machine principal uses, the AAP `server` field on every request, the
+  tool catalogue's external source seam (below), and the
+  `agent_mcp_servers` runtime-config entry through which an edition tells
+  the CLI to connect every installed runtime to it. The gateway's own
   tables stay dead in core's chain until it is squashed.
 - The hosted management MCP server is
   `POST /api/mcp/v1` on the product server (`internal/httpapi/mcp.go`,
@@ -726,10 +728,25 @@ recorded in this file with both the reason and the replacement rule.
 - The agent-side `withhuman` CLI at `cmd/withhuman-cli` embeds the pinned
   `github.com/agentapprovalprotocol/agentapprovalprotocol/adapters` library.
   Its public commands are `onboard`, `agent discover`, `agent install`,
-  `agent eject`, `upgrade`, and `version`; internal `hook <runtime>` delegates
-  to AAP.
+  `agent refresh-tools`, `agent eject`, `upgrade`, and `version`; internal
+  `hook <runtime>` delegates to AAP and internal `mcp <runtime> <server>`
+  is the relay below.
   Runtime installation, hook handling and plugin assets belong only to AAP.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
+  The MCP servers a provider offers every agent (`agent_mcp_servers` in
+  `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an
+  edition through `runtime.ServerOptions.AgentMCPServers`; the hosted
+  gateway) are registered by `onboard` and `agent install` with each
+  runtime as a stdio MCP server running `withhuman mcp <runtime> <server>`
+  with `WITHHUMAN_CONFIG_DIR` pinned (`internal/cli/mcpservers` writes the
+  per-runtime entries, `internal/cli/mcpproxy` is the relay that loads the
+  instance credential and forwards the runtime's frames to the endpoint as
+  a streamable-HTTP client). The credential never enters a runtime's
+  configuration; the enrollment record's `mcp_servers` lets `agent eject`
+  remove the entries, and discovery leaves the relay out because its tools
+  are the provider's own catalogue. `internal/cli/configfile` is the
+  shared ordered-JSON, TOML and YAML read-modify-write used by discovery
+  and registration.
   Enrollment records live under `<withhuman-config>/credentials` (0600);
   library state lives separately under `<withhuman-config>/aap`. Generated
   hooks pin that directory and the installing executable's absolute path.

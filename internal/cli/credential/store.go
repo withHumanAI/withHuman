@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/withHumanAI/withHuman/domain"
 )
 
 // Credential is one enrolled agent instance's whc_ bearer and the identity
@@ -25,6 +27,10 @@ type Credential struct {
 	AgentName    string    `json:"agent_name"`
 	InstanceName string    `json:"instance_name"`
 	Runtime      string    `json:"runtime,omitempty"`
+	// MCPServers are the provider-offered servers the CLI registered with
+	// the runtime at install, so eject can take them out and tool
+	// discovery can leave them to the provider's own catalogue.
+	MCPServers []domain.AgentMCPServer `json:"mcp_servers,omitempty"`
 }
 
 // ErrNotFound reports a missing credential file.

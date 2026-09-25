@@ -34,6 +34,8 @@ func TestAgentEnrollmentAndRepair(t *testing.T) {
 			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
+				case "/api/runtime-config":
+					json.NewEncoder(w).Encode(map[string]any{"public_origin": origin, "agent_mcp_servers": []map[string]any{{"name": "withhuman", "url": origin + "/gateway/mcp", "label": "withHuman MCP gateway"}}})
 				case "/api/v1/agent_instances/self/tool_catalog":
 					var report domain.ToolCatalogReport
 					if err := json.NewDecoder(r.Body).Decode(&report); err != nil || report.Validate() != nil || report.Runtime != "claude-code" {
@@ -126,6 +128,25 @@ func TestAgentEnrollmentAndRepair(t *testing.T) {
 				saved, err := credential.Load(config, "claude-code")
 				if err != nil || saved.AgentSlug != requestedAgent || saved.AgentName != agentName || saved.Runtime != "claude-code" {
 					t.Fatalf("lost selected identity: %+v %v", saved, err)
+				}
+			}
+			if err == nil {
+				// The provider's gateway is registered as the CLI's relay, and the
+				// credential records it for eject.
+				claudeJSON, readErr := os.ReadFile(filepath.Join(home, ".claude.json"))
+				if readErr != nil || !strings.Contains(string(claudeJSON), `"command": "/test/withhuman"`) || !strings.Contains(string(claudeJSON), `"claude-code",`) || strings.Contains(string(claudeJSON), "whc_") {
+					t.Fatalf("relay not registered: %s %v", claudeJSON, readErr)
+				}
+				if saved, _ := credential.Load(config, "claude-code"); saved == nil || len(saved.MCPServers) != 1 || saved.MCPServers[0].Name != "withhuman" {
+					t.Fatalf("credential does not record the server: %+v", saved)
+				}
+			}
+			if scenario == "fresh" {
+				if code, err := a.run(ctx, []string{"agent", "eject", "claude-code", "--yes"}); err != nil || code != 0 {
+					t.Fatalf("eject: %d %v", code, err)
+				}
+				if claudeJSON, _ := os.ReadFile(filepath.Join(home, ".claude.json")); strings.Contains(string(claudeJSON), "withhuman") {
+					t.Fatalf("relay left after eject: %s", claudeJSON)
 				}
 			}
 			if scenario == "partial" {

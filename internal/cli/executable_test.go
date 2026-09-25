@@ -59,6 +59,10 @@ func TestExecutableAdapters(t *testing.T) {
 			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				mu.Lock()
 				defer mu.Unlock()
+				if r.URL.Path == "/api/runtime-config" {
+					json.NewEncoder(w).Encode(map[string]any{"public_origin": "http://" + r.Host, "agent_mcp_servers": []map[string]any{{"name": "withhuman", "url": "http://" + r.Host + "/gateway/mcp", "label": "withHuman MCP gateway"}}})
+					return
+				}
 				if r.Header.Get("Authorization") != "Bearer "+token {
 					w.WriteHeader(401)
 					return
@@ -210,6 +214,15 @@ func TestExecutableAdapters(t *testing.T) {
 			if !pinned {
 				t.Fatal("generated integration does not pin executable and state directory")
 			}
+			// The provider's gateway is registered as this executable's relay on
+			// every runtime with an editable MCP client, and recorded for eject.
+			relayRuntimes := map[string]bool{"claude-code": true, "codex": true, "openclaw": true, "hermes": true}
+			if hasRelay(t, home) != relayRuntimes[info.Key] {
+				t.Fatalf("relay registered = %v, want %v", hasRelay(t, home), relayRuntimes[info.Key])
+			}
+			if saved, err := credential.Load(config, info.Key); err != nil || len(saved.MCPServers) != 1 {
+				t.Fatalf("credential does not record the server: %+v %v", saved, err)
+			}
 			// An edit made after installing must survive removal.
 			userFile := editRuntimeConfig(t, home, config, info.Key)
 			if out, err = run("", "agent", "eject", info.Key, "--yes"); err != nil {
@@ -223,6 +236,9 @@ func TestExecutableAdapters(t *testing.T) {
 			}
 			if data, err := os.ReadFile(userFile); err != nil || !bytes.Contains(data, []byte("preserve_after_install")) {
 				t.Fatal("user edit lost")
+			}
+			if hasRelay(t, home) {
+				t.Fatal("relay left after eject")
 			}
 			// Registration failure must not become success just because credentials
 			// were acquired. Every runtime can still be ejected after a failure.
@@ -246,6 +262,28 @@ func TestExecutableAdapters(t *testing.T) {
 			}
 		})
 	}
+}
+
+// hasRelay reports whether any file under home runs `withhuman mcp`.
+func hasRelay(t *testing.T, home string) bool {
+	t.Helper()
+	found := false
+	if err := filepath.WalkDir(home, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if bytes.Contains(raw, []byte("WITHHUMAN_CONFIG_DIR")) {
+			found = true
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return found
 }
 
 func editRuntimeConfig(t *testing.T, home, config, runtime string) string {

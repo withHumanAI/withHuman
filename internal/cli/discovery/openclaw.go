@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"github.com/withHumanAI/withHuman/internal/cli/configfile"
 	"path/filepath"
 
 	"github.com/withHumanAI/withHuman/agentruntime"
@@ -23,17 +24,17 @@ func (openClaw) configPath(env Env) string {
 // openClawApprovalTimeoutMs is the approval window the plugin registers.
 
 func (o openClaw) Discover(ctx context.Context, env Env, _ Detection) (Discovered, error) {
-	content, existed, err := readFile(o.configPath(env))
+	content, existed, err := configfile.ReadFile(o.configPath(env))
 	if err != nil {
 		return Discovered{}, err
 	}
 	var servers []mcpServer
-	doc, err := loadJSONObject(content, existed)
+	doc, err := configfile.LoadJSONObject(content, existed)
 	if err != nil {
 		return Discovered{}, fmt.Errorf("cannot discover tools from OpenClaw configuration: %w", err)
 	}
 	if object, ok := doc.Root.ObjectIfPresent("mcpServers"); ok {
-		servers = claudeStyleServers(object, o.configPath(env), env.Cwd)
+		servers = env.ownServers(claudeStyleServers(object, o.configPath(env), env.Cwd))
 	}
 	return discover(ctx, o.Key(), servers), nil
 }
