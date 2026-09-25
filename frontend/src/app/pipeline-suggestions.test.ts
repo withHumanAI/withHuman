@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api";
+import { extensions, registerExtensions } from "./extensions";
 import type { AgentSummary, ApprovalRequest, ToolCatalogEntry } from "../types";
 import { argumentPathSuggestions, conditionFieldPaths, conditionValueSuggestions, loadPipelineSuggestions, mergeValueSuggestions, sampleValueSuggestions } from "./pipeline-suggestions";
 import { sampleFromRequest, suggestPaths } from "./pipeline-blocks";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  extensions.serverDirectory = null;
+  extensions.toolSources.length = 0;
+});
 
 describe("condition value suggestions", () => {
   it("matches escaped field paths, flattens array choices, and preserves numeric types", () => {
@@ -107,6 +112,31 @@ describe("condition value suggestions", () => {
     const page = await loadPipelineSuggestions("support");
     expect(page.valueSuggestions["/request/tool"]).toEqual(["refund"]);
     expect(page.valueSuggestions["/agent/name"]).toEqual(["Support agent"]);
+  });
+
+  it("offers the edition's registered servers first, named by their source, and catalogue sources without tools", async () => {
+    mockDirectory();
+    vi.mocked(api.toolCatalog).mockResolvedValue({
+      tools: [],
+      sources: [{ id: "src", agent_slug: "support", runtime: "claude-code", discovery_context: "project", source: "mcp", server: "linear", last_attempt_at: "2026-09-22T09:00:00Z", last_success_at: "2026-09-22T09:00:00Z" }],
+      total: 0,
+      next_offset: null,
+    });
+    registerExtensions({
+      toolSources: [{ source: "gateway", label: "Gateway", external: true }],
+      serverDirectory: async () => [{ server: "github-prod", name: "GitHub production", source: "gateway" }],
+    });
+    const page = await loadPipelineSuggestions("support");
+    expect(page.valueSuggestions["/request/server"]).toEqual(["github-prod", "linear"]);
+    expect(page.valueDetails).toEqual({ "/request/server": { "github-prod": "Gateway: GitHub production" } });
+  });
+
+  it("keeps the observed servers when the edition's directory refuses the reader", async () => {
+    mockDirectory();
+    registerExtensions({ serverDirectory: () => Promise.reject(new Error("Forbidden")) });
+    const page = await loadPipelineSuggestions("support");
+    expect(page.valueSuggestions["/request/server"]).toEqual(["github"]);
+    expect(page.valueDetails).toEqual({ "/request/server": {} });
   });
 });
 

@@ -13,7 +13,7 @@ import type { ToolSchema } from "@/ds/lib/tool-schema";
 import { cn } from "@/ds/lib/cn";
 import { Badge } from "@/ds/components/badge";
 import { BranchBlockCard, BranchBlockSummaryCard } from "@/ds/components/branch-block";
-import type { ConditionNode, ConditionValueSuggestions } from "@/ds/components/condition-builder";
+import type { ConditionNode, ConditionValueDetails, ConditionValueSuggestions } from "@/ds/components/condition-builder";
 import { ConfirmDialog } from "@/ds/components/confirm-dialog";
 import {
   AlwaysBlockCard,
@@ -114,6 +114,7 @@ export interface RailState {
   tools?: ToolSchema[];
   suggestions?: string[];
   valueSuggestions?: ConditionValueSuggestions;
+  valueDetails?: ConditionValueDetails;
   /* Who a human exit that names no path asks: the pipeline default, else
    * the organization's. */
   defaultTarget: ReviewerTarget | null;
@@ -695,6 +696,7 @@ function RailCard({
           tools={rail.tools}
           suggestions={rail.suggestions}
           valueSuggestions={rail.valueSuggestions}
+          valueDetails={rail.valueDetails}
           scope={level.scope}
         />
       );
@@ -733,6 +735,7 @@ function RailCard({
           tools={rail.tools}
           suggestions={rail.suggestions}
           valueSuggestions={rail.valueSuggestions}
+          valueDetails={rail.valueDetails}
           scope={level.scope}
         />
       );

@@ -95,7 +95,7 @@ import {
 import { useTitle } from "./use-title";
 import { useRevisionActivation } from "./use-revision-activation";
 import { conditionFieldPaths, conditionValueSuggestions, loadPipelineSuggestions, mergeValueSuggestions, sampleValueSuggestions } from "./pipeline-suggestions";
-import { FIXED_FIELDS, type ConditionValueSuggestions } from "@/ds/components/condition-builder";
+import { FIXED_FIELDS, type ConditionValueDetails, type ConditionValueSuggestions } from "@/ds/components/condition-builder";
 
 const FIXED_FIELD_PATHS = new Set(FIXED_FIELDS.map((field) => field.path));
 
@@ -286,6 +286,7 @@ export interface PipelineViewPage {
    * the title can show its name. Empty for the organization scope. */
   sourceAgents: Pick<AgentSummary, "slug" | "name">[];
   valueSuggestions: ConditionValueSuggestions;
+  valueDetails: ConditionValueDetails;
   /* Argument fields the scope's agents have sent, most common first. */
   argumentPaths: string[];
   toolSchemas?: ToolSchema[];
@@ -907,6 +908,7 @@ export function PipelineViewScreen({
     tools: page.toolSchemas,
     suggestions,
     valueSuggestions,
+    valueDetails: page.valueDetails,
     defaultTarget: effectiveDefault,
     describeRoute: describeTargetRoute,
     expandedKey,

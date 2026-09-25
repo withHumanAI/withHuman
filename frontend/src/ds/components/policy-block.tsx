@@ -10,6 +10,7 @@ import {
   ConditionSummary,
   ConditionTree,
   type ConditionNode,
+  type ConditionValueDetails,
   type ConditionValueSuggestions,
 } from "./condition-builder";
 import { Button } from "./button";
@@ -295,6 +296,7 @@ export interface PolicyBlockCardProps<Block extends FixedOutcomeBlockDraft = Pol
   tools?: ToolSchema[];
   suggestions?: string[];
   valueSuggestions?: ConditionValueSuggestions;
+  valueDetails?: ConditionValueDetails;
   /* The conditions of the branches this block sits in, which narrow the
    * condition builder's field hints. */
   scope?: ConditionNode[];
@@ -324,6 +326,7 @@ function FixedOutcomeBlockCard<Block extends FixedOutcomeBlockDraft>({
   tools,
   suggestions,
   valueSuggestions,
+  valueDetails,
   scope,
   directory,
   describeRoute,
@@ -365,6 +368,7 @@ function FixedOutcomeBlockCard<Block extends FixedOutcomeBlockDraft>({
             onChange={(when) => onChange({ ...block, when })}
             suggestions={suggestions}
             valueSuggestions={valueSuggestions}
+            valueDetails={valueDetails}
             scope={scope}
           />
         </div>

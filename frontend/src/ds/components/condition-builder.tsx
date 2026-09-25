@@ -468,6 +468,10 @@ export function FieldPathInput({
 /* ---------------------------------------------------------------- */
 
 export type ConditionValueSuggestions = Record<string, (string | number)[]>;
+/* A line under a suggested value, by field path then value: what the
+ * editor knows about a server beyond its alias. Tool names carry their
+ * own line from the schema catalogue. */
+export type ConditionValueDetails = Record<string, Record<string, string>>;
 
 function SuggestedValueInput({ value, onChange, suggestions, details, isNumber = false, placeholder = "value" }: {
   value: unknown;
@@ -595,12 +599,14 @@ function ConditionLeafRow({
   onRemove,
   suggestions,
   valueSuggestions,
+  valueDetails,
 }: {
   node: ConditionNode;
   onChange: (next: ConditionNode) => void;
   onRemove?: () => void;
   suggestions: string[];
   valueSuggestions: ConditionValueSuggestions;
+  valueDetails: ConditionValueDetails;
 }) {
   const catalog = useContext(ToolSchemaContext);
   const hints = catalog ? fieldHints(catalog.root, node.id, catalog.tools) : { fields: {}, tools: [], narrowed: false };
@@ -659,7 +665,7 @@ function ConditionLeafRow({
         value={node.value}
         onChange={(value) => onChange({ ...node, value })}
         suggestions={[...new Set([...values, ...(!hints.narrowed || !node.field?.startsWith("/request/arguments/") ? valueSuggestions[node.field ?? ""] ?? [] : [])])]}
-        details={node.field === "/request/tool" ? toolDetails : undefined}
+        details={node.field === "/request/tool" ? toolDetails : valueDetails[node.field ?? ""]}
         typeHint={field && !field.unknown && field.types.length === 1 ? field.types[0] : undefined}
       />
       {suitable ? <Button size="sm" variant="ghost" onClick={() => setAllOperators(!allOperators)}>{allOperators ? "Suggested operators" : "All operators"}</Button> : null}
@@ -698,6 +704,7 @@ export interface ConditionBuilderProps {
   /* Candidate field paths offered by the path input. */
   suggestions?: string[];
   valueSuggestions?: ConditionValueSuggestions;
+  valueDetails?: ConditionValueDetails;
   /* Conditions every request reaching this one already met: the
    * enclosing pipeline branches' conditions. They are never edited here;
    * they only narrow the field hints, as if they were joined to this
@@ -716,6 +723,7 @@ export function ConditionBuilder({
   onChange,
   suggestions = [],
   valueSuggestions = {},
+  valueDetails = {},
   scope = [],
   className,
 }: ConditionBuilderProps) {
@@ -727,6 +735,7 @@ export function ConditionBuilder({
       onChange={onChange}
       suggestions={suggestions}
       valueSuggestions={valueSuggestions}
+      valueDetails={valueDetails}
       depth={0}
       className={className}
     />
@@ -740,6 +749,7 @@ function ConditionGroupEditor({
   onRemove,
   suggestions,
   valueSuggestions,
+  valueDetails,
   depth,
   className,
 }: {
@@ -748,6 +758,7 @@ function ConditionGroupEditor({
   onRemove?: () => void;
   suggestions: string[];
   valueSuggestions: ConditionValueSuggestions;
+  valueDetails: ConditionValueDetails;
   depth: number;
   className?: string;
 }) {
@@ -824,6 +835,7 @@ function ConditionGroupEditor({
                   onRemove={() => removeChild(index)}
                   suggestions={suggestions}
                   valueSuggestions={valueSuggestions}
+                  valueDetails={valueDetails}
                   depth={depth + 1}
                 />
               ) : (
@@ -833,6 +845,7 @@ function ConditionGroupEditor({
                   onRemove={children.length > 1 ? () => removeChild(index) : undefined}
                   suggestions={suggestions}
                   valueSuggestions={valueSuggestions}
+                  valueDetails={valueDetails}
                 />
               )}
             </div>

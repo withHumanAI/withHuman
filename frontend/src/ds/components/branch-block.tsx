@@ -8,6 +8,7 @@ import {
   ConditionTree,
   summarizeCondition,
   type ConditionNode,
+  type ConditionValueDetails,
   type ConditionValueSuggestions,
 } from "./condition-builder";
 import { InfoLabel } from "./info-label";
@@ -73,6 +74,7 @@ export interface BranchBlockCardProps<Child = unknown> extends BlockMenuHandlers
   tools?: ToolSchema[];
   suggestions?: string[];
   valueSuggestions?: ConditionValueSuggestions;
+  valueDetails?: ConditionValueDetails;
   /* The conditions of the branches this one sits in, which narrow the
    * condition builder's field hints. */
   scope?: ConditionNode[];
@@ -95,6 +97,7 @@ export function BranchBlockCard<Child>({
   tools,
   suggestions,
   valueSuggestions,
+  valueDetails,
   scope,
   directory,
   describeRoute,
@@ -150,6 +153,7 @@ export function BranchBlockCard<Child>({
           onChange={(when) => onChange({ ...block, when })}
           suggestions={suggestions}
           valueSuggestions={valueSuggestions}
+          valueDetails={valueDetails}
           scope={scope}
         />
       </div>

@@ -1054,9 +1054,13 @@ recorded in this file with both the reason and the replacement rule.
   a loader the agent route runs before paint and a component; and the
   tool catalogue's `toolSources` (an edition source's name, label and
   whether it is external, for the catalogue's filter, badges and refresh
-  card) and `toolReference` slot (what the tool hover card asks an
+  card), `toolReference` slot (what the tool hover card asks an
   edition about a tool's server: its display name and the matching gated
-  pattern); and `contactKinds`, the contact kinds an edition registers
+  pattern) and `serverDirectory` read (the servers an edition registers
+  centrally, by the alias a request carries as `server`, with their
+  names, which the pipeline route loader offers in the condition
+  editors' MCP server field before any call through them is seen); and
+  `contactKinds`, the contact kinds an edition registers
   beside email, Slack and Discord, each built with `defineContactKind`:
   the kind, its label, icon and add-menu description, `available` over
   the edition's runtime-config with the copy shown when it is not, the

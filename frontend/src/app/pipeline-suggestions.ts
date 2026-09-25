@@ -1,9 +1,10 @@
 import { sampleValueSuggestions } from "./request-suggestions";
 export { sampleValueSuggestions } from "./request-suggestions";
-import { catalogSchemas, loadToolCatalog } from "./tool-catalog";
+import { catalogSchemas, loadToolCatalog, toolSourceLabel } from "./tool-catalog";
 import type { ToolSchema } from "@/ds/lib/tool-schema";
-import type { ConditionNode, ConditionValueSuggestions } from "@/ds/components/condition-builder";
+import type { ConditionNode, ConditionValueDetails, ConditionValueSuggestions } from "@/ds/components/condition-builder";
 import { api } from "../api";
+import { extensions, type ServerDirectoryEntry } from "./extensions";
 import type { AgentSummary, ApprovalRequest, RequestApprovalPipelinePreviewSample } from "../types";
 import { argumentPaths, sampleFromRequest } from "./pipeline-blocks";
 
@@ -67,6 +68,13 @@ async function loadRecentRequests(agents: AgentSummary[]): Promise<ApprovalReque
   return pages.flat().sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
+/* The edition's centrally registered servers, when it has any; a
+ * refused or failed read is an empty directory. */
+function loadServerDirectory(): Promise<ServerDirectoryEntry[]> {
+  if (!extensions.serverDirectory) return Promise.resolve([]);
+  return extensions.serverDirectory().then((entries) => entries, () => []);
+}
+
 /* Optional, permission-scoped reads belong to the route loader. Failure of
  * one directory must not prevent editing or discard the other sources. */
 export async function loadPipelineSuggestions(agentSlug: string): Promise<{
@@ -75,14 +83,18 @@ export async function loadPipelineSuggestions(agentSlug: string): Promise<{
   sourceAgents: AgentSummary[];
   toolSchemas: ToolSchema[];
   valueSuggestions: ConditionValueSuggestions;
+  /* What the editor can say under a suggested server: its name and
+   * source, for the edition's registered ones. */
+  valueDetails: ConditionValueDetails;
   /* Argument fields the scope's agents have actually sent. */
   argumentPaths: string[];
   /* The newest real request as the test sample, when the scope has one. */
   sample: RequestApprovalPipelinePreviewSample | null;
 }> {
-  const [inventory, catalogue] = await Promise.all([
+  const [inventory, catalogue, directory] = await Promise.all([
     api.agents().then((page) => page.agents, () => []),
     loadToolCatalog(agentSlug),
+    loadServerDirectory(),
   ]);
   const agents = inventory.filter((agent) => !agentSlug || agent.slug === agentSlug);
   const requests = (await loadRecentRequests(agents)).filter((request) => !agentSlug || request.agent_slug === agentSlug);
@@ -90,7 +102,12 @@ export async function loadPipelineSuggestions(agentSlug: string): Promise<{
     ...catalogue.tools.map((tool) => tool.name),
     ...requests.map((request) => request.tool),
   ];
+  /* Registered servers first: a rule is usually written before the
+   * first call through one. A catalogue source names its server even
+   * when discovery found no tools there. */
   const servers = [
+    ...directory.map((entry) => entry.server),
+    ...catalogue.sources.map((source) => source.server ?? ""),
     ...catalogue.tools.map((tool) => tool.server ?? ""),
     ...requests.map((request) => request.server ?? ""),
   ].filter(Boolean);
@@ -104,6 +121,9 @@ export async function loadPipelineSuggestions(agentSlug: string): Promise<{
       "/agent/slug": agentSlug ? [agentSlug] : agents.map((agent) => agent.slug),
       "/agent/name": agents.map((agent) => agent.name),
     }, ...requests.map((request) => sampleValueSuggestions(JSON.stringify({ request: { arguments: request.arguments, context: request.context } })))),
+    valueDetails: {
+      "/request/server": Object.fromEntries(directory.map((entry) => [entry.server, `${toolSourceLabel(entry.source)}: ${entry.name}`])),
+    },
     argumentPaths: argumentPathSuggestions(requests),
     sample: newest ? sampleFromRequest(newest) : null,
   };

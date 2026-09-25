@@ -282,6 +282,16 @@ export interface ToolMention {
   server?: string;
 }
 
+/* A server the edition registers centrally, by the alias a request
+ * carries as `server`: its display name, and the tool source it belongs
+ * to (one the edition registered in toolSources, so the editors can
+ * label it). */
+export interface ServerDirectoryEntry {
+  server: string;
+  name: string;
+  source: string;
+}
+
 /* What a contact kind's add flow renders with: the person's channels,
  * so the flow can say the kind is already there; where to go once the
  * server holds the new method (the settings page returns to the list,
@@ -435,6 +445,12 @@ export interface Extensions {
    * hover card. Runs as a hook inside the card, so it may read shared
    * reads and the reader's access; the open edition knows nothing. */
   toolReference: (mention: ToolMention) => ToolReferenceFacts | null;
+  /* The servers the edition registers centrally, offered by the
+   * condition editors' MCP server field before any call has been seen
+   * from them. A plain read, not a hook: it runs in the pipeline route
+   * loader, and a reader it refuses gets nothing rather than an error.
+   * null in an edition that registers none. */
+  serverDirectory: (() => Promise<ServerDirectoryEntry[]>) | null;
   /* The contact kinds the edition delivers to beside core's own (email,
    * slack, discord), in the order its menus list them. A method of a
    * kind no bundle registered still lists, by its raw value. */
@@ -462,6 +478,7 @@ export const extensions: Extensions = {
   agentTabs: [],
   toolSources: [],
   toolReference: () => null,
+  serverDirectory: null,
   contactKinds: [],
   organizationPolicyRows: [],
   loginMethods: { sso: null },
@@ -480,6 +497,7 @@ export function registerExtensions(partial: Partial<Extensions>): void {
   if (partial.agentTabs) extensions.agentTabs.push(...partial.agentTabs);
   if (partial.toolSources) extensions.toolSources.push(...partial.toolSources);
   if (partial.toolReference) extensions.toolReference = partial.toolReference;
+  if (partial.serverDirectory) extensions.serverDirectory = partial.serverDirectory;
   if (partial.contactKinds) extensions.contactKinds.push(...partial.contactKinds);
   if (partial.organizationPolicyRows) extensions.organizationPolicyRows.push(...partial.organizationPolicyRows);
   if (partial.loginMethods) Object.assign(extensions.loginMethods, partial.loginMethods);
