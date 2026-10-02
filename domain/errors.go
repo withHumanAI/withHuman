@@ -169,6 +169,31 @@ var (
 	ErrRoleAssigned = errors.New("role is still assigned")
 )
 
+// Reasons a held agent credential no longer resolves, reported to its
+// holder as the error code.
+const (
+	CredentialRefusedAgentArchived = "agent_archived"
+	CredentialRefusedRevoked       = "credential_revoked"
+)
+
+// CredentialRefusedError tells the holder of a genuine agent credential
+// why it no longer resolves and what to run on their machine, because the
+// installed hook refuses every gated call until someone acts. It is still
+// ErrUnauthenticated for every other check.
+type CredentialRefusedError struct {
+	Reason    string
+	AgentSlug AgentSlug
+}
+
+func (err CredentialRefusedError) Error() string {
+	if err.Reason == CredentialRefusedAgentArchived {
+		return `This agent was archived in withHuman, so its calls are refused. Remove the hook with "withhuman agent eject <runtime>", or ask an administrator to restore the agent and reconnect.`
+	}
+	return fmt.Sprintf(`This instance's withHuman credential was revoked. Reconnect with "withhuman agent install <runtime> --agent %s", or remove the hook with "withhuman agent eject <runtime>".`, err.AgentSlug)
+}
+
+func (err CredentialRefusedError) Unwrap() error { return ErrUnauthenticated }
+
 // EscalationPathInUseError carries the uses that refused an archive.
 type EscalationPathInUseError struct {
 	PathKey string

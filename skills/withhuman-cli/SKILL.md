@@ -148,6 +148,7 @@ withhuman agent eject <runtime>
 | Adapter `incomplete` | Follow the printed restart, consent or repair steps, restart the runtime, rerun `withhuman agent install <runtime>`. |
 | Calls are not held | Restart the runtime, check `withhuman agent discover`, then check the pipeline: an `approve` block may be deciding them. |
 | Credential expired or revoked | Run `withhuman agent install <runtime>` again to reconnect. |
+| Every call refused because the agent was archived | Tell the person. They remove the hook with `withhuman agent eject <runtime>`; reinstalling fails until an administrator restores the agent. Don't run it yourself unless they ask. |
 | A call waited and then was refused as expired | Nobody decided in time. Tell the person; don't retry it on your own. |
 
 User guides: <https://withhuman.ai/docs/getting-started/quickstart.md> and

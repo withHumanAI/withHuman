@@ -111,6 +111,18 @@ func TestAgentInventoryAgainstRealPostgres(t *testing.T) {
 			t.Fatalf("ExpireApproval: %v", err)
 		}
 	}
+	// A revoked credential tells its holder so; an expired one does not.
+	var refused domain.CredentialRefusedError
+	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{
+		CredentialID: revoked.id, SecretHash: revoked.secret, Now: now,
+	}); !errors.As(err, &refused) || refused.Reason != domain.CredentialRefusedRevoked || !errors.Is(err, domain.ErrUnauthenticated) {
+		t.Fatalf("a revoked credential must be refused as revoked, got %v", err)
+	}
+	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{
+		CredentialID: expired.id, SecretHash: expired.secret, Now: now,
+	}); !errors.Is(err, domain.ErrUnauthenticated) || errors.As(err, &refused) {
+		t.Fatalf("an expired credential must stay plainly unauthenticated, got %v", err)
+	}
 	// Resolving the live credential stamps last_seen_at on its instance.
 	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{
 		CredentialID: live.id, SecretHash: live.secret, Now: now.Add(time.Minute),
@@ -619,10 +631,16 @@ func TestArchiveAgentAgainstRealPostgres(t *testing.T) {
 	}
 
 	// Nothing of the agent resolves while it is archived. The credential
-	// was revoked with the agent, so it reads as no credential at all
-	// rather than an inactive one.
-	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{CredentialID: credentialID, SecretHash: secret[:], Now: now.Add(2 * time.Minute)}); !errors.Is(err, domain.ErrUnauthenticated) {
-		t.Fatalf("an archived agent's credential must be refused, got %v", err)
+	// was revoked with the agent, so it is unauthenticated rather than
+	// inactive, and its holder is told the agent was archived so the hook
+	// on their machine can say what to run. A wrong secret learns nothing.
+	var refused domain.CredentialRefusedError
+	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{CredentialID: credentialID, SecretHash: secret[:], Now: now.Add(2 * time.Minute)}); !errors.Is(err, domain.ErrUnauthenticated) || !errors.As(err, &refused) || refused.Reason != domain.CredentialRefusedAgentArchived || refused.AgentSlug != "release" {
+		t.Fatalf("an archived agent's credential must be refused as archived, got %v", err)
+	}
+	wrongSecret := sha256.Sum256([]byte("not the secret"))
+	if _, err := store.ResolveAgentCredential(ctx, application.ResolveAgentCredentialInput{CredentialID: credentialID, SecretHash: wrongSecret[:], Now: now.Add(2 * time.Minute)}); !errors.Is(err, domain.ErrUnauthenticated) || errors.As(err, &refused) {
+		t.Fatalf("a wrong secret must stay plainly unauthenticated, got %v", err)
 	}
 	if _, err := store.SetAgentStatus(ctx, application.SetAgentStatusInput{OrganizationID: orgID, AgentID: first.ID, Status: domain.AgentActive, ActorID: membershipID, Now: now}); !errors.Is(err, domain.ErrAgentArchived) {
 		t.Fatalf("the status switch must refuse an archived agent, got %v", err)

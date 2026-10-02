@@ -35,7 +35,7 @@ func (s *Store) ResolveAgentCredential(ctx context.Context, input application.Re
 		&organizationID, &agentID, &instanceID, &agentSlug, &storedHash, &agentStatus, &instanceStatus, &ownerID, &ownerStatus,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.Principal{}, domain.ErrUnauthenticated
+		return domain.Principal{}, s.refusedAgentCredential(ctx, credentialID, secretHash)
 	}
 	if err != nil {
 		return domain.Principal{}, err
@@ -67,6 +67,39 @@ func (s *Store) ResolveAgentCredential(ctx context.Context, input application.Re
 		OrganizationID: domain.ID(organizationID),
 		Auth:           domain.AuthContext{Method: "bearer", Assurance: "machine", AuthenticatedAt: now, CredentialID: credentialID},
 	}.WithGrants(grants), nil
+}
+
+// refusedAgentCredential explains a credential that matched no live row.
+// Archiving an agent or revoking a credential leaves the hook installed
+// on its machine, refusing every gated call, so a genuine holder is told
+// why and what to run. Anything else, a wrong secret above all, stays
+// plain ErrUnauthenticated.
+func (s *Store) refusedAgentCredential(ctx context.Context, credentialID domain.ID, secretHash []byte) error {
+	var agentSlug, agentStatus string
+	var storedHash []byte
+	var revoked bool
+	err := s.pool.QueryRow(ctx, `SELECT a.slug, a.status, c.secret_hash, c.revoked_at IS NOT NULL
+      FROM agent_credentials c
+      JOIN agent_instances ai ON ai.id = c.agent_instance_id AND ai.organization_id = c.organization_id
+      JOIN agents a ON a.id = ai.agent_id AND a.organization_id = ai.organization_id
+      JOIN organizations o ON o.id = a.organization_id
+     WHERE c.id = $1 AND o.status = 'active'`, credentialID).Scan(&agentSlug, &agentStatus, &storedHash, &revoked)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ErrUnauthenticated
+	}
+	if err != nil {
+		return err
+	}
+	if subtle.ConstantTimeCompare(storedHash, secretHash) != 1 {
+		return domain.ErrUnauthenticated
+	}
+	switch {
+	case domain.AgentStatus(agentStatus) == domain.AgentArchived:
+		return domain.CredentialRefusedError{Reason: domain.CredentialRefusedAgentArchived, AgentSlug: domain.AgentSlug(agentSlug)}
+	case revoked:
+		return domain.CredentialRefusedError{Reason: domain.CredentialRefusedRevoked, AgentSlug: domain.AgentSlug(agentSlug)}
+	}
+	return domain.ErrUnauthenticated
 }
 
 func (s *Store) CreateAgent(ctx context.Context, input application.CreateAgentInput) (domain.Agent, error) {

@@ -5421,7 +5421,10 @@ paths:
         withhuman CLI reads it to check that a saved credential still
         authenticates. Nothing about which calls to hold comes from the
         provider: an adapter sends every intercepted call and the pipeline
-        decides. This product endpoint is outside AAP.
+        decides. A credential of an archived agent answers `401` with code
+        `agent_archived`, and a revoked one with `credential_revoked`, each
+        with a message saying what to run on the machine. This product
+        endpoint is outside AAP.
       responses:
         "200":
           description: The calling instance
@@ -5564,7 +5567,10 @@ components:
         deadline_at: "2026-09-17T12:30:00Z"
         decision: {"status": "cancelled", "note": "The agent stopped waiting.", "decided_at": "2026-09-17T12:02:00Z"}
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "An agent instance credential (whc_), or a provisioner token (whp_) where an operation says so. An agent credential that matches but no longer resolves answers 401 with a code saying why: agent_archived when its agent was archived, credential_revoked when the credential was revoked. The message says what to run on the machine whose hook presented it. Any other refusal is unauthenticated."
     cookieAuth: { type: apiKey, in: cookie, name: withhuman_session }
     apiKeyAuth:
       type: http

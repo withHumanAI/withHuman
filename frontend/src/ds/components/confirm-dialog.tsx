@@ -15,6 +15,9 @@ export interface ConfirmDialogProps {
   title: string;
   /* State the consequence, not the question: what happens on confirm. */
   description: ReactNode;
+  /* Block content under the description, such as a command to run,
+   * which the description's paragraph cannot hold. */
+  children?: ReactNode;
   /* Confirm button label, e.g. "Revoke credential". */
   confirmLabel: string;
   /* The worst actions require retyping this exact value (an org slug,
@@ -34,6 +37,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
+  children,
   confirmLabel,
   typeToConfirm,
   onConfirm,
@@ -61,6 +65,7 @@ export function ConfirmDialog({
       <DialogContent>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
+        {children ? <div className="mt-4">{children}</div> : null}
         {typeToConfirm ? (
           <div className="mt-4">
             <TextField

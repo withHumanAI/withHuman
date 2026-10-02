@@ -619,6 +619,11 @@ export function AgentScreen({ page }: { page: AgentPage }) {
           agent while it stays archived. Its instances and requests stay here
           for the record, its name is free for a new agent, and its slug stays
           reserved. Restore it to bring the agent back.
+          <p className="mt-2">
+            Connected machines will block gated tool calls until this is run on
+            each one, with its runtime such as claude-code or codex:
+          </p>
+          <CodeBlock className="mt-2" code="withhuman agent eject <runtime>" />
         </Callout>
       ) : disabled ? (
         <Callout tone="warn" title="This agent is disabled">
@@ -936,7 +941,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             open={archiving}
             onOpenChange={setArchiving}
             title={`Archive ${agent.name}?`}
-            description="Every instance stops resolving and nothing can be enrolled under this agent while it is archived. All instance credentials and provisioner tokens are revoked for good, even if you restore the agent later."
+            description="All credentials and provisioner tokens are revoked for good, even if you restore the agent. Connected machines will block gated tool calls until this is run on each one, with its runtime such as claude-code or codex:"
             confirmLabel="Archive agent"
             typeToConfirm={agent.name}
             onConfirm={async () => {
@@ -948,12 +953,17 @@ export function AgentScreen({ page }: { page: AgentPage }) {
                 toast.add({
                   title: "Agent archived",
                   description:
-                    "It stays readable here. Restore it to bring it back.",
+                    "Connected machines need the hook removed. The command stays on this page.",
                 });
                 setArchiving(false);
               }
             }}
-          />
+          >
+            <CodeBlock
+              label="On each connected machine"
+              code="withhuman agent eject <runtime>"
+            />
+          </ConfirmDialog>
           <ConfirmDialog
             open={confirmingStatus}
             onOpenChange={setConfirmingStatus}

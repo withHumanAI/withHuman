@@ -1492,6 +1492,7 @@ func WriteError(c *gin.Context, logger *slog.Logger, err error) {
 	var endpointsInactive domain.WebhookEndpointsInactiveError
 	var memberInPath domain.MembershipInEscalationPathError
 	var teamMemberInPolicy domain.TeamMemberInEscalationPolicyError
+	var credentialRefused domain.CredentialRefusedError
 	var unconfigured *blockruntime.Unconfigured
 	var refused *blockruntime.Refused
 	switch {
@@ -1629,6 +1630,8 @@ func WriteError(c *gin.Context, logger *slog.Logger, err error) {
 		status, errorType, code = http.StatusUnauthorized, "authentication", "invalid_credentials"
 	case errors.Is(err, domain.ErrInvalid):
 		status, errorType, code = http.StatusBadRequest, "invalid_request", "invalid_request"
+	case errors.As(err, &credentialRefused):
+		status, errorType, code = http.StatusUnauthorized, "authentication", credentialRefused.Reason
 	case errors.Is(err, domain.ErrUnauthenticated):
 		status, errorType, code = http.StatusUnauthorized, "authentication", "unauthenticated"
 	case errors.Is(err, domain.ErrPlanRequired):
