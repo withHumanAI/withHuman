@@ -16,7 +16,7 @@ import type { ApprovalRequest } from "../types";
 import { QueueScreen } from "./queue";
 import { validateQueueSearch, type QueueFilter } from "./queue-search";
 
-const useQueue = vi.fn((_scope: string) => ({ requests, loaded: true, liveError: "" }));
+const useQueue = vi.fn((_scope: string) => ({ requests, loaded: true, loadFailed: false }));
 vi.mock("./queue-store", () => ({
   useQueue: (scope: string) => useQueue(scope),
   refreshQueue: vi.fn(),
@@ -224,5 +224,36 @@ describe("review queue intent preloading", () => {
     else fireEvent.doubleClick(rows[0]);
     await advance(0);
     expect(router.state.location.pathname).toBe("/queue/request-0");
+  });
+});
+
+describe("review queue load failure", () => {
+  it("says the queue could not load only when no snapshot ever arrived", async () => {
+    useQueue.mockReturnValue({ requests: [], loaded: false, loadFailed: true });
+    vi.stubGlobal("matchMedia", vi.fn(() => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    })));
+    const root = createRootRoute({
+      component: () => <ToastProvider><TooltipProvider><Outlet /></TooltipProvider></ToastProvider>,
+    });
+    const queue = createRoute({
+      getParentRoute: () => root,
+      path: "/queue",
+      validateSearch: validateQueueSearch,
+      component: () => <QueueScreen openID={null} preloaded={null} />,
+    });
+    const router = createRouter({
+      routeTree: root.addChildren([queue]),
+      history: createMemoryHistory({ initialEntries: ["/queue"] }),
+    });
+    await router.load();
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByText("The queue could not load")).toBeTruthy();
+    expect(screen.queryByRole("listbox", { name: "Review queue" })).toBeNull();
+    useQueue.mockReset();
+    useQueue.mockImplementation(() => ({ requests, loaded: true, loadFailed: false }));
   });
 });

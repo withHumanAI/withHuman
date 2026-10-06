@@ -19,14 +19,18 @@ export interface QueueState {
   /* True once any snapshot has arrived: tells "nothing yet" from
    * "nothing". */
   loaded: boolean;
-  liveError: string;
+  /* True while no snapshot has arrived and the last attempt to fetch one
+   * failed. Once a snapshot exists a failure changes nothing on screen:
+   * the stream reconnects and its next snapshot replaces the old one. */
+  loadFailed: boolean;
 }
 
-const DISCONNECTED = "Live updates disconnected. Reconnecting automatically.";
 /* A stream stays open this long after the last subscriber leaves, so
  * moving between the list and a request, or a quick detour to another
  * page, does not tear the connection down and back up. */
 const IDLE_CLOSE_MS = 5_000;
+/* How long a stream the browser gave up on waits before it is reopened. */
+const RECONNECT_MS = 5_000;
 
 interface Layer {
   scope: QueueScope;
@@ -35,6 +39,7 @@ interface Layer {
   subscribers: number;
   source: EventSource | null;
   idleClose: ReturnType<typeof setTimeout> | null;
+  reconnect: ReturnType<typeof setTimeout> | null;
   inflight: Promise<void> | null;
 }
 
@@ -45,11 +50,12 @@ function layer(scope: QueueScope): Layer {
   if (!found) {
     found = {
       scope,
-      state: { requests: [], loaded: false, liveError: "" },
+      state: { requests: [], loaded: false, loadFailed: false },
       listeners: new Set(),
       subscribers: 0,
       source: null,
       idleClose: null,
+      reconnect: null,
       inflight: null,
     };
     layers.set(scope, found);
@@ -62,16 +68,19 @@ function set(target: Layer, patch: Partial<QueueState>) {
   for (const listener of target.listeners) listener();
 }
 
-/* Fetches a fresh snapshot of one layer. Errors land in liveError rather
- * than throwing, so a route loader never trips the router's error
- * boundary (the session gate handles an expired session). */
+/* Fetches a fresh snapshot of one layer. A failure never throws, so a
+ * route loader never trips the router's error boundary (the session gate
+ * handles an expired session); before the first snapshot it sets
+ * loadFailed, after it the last snapshot stays. */
 export function refreshQueue(scope: QueueScope = DEFAULT_QUEUE_SCOPE): Promise<void> {
   const target = layer(scope);
   if (target.inflight) return target.inflight;
   target.inflight = api
     .approvals(scope)
-    .then(({ requests }) => set(target, { requests, loaded: true, liveError: "" }))
-    .catch((reason: Error) => set(target, { liveError: reason.message }))
+    .then(({ requests }) => set(target, { requests, loaded: true, loadFailed: false }))
+    .catch(() => {
+      if (!target.state.loaded) set(target, { loadFailed: true });
+    })
     .finally(() => {
       target.inflight = null;
     });
@@ -93,13 +102,28 @@ function connect(target: Layer) {
     const requests = JSON.parse(
       (event as MessageEvent<string>).data,
     ) as ApprovalRequest[];
-    set(target, { requests, loaded: true, liveError: "" });
+    set(target, { requests, loaded: true, loadFailed: false });
   });
-  source.onerror = () => set(target, { liveError: DISCONNECTED });
+  source.onerror = () => {
+    if (!target.state.loaded) set(target, { loadFailed: true });
+    /* The browser retries a dropped connection itself but gives up for
+     * good when the server answers with an error (a proxy's 502 during a
+     * deploy), so a closed stream is reopened here while anyone watches. */
+    if (source.readyState !== EventSource.CLOSED || target.source !== source) return;
+    target.source = null;
+    target.reconnect ??= setTimeout(() => {
+      target.reconnect = null;
+      if (target.subscribers > 0) connect(target);
+    }, RECONNECT_MS);
+  };
   target.source = source;
 }
 
 function disconnect(target: Layer) {
+  if (target.reconnect) {
+    clearTimeout(target.reconnect);
+    target.reconnect = null;
+  }
   target.source?.close();
   target.source = null;
 }

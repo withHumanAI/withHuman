@@ -40,9 +40,11 @@ recorded in this file with both the reason and the replacement rule.
   (the to-do bell, and the collapsed sidebar's way back while the bell
   has items): it says something behind the control wants the person,
   and the control's label says the same in words.
-  Loading animations are separate: the review queue uses `LoadingDots` with
-  an accessible reconnecting label instead of a disconnected banner, keeping
-  the queue layout stable while live updates recover.
+  The review queue shows no connection state: once a snapshot has loaded,
+  a failed refresh or a dropped stream leaves it on screen without a
+  banner or indicator while the stream reconnects (`app/queue-store.ts`
+  reopens a stream the browser closed). Only a queue that never loaded
+  says so, in place of the list. The phone apps follow the same rule.
 - Every workspace screen lays out inside the design system's `Page`
   (`frontend/src/ds/components/page.tsx`), which owns the column's
   padding, gap and one of three measures: `narrow` for something you

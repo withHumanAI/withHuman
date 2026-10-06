@@ -18,7 +18,9 @@ export interface TestActivity {
   pending: ApprovalRequest | null;
   /* Requests decided since the step began, newest first: loops closed here. */
   closed: ApprovalRequest[];
-  liveError: string | null;
+  /* Whether the queue has failed to load at all. A queue that loaded
+   * and then lost its stream says nothing while it reconnects. */
+  loadFailed: boolean;
   /* Whether the test has run: something arrived since the step began. */
   tested: boolean;
 }
@@ -32,7 +34,7 @@ export interface TestActivity {
 export function useTestActivity(agentSlugs: string[], since: string | null): TestActivity {
   /* The whole visible queue, not the notified layer: the test request
    * must show the instant it exists, before any plan has addressed it. */
-  const { requests, liveError, loaded } = useQueue("visible");
+  const { requests, loadFailed, loaded } = useQueue("visible");
   const slugKey = agentSlugs.join("\n");
   const slugs = useMemo(() => new Set(slugKey.split("\n").filter(Boolean)), [slugKey]);
   const from = since === null ? 0 : Date.parse(since);
@@ -47,11 +49,11 @@ export function useTestActivity(agentSlugs: string[], since: string | null): Tes
 
   const pending = mine.find((request) => request.status === "pending") ?? null;
   const closed = mine.filter((request) => request.status !== "pending");
-  return { pending, closed, liveError, tested: loaded && (pending !== null || closed.length > 0) };
+  return { pending, closed, loadFailed, tested: loaded && (pending !== null || closed.length > 0) };
 }
 
 export function OnboardingApprovals({
-  activity: { pending, closed, liveError },
+  activity: { pending, closed, loadFailed },
   waitingDescription,
   next,
 }: {
@@ -64,7 +66,11 @@ export function OnboardingApprovals({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      {liveError ? <Callout tone="warn">{liveError}</Callout> : null}
+      {loadFailed ? (
+        <Callout tone="warn">
+          withHuman could not be reached to watch for the test request. Trying again automatically.
+        </Callout>
+      ) : null}
       {closed.map((request) => (
         <Callout
           key={request.id}
