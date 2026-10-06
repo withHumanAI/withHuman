@@ -58,6 +58,72 @@ recorded in this file with both the reason and the replacement rule.
   identity instead of a separate `Idempotency-Key` header. Repeating the same
   organization and agent returns the existing instance; retargeting conflicts.
 
+## Product copy: say less
+
+AI-written product copy says too much, in sentences with too many dependent
+clauses. Cut both. These rules cover every user-facing string: page and
+section intros, descriptions, labels, empty states, hints, tooltips and
+dialogs.
+
+- **Say what it is or what to do, then stop.** One short sentence is
+  usually enough. Leave out the mechanism behind it, how it connects to
+  other features, settings that would change it, edge cases and
+  alternative paths. Those belong in the docs.
+- **One idea per sentence.** No dependent-clause chains ("…, whose X can
+  Y the Z that W"), no trailing qualifiers ("…, notified or not", "…,
+  whoever decides it"), no "including X" asides, no "X is Y: A does B,
+  and C does D" constructions.
+- **One point per description.** Don't follow it with a sentence that
+  elaborates on or reassures about the first, and don't bundle a second
+  topic in ("X and what happens when Y").
+- **Lead with what the user can do.** Frame features by what they let the
+  user do ("let you decide… automatically"). On a page for doing
+  something, say what to do there. Don't open with a definition, and don't
+  present withHuman or its features as actors ("withHuman asked you…",
+  "pipelines decide…").
+- **Give the default path only.** No optional shortcuts or alternatives
+  ("To connect right away, …", "Or, you can…").
+- **Plain, literal words.** Labels name the capability ("Can review"), with
+  no turns of phrase ("Yours to decide"). Name the noun ("All requests"),
+  not "Everything". Prefer the user's words over system internals
+  ("notified", "sent to you" over "routed"), and use the concrete action
+  the user sees. Use one term per concept, and the same words in a label
+  and its description.
+
+Examples:
+
+- "Requests sent to you will appear here. Switch to Can decide for
+  everything routed to you, notified or not." → "Requests sent to you will
+  appear here."
+- "Requests withHuman asked you to review." → "Requests you were notified
+  about"
+- "Yours to decide" / "Everything routed to you, notified or not." → "Can
+  review" / "Everything you can review"
+- "Everything you can see, whoever decides it." → "All requests you can
+  see"
+- "Approval pipelines decide what to do with an agent's request. Every
+  request enters the entry pipeline, whose delegate blocks can hand
+  matching requests to pipelines other teams own." → "Approval pipelines
+  let you decide what to do with approval requests automatically. All
+  requests go through the entry pipeline first."
+- "Escalation paths define which humans get asked to approve a request
+  after approval pipelines decide that a human request is needed." →
+  "Escalation paths define which specific humans get notified to approve
+  requests"
+- "An endpoint is a service you run that a webhook block can consult:
+  withHuman signs and posts the request, and the endpoint answers with an
+  outcome." → "Add webhooks here to use in your pipelines"
+- "Let your scripts act with your permissions. Your keys follow your
+  permissions as they change." → "Let your scripts act with your
+  permissions."
+- "Claude Code opens the sign-in in your browser the first time it uses a
+  withHuman tool. To connect right away, run /mcp and choose withhuman,
+  then Authenticate." → "Claude Code opens the sign-in in your browser the
+  first time it uses a withHuman tool."
+- "Full setup for each client, including headless use with an existing
+  key, is in the withHuman MCP server guide." → "Full setup for each
+  client is in the withHuman MCP server guide."
+
 ## Architecture invariants
 
 - `runtime.NewServer` composes the public, stateless HTTP boundary with the
