@@ -23,11 +23,12 @@ import (
 // Run relays frames between stdin/stdout and the endpoint until stdin
 // closes. Requests are forwarded concurrently, as the runtime sends them;
 // an endpoint failure answers the request with a JSON-RPC error so the
-// runtime sees why instead of hanging.
-func Run(ctx context.Context, stdin io.Reader, stdout io.Writer, endpoint, token string, client *http.Client) error {
+// runtime sees why instead of hanging. runtime is the runtime key the
+// install enrolled, named in the advice for a refused credential.
+func Run(ctx context.Context, stdin io.Reader, stdout io.Writer, runtime, endpoint, token string, client *http.Client) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	r := &relay{endpoint: endpoint, token: token, client: client, out: jsonrpc.NewLineWriter(stdout)}
+	r := &relay{runtime: runtime, endpoint: endpoint, token: token, client: client, out: jsonrpc.NewLineWriter(stdout)}
 	scanner := jsonrpc.NewScanner(stdin)
 	var wg sync.WaitGroup
 	for scanner.Scan() {
@@ -54,6 +55,7 @@ func Run(ctx context.Context, stdin io.Reader, stdout io.Writer, endpoint, token
 }
 
 type relay struct {
+	runtime  string
 	endpoint string
 	token    string
 	client   *http.Client
@@ -110,7 +112,10 @@ func (r *relay) forward(ctx context.Context, frame []byte, msg jsonrpc.Message) 
 		return
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
 		if msg.IsRequest() {
-			r.fail(msg.ID, fmt.Sprintf("the withHuman gateway refused this instance's credential (HTTP %d); run withhuman agent install for this runtime", resp.StatusCode))
+			// An archived agent's credentials are revoked and a disabled
+			// one's stop resolving, so enrolling again is not always the way
+			// out: say what may have happened and how to remove withHuman.
+			r.fail(msg.ID, fmt.Sprintf("the withHuman gateway refused this instance's credential (HTTP %d); its agent may have been archived or disabled, or the credential revoked. Ask whoever manages the agent, run withhuman agent install %s to enroll again, or run withhuman agent eject %s to remove withHuman from this runtime", resp.StatusCode, r.runtime, r.runtime))
 		}
 		return
 	case resp.StatusCode < 200 || resp.StatusCode >= 300:

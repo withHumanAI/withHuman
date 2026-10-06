@@ -618,12 +618,22 @@ export function AgentScreen({ page }: { page: AgentPage }) {
           Every credential was revoked and nothing can be enrolled under this
           agent while it stays archived. Its instances and requests stay here
           for the record, its name is free for a new agent, and its slug stays
-          reserved. Restore it to bring the agent back.
+          reserved. Restore it to bring the agent back. Machines that still
+          run it block every tool call until someone runs{" "}
+          <code className="font-mono text-[12px]">
+            withhuman agent eject &lt;runtime&gt;
+          </code>{" "}
+          there.
         </Callout>
       ) : disabled ? (
         <Callout tone="warn" title="This agent is disabled">
-          Its credentials are kept but none of them resolve. Enable it again to
-          let every instance back in without re-enrolling.
+          Its credentials are kept but none of them resolve, so machines that
+          still run it block every tool call. Enable it again to let every
+          instance back in without re-enrolling, or run{" "}
+          <code className="font-mono text-[12px]">
+            withhuman agent eject &lt;runtime&gt;
+          </code>{" "}
+          on a machine to stop gating it.
         </Callout>
       ) : null}
 
@@ -936,7 +946,18 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             open={archiving}
             onOpenChange={setArchiving}
             title={`Archive ${agent.name}?`}
-            description="Every instance stops resolving and nothing can be enrolled under this agent while it is archived. All instance credentials and provisioner tokens are revoked for good, even if you restore the agent later."
+            description={
+              <>
+                Every instance stops resolving and nothing can be enrolled
+                under this agent while it is archived. All instance
+                credentials and provisioner tokens are revoked for good, even
+                if you restore the agent later.
+                <BlockedRuntimesNote
+                  instances={agent.instances}
+                  way="reinstall it under another agent"
+                />
+              </>
+            }
             confirmLabel="Archive agent"
             typeToConfirm={agent.name}
             onConfirm={async () => {
@@ -963,7 +984,17 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             description={
               disabled
                 ? "Every instance with a live credential can open requests again. Nothing needs to re-enroll."
-                : "Every instance stops resolving immediately, credentials included. Enabling the agent later lets them back in without re-enrolling."
+                : (
+                    <>
+                      Every instance stops resolving immediately, credentials
+                      included. Enabling the agent later lets them back in
+                      without re-enrolling.
+                      <BlockedRuntimesNote
+                        instances={agent.instances}
+                        way="enable the agent again"
+                      />
+                    </>
+                  )
             }
             confirmLabel={disabled ? "Enable agent" : "Disable agent"}
             tone={disabled ? "approve" : "danger"}
@@ -1001,7 +1032,14 @@ export function AgentScreen({ page }: { page: AgentPage }) {
               open
               onOpenChange={(open) => !open && setRevokingCredential(null)}
               title={`Revoke the credential for ${revokingCredential.name}?`}
-              description="The instance loses access immediately and cannot get it back: it has to enroll again for a new credential. Other instances are untouched."
+              description={
+                <>
+                  The instance loses access immediately and cannot get it
+                  back: it has to enroll again for a new credential. Other
+                  instances are untouched.
+                  <BlockedRuntimesNote way="enroll it again" />
+                </>
+              }
               confirmLabel="Revoke credential"
               onConfirm={async () => {
                 const credential = revokingCredential.credentials.find(
@@ -1108,3 +1146,50 @@ function CredentialState({ instance }: { instance: AgentInstanceDetail }) {
   );
 }
 
+/* Archiving, disabling or revoking leaves the machines running the agent
+ * as they were: their hooks still send every tool call, withHuman refuses
+ * the credential, and the runtime blocks every call until someone acts
+ * there. Say so before confirming, and name the instances that still hold
+ * a live credential (named after their machine by default) so the person
+ * knows where to go. way is the other way out besides ejecting. */
+function BlockedRuntimesNote({
+  instances = [],
+  way,
+}: {
+  instances?: AgentInstanceDetail[];
+  way: string;
+}) {
+  const shown = 3;
+  const connected = instances
+    .filter(
+      (instance) =>
+        instance.status === "active" &&
+        instance.credentials.some(credentialLive),
+    )
+    .map((instance) => instance.name);
+  return (
+    <span className="mt-3 block">
+      Runtimes still running it block every tool call until someone runs{" "}
+      <code className="font-mono text-[12px]">
+        withhuman agent eject &lt;runtime&gt;
+      </code>{" "}
+      on that machine, or you {way}.
+      {connected.length > 0 ? (
+        <>
+          {" "}
+          Still connected:{" "}
+          {connected.slice(0, shown).map((name, index) => (
+            <span key={name}>
+              {index > 0 ? ", " : ""}
+              <span className="whitespace-nowrap">{name}</span>
+            </span>
+          ))}
+          {connected.length > shown
+            ? ` and ${(connected.length - shown).toLocaleString()} more`
+            : ""}
+          .
+        </>
+      ) : null}
+    </span>
+  );
+}

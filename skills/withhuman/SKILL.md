@@ -109,6 +109,10 @@ pause, be refused, or time out. That is the organization's policy working.
   on your own: tell the user so they can ask again or chase a reviewer.
 - **Cancelled, or withHuman unreachable.** The call did not run. Treat it
   as not approved and tell the user. The adapter fails closed on purpose.
+- **Credential refused.** Every call is denied until someone acts: the
+  agent was archived or disabled, or this machine's credential revoked.
+  Stop retrying, tell the user, and pass on the reason's advice: ask
+  whoever manages the agent, reconnect, or remove the adapter.
 - **Help reviewers.** They decide from the tool and its arguments. Make
   each call do one clear thing with readable arguments, and say beforehand
   what you are about to do and why.

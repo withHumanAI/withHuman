@@ -35,7 +35,7 @@ func startHost(t *testing.T, endpoint, token string) *host {
 	go func() {
 		defer cancel()
 		defer outWriter.Close()
-		h.done <- Run(ctx, inReader, outWriter, endpoint, token, &http.Client{})
+		h.done <- Run(ctx, inReader, outWriter, "claude-code", endpoint, token, &http.Client{})
 	}()
 	t.Cleanup(func() { inWriter.Close(); cancel() })
 	return h
@@ -97,7 +97,7 @@ func TestRelayReportsARefusedCredential(t *testing.T) {
 	h.send(`{"jsonrpc":"2.0","id":7,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}`)
 	answer := h.recv()
 	problem, _ := answer["error"].(map[string]any)
-	if answer["id"] != float64(7) || problem == nil || !strings.Contains(problem["message"].(string), "refused this instance's credential") {
+	if answer["id"] != float64(7) || problem == nil || !strings.Contains(problem["message"].(string), "refused this instance's credential") || !strings.Contains(problem["message"].(string), "withhuman agent eject claude-code") {
 		t.Fatalf("answer = %v", answer)
 	}
 	h.close()

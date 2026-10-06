@@ -416,7 +416,7 @@ func (a *app) mcp(ctx context.Context, args []string) error {
 	// runtime closing stdin ends every call.
 	client.Timeout = 0
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return mcpproxy.Run(ctx, a.stdin, a.stdout, server.URL, cred.Token, &client)
+	return mcpproxy.Run(ctx, a.stdin, a.stdout, runtime, server.URL, cred.Token, &client)
 }
 
 // chooseRuntime only inspects the local machine; enrollment starts after a choice.
