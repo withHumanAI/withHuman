@@ -193,13 +193,13 @@ function WayDemo() {
         value="agent"
         icon={<AgentIcon width={16} height={16} />}
         label="With my coding agent"
-        description="Paste a prompt; it writes the rules with you."
+        description="Paste a prompt into your coding agent to write the rules."
       />
       <RadioCard
         value="describe"
         icon={<MessageIcon width={16} height={16} />}
         label="Describe it in words"
-        description="Say what should wait; withHuman writes the rules."
+        description="Say what should wait for you."
       />
       <RadioCard
         value="manual"
@@ -253,7 +253,7 @@ export function SettingsSection_() {
             <SettingRow
               icon={<MailIcon />}
               label={<span className="font-mono">chris@example.com</span>}
-              description="Account email. Every account message goes here."
+              description="Account email"
             >
               <Badge tone="neutral" icon={<CheckIcon />}>
                 Account email

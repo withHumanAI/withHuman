@@ -28,7 +28,7 @@ export function NotificationsScreen({ page }: { page: ChannelsPage }) {
   return (
     <SettingsPage
       title="Notifications"
-      description="Let withHuman know how to get in touch with you."
+      description="Choose how you want to be notified."
     >
       {error ? (
         <Callout tone="warn" title="Could not load your channels">

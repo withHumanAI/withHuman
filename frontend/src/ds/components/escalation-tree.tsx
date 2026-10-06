@@ -162,17 +162,13 @@ export function PathLevelTargets({
         <div className={wellClass(depth + 1)}>
           {walking ? (
             <p className="text-micro font-normal text-ink-muted">
-              {open.name} is already being walked above. Its members are notified here; its
-              policy is not entered a second time.
+              Everyone on {open.name} is notified here. Its policy already runs above.
             </p>
           ) : path ? (
             <>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-label text-ink-secondary">
                   {path.teamName}: escalation policy
-                </span>
-                <span className="text-micro font-normal text-ink-faint">
-                  walks while this level's timer runs
                 </span>
                 {teamAction ? <span className="ml-auto">{teamAction(path)}</span> : null}
               </div>
@@ -187,8 +183,7 @@ export function PathLevelTargets({
             </>
           ) : (
             <p className="text-micro font-normal text-ink-muted">
-              {open.name} has no escalation policy, so everyone on the team is notified at
-              once.
+              Everyone on {open.name} is notified at once.
             </p>
           )}
         </div>
@@ -217,7 +212,7 @@ function BranchWell({
       <span className={MONO_LABEL}>{label}</span>
       {nodes.length === 0 ? (
         <p className="text-micro font-normal text-ink-faint">
-          Nothing: falls through to the next step.
+          Continues to the next step.
         </p>
       ) : (
         <PathTree

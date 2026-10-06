@@ -147,7 +147,7 @@ export function BranchBlockCard<Child>({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Choose the conditions a request must meet to enter this branch. A request that does not match skips every block inside it and continues to the next block."
+          info="Choose which requests run the blocks in this branch."
           docsLinks={[BRANCH_DOCS.when]}
         >
           When
@@ -174,7 +174,7 @@ export function BranchBlockCard<Child>({
           <InfoLabel
             className="text-label text-ink-secondary"
             info={[
-              "Choose who reviews a request when no block in this branch decides. Blocks inside the branch that ask a human without a path of their own use the pipeline default.",
+              "Choose who reviews a request when no block in this branch decides.",
               describeRoute?.(block.target ?? null),
             ].filter(Boolean).join(" ")}
             docsLinks={[BRANCH_DOCS.end]}
@@ -193,7 +193,7 @@ export function BranchBlockCard<Child>({
       {endReachable ? (
         <TextField
           label="Reason (optional)"
-          info="The explanation reviewers see when no block in this branch decides and the request goes to a human."
+          info="The explanation reviewers see when no block in this branch decides."
           docsLinks={[BRANCH_DOCS.end]}
           value={block.reason}
           onChange={(event) => onChange({ ...block, reason: event.target.value })}

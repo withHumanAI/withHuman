@@ -118,7 +118,7 @@ export function RevisionHistory<Item extends RevisionRow>({
   onLoadMore,
   loadingMore = false,
   emptyTitle = "No revisions yet",
-  emptyDescription = "Every save creates a numbered revision here.",
+  emptyDescription = "Revisions you save will appear here.",
   className,
   "aria-label": ariaLabel,
 }: RevisionHistoryProps<Item>) {

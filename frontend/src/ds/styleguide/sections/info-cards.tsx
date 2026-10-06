@@ -54,7 +54,7 @@ export function InfoCardsSection() {
               Rules evaluate a request in order. They can approve it, deny it, or ask a human to review it.
             </p>
             <p>
-              Every request starts in the entry pipeline. A delegate block hands matching requests to another pipeline, whose owners decide the rest.
+              All requests go through the entry pipeline first.
             </p>
           </InfoCard>
         </span>

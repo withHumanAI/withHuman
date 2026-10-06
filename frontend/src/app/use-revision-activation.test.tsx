@@ -60,7 +60,7 @@ describe("saved revision activation", () => {
     const { activate, save } = setup();
     const dialog = await screen.findByRole("dialog");
     expect(dialog.textContent).toContain("Revision 2 is still active.");
-    expect(dialog.textContent).toContain("Your changes are saved as a draft and are not live yet.");
+    expect(dialog.textContent).toContain("Your changes are saved as a draft.");
     expect(save).toHaveBeenCalledTimes(1);
     expect(activate).not.toHaveBeenCalled();
     expect(screen.queryByText("Save flow finished")).toBeNull();
@@ -92,8 +92,8 @@ describe("saved revision activation", () => {
     const { activate } = setup({ canActivate: false, activeRevision: null });
     const button = await screen.findByRole("button", { name: "Make active" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByRole("dialog").textContent).toContain("There is currently no active revision.");
-    expect(screen.getByRole("dialog").textContent).toContain("you do not have permission to activate");
+    expect(screen.getByRole("dialog").textContent).toContain("No revision is active yet.");
+    expect(screen.getByRole("dialog").textContent).toContain("You do not have permission to activate");
     fireEvent.click(button);
     expect(activate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Keep as draft" }));
@@ -118,7 +118,7 @@ describe("saved revision activation", () => {
     const activate = vi.fn<() => Promise<unknown>>().mockRejectedValue(new RequestError("Conflict", 412, "revision_conflict"));
     setup({ activate });
     fireEvent.click(await screen.findByRole("button", { name: "Make active" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("Someone changed the active revision.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Someone else changed the active revision.");
     fireEvent.click(screen.getByRole("button", { name: "Keep as draft" }));
     await screen.findByText("Save flow finished");
   });

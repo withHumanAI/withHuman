@@ -44,10 +44,8 @@ export function ConnectScreen({ canCreate }: { canCreate: boolean }) {
         <div>
           <h1 className="text-title-lg text-ink">Add New Agent</h1>
           <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-            An agent is one identity whose instances share an approval
-            pipeline. For example, you might have a single agent for your
-            coding assistants, with an instance for each machine they run
-            on, such as claude-code-desktop and codex-laptop.
+            Add an agent for each group of runtimes, such as your coding
+            assistants.
           </p>
         </div>
       </PageHeader>
@@ -57,7 +55,7 @@ export function ConnectScreen({ canCreate }: { canCreate: boolean }) {
           <EmptyState
             icon={<AgentIcon width={18} height={18} />}
             title="You do not have permission to add agents"
-            description="Ask an administrator to add the agent or give you permission to create it."
+            description="Ask an administrator to add the agent."
           />
         </Card>
       ) : (
@@ -148,7 +146,7 @@ export function CreateAgentForm({
               setError("");
             }}
             placeholder="Support bot"
-            description="What reviewers see on requests. You can rename the agent later."
+            description="What reviewers see on requests."
             maxLength={120}
             disabled={creating}
             required
@@ -164,7 +162,7 @@ export function CreateAgentForm({
               setError("");
             }}
             placeholder="support-bot"
-            description="The permanent identifier for your agent. It cannot be changed or reused once the agent exists."
+            description="The agent's permanent identifier. It can't be changed later."
             error={slugError ?? (error || undefined)}
             maxLength={AGENT_SLUG_MAX_LENGTH}
             disabled={creating}
@@ -179,12 +177,12 @@ export function CreateAgentForm({
             <RadioOption
               value="service"
               label="Service agent"
-              description="An agent the organization runs, such as a support bot. Its instances share one identity, administrators connect them, and provisioner tokens can register them automatically."
+              description="An agent the organization runs, such as a support bot."
             />
             <RadioOption
               value="personal"
               label="Personal agent"
-              description="An agent people run for themselves, such as a coding assistant. Every instance belongs to the member who connects it and is disabled when they leave. Anyone can connect their own."
+              description="An agent people run for themselves, such as a coding assistant."
             />
           </RadioGroup>
         </CardBody>

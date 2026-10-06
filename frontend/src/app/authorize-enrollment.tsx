@@ -65,7 +65,7 @@ export function AuthorizeEnrollmentScreen({
     } catch (reason) {
       setError(
         reason instanceof RequestError && reason.status === 404
-          ? "The code has expired or the agent is no longer available. Check your agent and run install again."
+          ? "The code has expired or the agent is no longer available. Run install again."
           : reason instanceof Error
             ? reason.message
             : "Unable to connect the instance. Try again.",
@@ -86,8 +86,7 @@ export function AuthorizeEnrollmentScreen({
         <div>
           <h1 className="text-title-lg text-ink">Connect an instance</h1>
           <p className="mt-1.5 text-body text-ink-muted">
-            Choose the agent whose approval pipeline this runtime will use. An
-            instance of a personal agent is yours: it acts on your behalf.
+            Choose an agent for this runtime.
           </p>
         </div>
       </PageHeader>
@@ -211,7 +210,7 @@ export function AuthorizeEnrollmentScreen({
                             {" "}(<AgentName agent={target} />)
                           </>
                         )}
-                        . Authorize this instance to use its approval pipeline.
+                        .
                       </p>
                     ) : (
                       <>
@@ -262,7 +261,7 @@ export function AuthorizeEnrollmentScreen({
                               ? "No matching agents."
                               : holdsAnywhere("agent.write")
                                 ? "No agents are available to connect. Create one to get started."
-                                : "No agents are available to connect. Ask an administrator to add a personal agent or grant you access to a service agent."}
+                                : "No agents are available to connect. Ask an administrator for access."}
                           </p>
                         )}
                         {((search.offset ?? 0) > 0 ||

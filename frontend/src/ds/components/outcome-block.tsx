@@ -90,7 +90,7 @@ export function OutcomeBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Choose what happens to every request that reaches this block. Pipeline processing stops here."
+          info="Choose what happens to every request that reaches this block."
           docsLinks={[{ ...OUTCOME_DOCS, label: "Choosing outcomes" }]}
         >
           Outcome
@@ -109,7 +109,7 @@ export function OutcomeBlockCard({
         <div className="flex flex-col gap-1.5">
           <InfoLabel
             className="text-label text-ink-secondary"
-            info={["The path decides who is asked and when. The pipeline default is set on the end of pipeline card.", describeRoute?.(block.target ?? null)].filter(Boolean).join(" ")}
+            info={["Choose who gets notified to approve these requests.", describeRoute?.(block.target ?? null)].filter(Boolean).join(" ")}
             docsLinks={[{ href: "https://withhuman.ai/docs/web-app/approval-pipelines#human-review", label: "Routing requests to reviewers" }]}
           >
             Escalation path
@@ -181,7 +181,7 @@ export function OutcomeBlockSummaryCard({
       ) : null}
 
       <SummaryField label="Reason">
-        <SummaryText empty="No reason given. The agent receives only the outcome.">{block.reason}</SummaryText>
+        <SummaryText empty="No reason given.">{block.reason}</SummaryText>
       </SummaryField>
     </BlockSummaryCard>
   );

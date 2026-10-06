@@ -53,10 +53,10 @@ function createErrorMessage(reason: unknown): string {
       return "Your plan does not include scoped keys.";
     case "forbidden":
       if (reason.message.includes("too old")) {
-        return "Sign in again before creating a key that can decide requests or use a dangerous permission.";
+        return "Sign in again to create a key with these permissions.";
       }
       if (reason.message.includes("insufficient")) {
-        return "This key needs a multi-factor sign-in because of the permissions it carries.";
+        return "Sign in with multi-factor authentication to create a key with these permissions.";
       }
       return reason.message;
     default:
@@ -83,8 +83,7 @@ export function NewAPIKeyScreen({ page }: { page: NewAPIKeyPage }) {
     return (
       <SettingsPage title="Create personal API key" description={DESCRIPTION} back={<PageBackLink to="/settings/personal-api-keys">Personal API keys</PageBackLink>}>
         <Callout tone="warn" title="Personal API keys are turned off">
-          An administrator turned personal API keys off for this organization,
-          so no key can be created until they are turned on again.
+          An administrator turned personal API keys off for this organization.
         </Callout>
       </SettingsPage>
     );
@@ -183,19 +182,18 @@ function CreateKeyForm({
       >
         <SettingsSection
           title="Your personal API key"
-          description="withHuman doesn't store the key so it is irretrievable."
           inset="none"
         >
           <div className="flex flex-col gap-3 px-4 py-4">
             <Callout tone="warn" title="Copy this key now">
-              After you leave this page, you will not be able to see this again.
+              You won't see it again after you leave this page.
             </Callout>
             <CodeBlock label="API key" code={minted.token} />
           </div>
         </SettingsSection>
         <SettingsSection
           title="Check that it works"
-          description="Run this from a terminal. withHuman will answer with the key's name and permissions."
+          description="Run this from a terminal to see the key's name and permissions."
           inset="none"
         >
           <div className="px-4 py-4">
@@ -209,7 +207,7 @@ function CreateKeyForm({
   return (
     <SettingsPage title="Create personal API key" description={DESCRIPTION} back={<PageBackLink to="/settings/personal-api-keys">Personal API keys</PageBackLink>}>
       <form onSubmit={submit} className="flex flex-col gap-8">
-        <SettingsSection title="Name" description="How the key appears in your list and in the audit log.">
+        <SettingsSection title="Name" description="How the key appears in your list.">
           <SettingRow label="Name" description="The more descriptive, the better.">
             <TextField
               aria-label="Name"
@@ -227,7 +225,7 @@ function CreateKeyForm({
 
         <SettingsSection
           title="Permissions"
-          description="What the key may do. It can never do more than you can."
+          description="What the key can do."
           inset="none"
         >
           <div className="flex flex-col gap-3 px-4 py-4">
@@ -246,7 +244,7 @@ function CreateKeyForm({
                   <RadioOption
                     value="scoped"
                     label="Only these permissions"
-                    description="The key can use a permission only while you still hold it."
+                    description="Choose which of your permissions the key can use."
                   />
                 </RadioGroup>
                 {scoped ? (
@@ -263,8 +261,7 @@ function CreateKeyForm({
               </>
             ) : (
               <p className="text-body text-ink-muted">
-                This key inherits everything you can do. Scoping keys to fewer
-                permissions is available in the hosted edition.
+                This key has all of your permissions.
               </p>
             )}
           </div>
@@ -308,8 +305,7 @@ function CreateKeyForm({
             </RadioGroup>
             {expiryMode === "never" ? (
               <Callout tone="warn" title="A key that never expires is not best practice" className="mt-3">
-                A leaked key stays usable until someone notices and revokes it. Set an expiry
-                and rotate the key instead, unless you have a specific reason not to.
+                A leaked key stays usable until someone revokes it.
               </Callout>
             ) : null}
           </div>

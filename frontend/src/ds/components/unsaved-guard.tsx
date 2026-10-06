@@ -43,8 +43,7 @@ export function UnsavedGuard({
       <DialogContent>
         <DialogTitle>Unsaved changes</DialogTitle>
         <DialogDescription>
-          This page has edits that have not been saved. Save or discard them
-          before leaving.
+          Save or discard your changes before leaving.
         </DialogDescription>
         <DialogFooter>
           <Button variant="ghost" disabled={saving} onClick={() => reset?.()}>

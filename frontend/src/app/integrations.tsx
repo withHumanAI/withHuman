@@ -69,7 +69,7 @@ export function IntegrationsScreen({
   return (
     <SettingsPage
       title="Integrations"
-      description="Workspaces and servers connected to this organization, so approval prompts can reach reviewers where they already are."
+      description="Let reviewers get notified in Slack and Discord."
     >
       {canRead && !canWrite ? (
         <Callout tone="neutral">
@@ -174,7 +174,7 @@ function SlackSection({
         title: `${result.linked} of ${result.members} members linked`,
         description:
           result.linked < result.members
-            ? "Members whose Slack email differs from their withHuman addresses can add that address under Notifications."
+            ? "Members with a different Slack email can add it under Notifications."
             : undefined,
       });
     } catch (reason) {
@@ -210,8 +210,8 @@ function SlackSection({
       title="Slack"
       description={
         unavailable
-          ? "This deployment has no Slack app credentials configured, so workspaces cannot be connected here."
-          : "Connect your workspace so approvals can reach reviewers in Slack. A Slack admin completes the install; it grants withHuman a bot that sends direct messages."
+          ? "Slack is not set up on this deployment."
+          : "Connect your workspace so reviewers get notified in Slack."
       }
     >
       <SettingRow
@@ -239,7 +239,7 @@ function SlackSection({
       </SettingRow>
       {unavailable ? null : connection === null || disconnected ? (
         canWrite ? (
-          <SettingRow label={disconnected ? "Reconnect Slack" : "Connect Slack"} description={disconnected ? "Slack delivery is paused. Reconnect to match members again and restore their saved rules." : undefined}>
+          <SettingRow label={disconnected ? "Reconnect Slack" : "Connect Slack"} description={disconnected ? "Slack notifications are paused." : undefined}>
             <Button variant="primary" loading={busy} onClick={() => void connect()}>
               {disconnected ? "Reconnect" : "Connect"}
             </Button>
@@ -254,7 +254,7 @@ function SlackSection({
                 {connection.linked_members === 1
                   ? "1 member is linked to their Slack account"
                   : `${connection.linked_members} members are linked to their Slack accounts`}
-                . Linked members receive approval prompts as direct messages.
+                .
               </>
             }
           >
@@ -267,7 +267,7 @@ function SlackSection({
           {canWrite ? (
             <SettingRow
               label="Disconnect"
-              description="Stops Slack delivery. Member links and saved rules are kept until accounts can be matched again."
+              description="Stops Slack notifications."
             >
               <Button variant="danger" loading={busy} onClick={() => void disconnect()}>
                 Disconnect
@@ -325,7 +325,6 @@ function DiscordSection({
       toast.add({
         type: "approve",
         title: "Discord disconnected",
-        description: "Members' Discord links were removed with the server.",
       });
     } catch (reason) {
       toast.add({
@@ -343,8 +342,8 @@ function DiscordSection({
       title="Discord"
       description={
         unavailable
-          ? "This deployment has no Discord application configured, so servers cannot be connected here."
-          : "Connect your server so approvals can reach reviewers in Discord. A server admin adds the withHuman bot; members then link their own accounts under Notifications."
+          ? "Discord is not set up on this deployment."
+          : "Connect your server so reviewers get notified in Discord."
       }
     >
       <SettingRow
@@ -375,7 +374,7 @@ function DiscordSection({
         canWrite ? (
           <SettingRow
             label="Connect Discord"
-            description="Opens Discord, where an admin picks a server, adds the bot, and is sent straight back here."
+            description="Opens Discord to add the bot to a server."
           >
             <Button variant="primary" loading={busy} onClick={() => void connect()}>
               Connect
@@ -391,14 +390,14 @@ function DiscordSection({
                 {connection.linked_members === 1
                   ? "1 member has linked their Discord account"
                   : `${connection.linked_members} members have linked their Discord accounts`}
-                . Linked members receive approval prompts as direct messages from the bot.
+                .
               </>
             }
           />
           {canWrite ? (
             <SettingRow
               label="Disconnect"
-              description="Removes the server and every member's Discord link, and the bot leaves."
+              description="Removes the server and every member's Discord link."
             >
               <Button variant="danger" loading={busy} onClick={() => void disconnect()}>
                 Disconnect

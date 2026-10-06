@@ -251,7 +251,7 @@ export function TeamEscalationPolicyScreen({
       await api.archiveTeamEscalationPolicy(teamId, activeRevision);
       toast.add({
         title: "Escalation policy archived",
-        description: `A request reaching ${team.name} notifies everyone on it at once.`,
+        description: `Everyone on ${team.name} is now notified at once.`,
       });
       setArchiving(false);
       await router.invalidate();
@@ -325,8 +325,7 @@ export function TeamEscalationPolicyScreen({
             icon={<AlertIcon width={15} height={15} />}
             title={`${warning.display_name || "A former member"} is no longer on ${team.name}`}
           >
-            The active revision names them at a level. That level skips them when it runs.
-            Remove them from the step, or add them back to the team.
+            Remove them from the policy, or add them back to the team.
           </Callout>
         ) : (
           <Callout
@@ -335,8 +334,7 @@ export function TeamEscalationPolicyScreen({
             icon={<AlertIcon width={15} height={15} />}
             title={`${warning.count} of ${warning.member_count} members of ${team.name} cannot decide requests`}
           >
-            The policy names them, but they do not have permission to decide the requests it
-            carries. A request reaching the team waits for the members who can.
+            Give them permission to decide requests, or remove them from the policy.
           </Callout>
         ),
       )}
@@ -350,10 +348,7 @@ export function TeamEscalationPolicyScreen({
             <CardHeader>
               <div>
                 <CardTitle>Steps</CardTitle>
-                <CardDescription>
-                  Walked in order while the path level that named the team keeps its own timer
-                  running.
-                </CardDescription>
+                <CardDescription>Who is notified, in order.</CardDescription>
               </div>
             </CardHeader>
             <CardBody>
@@ -366,7 +361,7 @@ export function TeamEscalationPolicyScreen({
           <EmptyState
             icon={<BroadcastIcon width={18} height={18} />}
             title="No escalation policy"
-            description={team.archived_at ? "This team is archived and cannot receive requests." : `Everyone on ${team.name} is notified at once when a path reaches it.`}
+            description={team.archived_at ? "This team is archived and cannot receive requests." : `Everyone on ${team.name} is notified at once.`}
           />
         </Card>
       ) : null}
@@ -410,7 +405,7 @@ export function TeamEscalationPolicyScreen({
           open
           onOpenChange={(open) => !open && setArchiving(false)}
           title="Archive this escalation policy?"
-          description={`The policy keeps its revision history. Until a revision is active again, a request reaching ${team.name} notifies everyone on it at once.`}
+          description={`Everyone on ${team.name} will be notified at once until a revision is active again.`}
           confirmLabel="Archive policy"
           onConfirm={archive}
         />

@@ -298,7 +298,7 @@ export function EscalationPathScreen({
           activeRevision !== null && revision.revision < activeRevision
             ? `Rolled back to revision ${revision.revision}`
             : `Revision ${revision.revision} active`,
-        description: "Requests routed here from now on use it.",
+        description: "New requests use this revision.",
       });
       await router.invalidate();
     } catch (reason) {
@@ -307,7 +307,7 @@ export function EscalationPathScreen({
         toast.add({
           title: "Activation refused",
           description:
-            "Another administrator changed the active revision after this page loaded. The history below is current; review it before trying again.",
+            "Someone else changed the active revision. Review the history and try again.",
           type: "deny",
         });
         return;
@@ -343,7 +343,7 @@ export function EscalationPathScreen({
       setDraft(draftFromWire(wire, directory));
       toast.add({
         title: `Editing from revision ${revision.revision}`,
-        description: "The editor holds its steps now. Save to create a new revision.",
+        description: "Save to create a new revision.",
       });
     } catch (reason) {
       toast.add({
@@ -382,7 +382,7 @@ export function EscalationPathScreen({
         revision: created.revision,
         activeRevision,
         canActivate,
-        activationDescription: "Once active, requests routed here use this revision. Requests already in flight keep their pinned revision.",
+        activationDescription: "New requests will use this revision.",
         activate: () => api.activateEscalationPathRevision(key, created.revision, activeRevision),
       });
       setCreated({ pathKey: key, warnings: created.warnings });
@@ -407,7 +407,7 @@ export function EscalationPathScreen({
       await api.archiveEscalationPath(pathKey);
       toast.add({
         title: "Escalation path archived",
-        description: "It stays readable here, but pipelines can no longer name it.",
+        description: "Pipelines can no longer use it.",
       });
       setArchiving(false);
       await router.invalidate();
@@ -418,7 +418,7 @@ export function EscalationPathScreen({
         await router.invalidate();
         toast.add({
           title: "Archive refused",
-          description: "An active pipeline revision names this path. The pipelines using it are listed.",
+          description: "An active pipeline uses this path.",
           type: "deny",
         });
         return;
@@ -472,15 +472,11 @@ export function EscalationPathScreen({
             </h1>
             <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
               Which humans get asked when an approval pipeline routes a request to this path.{" "}
-              {archived
-                ? "This path is archived: it keeps its revisions for the record, but it cannot change and pipelines can no longer name it."
+              {archived || canActivate
+                ? null
                 : isNew
-                  ? canActivate
-                    ? null
-                    : "Saving creates the path; someone with the activate permission makes its first revision live."
-                  : canActivate
-                    ? "Saving creates a new revision. Choose to make it active or keep it as a draft; requests already in flight keep their pinned revision."
-                    : "Saving creates a new revision for someone with the activate permission to make live."}
+                  ? "Someone with the activate permission must make it active."
+                  : "Someone with the activate permission must make new revisions active."}
             </p>
           </div>
           {canActivate && !isNew && !archived ? (
@@ -493,8 +489,7 @@ export function EscalationPathScreen({
 
       {archived ? (
         <Callout tone="warn" title={`Archived ${new Date(archivedAt).toLocaleString()}`}>
-          Requests already routed here keep the revision they pinned. The revisions below can
-          still be viewed, but none can be activated again, and the key cannot be reused.
+          This path can't be changed or used by pipelines.
         </Callout>
       ) : null}
 
@@ -519,7 +514,7 @@ export function EscalationPathScreen({
             placeholder="payments"
             className="w-72"
             error={keyError}
-            info="The unique identifier of this path. Referenced by pipelines. Cannot be changed after creation."
+            info="The path's unique identifier. It can't be changed later."
             docsLinks={[{ href: "https://withhuman.ai/docs/web-app/escalation-paths#paths", label: "Creating escalation paths" }]}
           />
         ) : (
@@ -547,9 +542,7 @@ export function EscalationPathScreen({
             icon={<AlertIcon width={15} height={15} />}
             title="Some requests will reach nobody"
           >
-            A request whose conditions match no level here is routed to nobody,
-            and only a break-glass reviewer can decide it. Add a level outside
-            the branches, or an else branch with one.
+            Add a level outside the branches, or an else branch with one.
           </Callout>
         ) : (
           <Callout
@@ -558,9 +551,7 @@ export function EscalationPathScreen({
             icon={<AlertIcon width={15} height={15} />}
             title={`${warning.count} of ${warning.member_count} members of ${warning.team_name} cannot decide requests`}
           >
-            The path names them, but they do not have permission to decide the
-            requests it carries. A request reaching this team waits for the members
-            who can.
+            Give them permission to decide requests.
           </Callout>
         ),
       )}
@@ -572,7 +563,7 @@ export function EscalationPathScreen({
               <CardTitle>Steps</CardTitle>
               <CardDescription>
                 {archivedRevision
-                  ? `Revision ${archivedRevision.revision}, as it was saved: who was asked and when.`
+                  ? `Revision ${archivedRevision.revision}, as it was saved.`
                   : "The path's last revision could not be loaded."}
               </CardDescription>
             </div>
@@ -598,7 +589,7 @@ export function EscalationPathScreen({
         <Card>
           <RevisionHistory
             aria-label="Escalation path revisions"
-            description={archived ? "Kept for the record; none can be activated again." : undefined}
+            description={archived ? "None can be activated again." : undefined}
             items={history.items}
             totalCount={history.totalCount}
             hasMore={history.hasMore}
@@ -624,8 +615,8 @@ export function EscalationPathScreen({
             </DialogTitle>
             <DialogDescription>
               {viewing.is_active
-                ? "The active revision: requests routed here now walk these steps."
-                : "An inactive revision, shown as it was saved. Activate it from the list to route requests through it again."}
+                ? "This revision is active."
+                : "This revision is inactive."}
             </DialogDescription>
             <DialogBody>
               {viewing.nodes.length === 0 ? (
@@ -650,8 +641,8 @@ export function EscalationPathScreen({
             <DialogTitle>This path is in use</DialogTitle>
             <DialogDescription>
               {uses.length === 1
-                ? "An active pipeline revision names this path. Activate a revision of that pipeline that does not name the path, then archive it."
-                : `${uses.length} active pipeline revisions name this path. Activate revisions of those pipelines that do not name the path, then archive it.`}
+                ? "An active pipeline uses this path. Remove it from that pipeline, then archive it."
+                : `${uses.length} active pipelines use this path. Remove it from those pipelines, then archive it.`}
             </DialogDescription>
             <DialogBody>
               <PipelineUseList uses={uses} />
@@ -666,7 +657,7 @@ export function EscalationPathScreen({
           open
           onOpenChange={(open) => !open && setArchiving(false)}
           title="Archive this escalation path?"
-          description="The path keeps its revisions for the record and requests already routed keep the revision they pinned, but it is never active again, pipelines can no longer name it, and its key cannot be reused. This cannot be undone."
+          description="Pipelines will no longer be able to use it. This can't be undone."
           confirmLabel="Archive path"
           onConfirm={archive}
         />

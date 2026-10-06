@@ -55,8 +55,8 @@ export function AgentToolServers({ agentSlug, servers, refreshing, refreshError,
     {
       id: "status", width: 170, label: "Status",
       info: <>
-        <p><strong>Listed</strong> means the last discovery succeeded everywhere it ran.</p>
-        <p><strong>Couldn't list tools</strong> means the last discovery failed on at least one instance, or through the edition's source. Tools from the last success stay in the catalogue.</p>
+        <p><strong>Listed</strong> means the last attempt to list its tools worked.</p>
+        <p><strong>Couldn't list tools</strong> means the last attempt failed on at least one instance.</p>
       </>,
       cell: (server) => <Badge tone={server.failures.length ? "warn" : "neutral"}>{server.failures.length ? "Couldn't list tools" : "Listed"}</Badge>,
     },
@@ -135,7 +135,6 @@ function ServerDetail({ agentSlug, server, refreshing, refreshError, onRefresh, 
           </li>
         ))}
       </ul>
-      {server.lastSuccessAt ? <p className="text-body text-ink-muted">Tools from the last success, {formatRelative(server.lastSuccessAt)} ago, stay in the catalogue until a discovery succeeds.</p> : null}
       {server.external ? (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="neutral" loading={refreshing} onClick={onRefresh}>Try again</Button>

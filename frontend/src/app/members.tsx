@@ -246,8 +246,8 @@ export function MembersScreen({
       label: "Role",
       width: 170,
       info: customPermissions
-        ? "The predefined role a member holds, or Custom when permission policies grant them access. Hover or focus the count to see each permission."
-        : "The predefined role a member holds: owner, admin, reviewer, or auditor.",
+        ? "The member's role, or Custom when they have custom permissions."
+        : "The member's role.",
       docsLinks: [{ href: "https://withhuman.ai/docs/web-app/permissions#direct-and-inherited-access", label: "Roles and permissions" }],
       cell: (member) => (
         <div className="flex flex-col items-start gap-1">
@@ -393,7 +393,7 @@ export function MembersScreen({
 
       <SettingsSection
         title="Members"
-        description="Everyone in this organization, with the teams they belong to and their permissions."
+        description="Everyone in this organization."
         inset="none"
         toolbar={
           <>
@@ -423,7 +423,7 @@ export function MembersScreen({
         {shown.length === 0 ? (
           <EmptyState
             title="No members match"
-            description="Nobody matches that search. Clear it or try another name, permission, or team."
+            description="Try another search."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -462,7 +462,7 @@ export function MembersScreen({
       ) : (
         <SettingsSection
           title="Pending invitations"
-          description="Invitations that have not been accepted yet. Getting a link again replaces the previous one."
+          description="Invitations that have not been accepted yet."
         >
           {pending.map((invitation) => (
             <SettingRow
@@ -573,8 +573,7 @@ export function MembersScreen({
               Remove {removing.display_name || removing.email}?
             </DialogTitle>
             <DialogDescription>
-              Their access ends immediately and their sessions are revoked. The
-              membership record is retained for the audit trail.
+              Their access ends immediately.
             </DialogDescription>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setRemoving(null)}>
@@ -831,8 +830,8 @@ function InviteDialog({
             <DialogTitle>Invite a member</DialogTitle>
             <DialogDescription>
               {customPermissions
-                ? "Choose a role, or the exact permissions they receive when they accept."
-                : "Choose the role they receive when they accept."}
+                ? "Choose a role or custom permissions."
+                : "Choose their role."}
             </DialogDescription>
             {/* With the role and custom tabs the body keeps one height,
              * sized to the role list, so switching never resizes the

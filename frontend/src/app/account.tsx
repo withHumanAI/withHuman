@@ -69,11 +69,10 @@ export function AccountScreen() {
       <SettingsPage title="Account" description={description}>
         <SettingsSection
           title="Password"
-          description={`This account signs in${via} and has no password to change.`}
+          description={`You sign in${via}.`}
         >
           <p className="py-3 text-body text-ink-muted">
-            To keep using this account, keep signing in the same way. A password cannot be added
-            or reset from here.
+            This account has no password to change.
           </p>
         </SettingsSection>
       </SettingsPage>

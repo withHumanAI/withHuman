@@ -230,7 +230,7 @@ export function RequestDetail({
     async (status: "approved" | "denied") => {
       if (saving || confirmOpen) return;
       if (status === "denied" && note.trim() === "") {
-        setNoteError("Tell the agent why. A denial without a reason leaves it guessing.");
+        setNoteError("Tell the agent why.");
         noteRef.current?.focus();
         return;
       }
@@ -416,7 +416,7 @@ export function RequestDetail({
                   title="Agent's explanation"
                   docsLinks={[{ href: "https://withhuman.ai/docs/web-app/review-queue#request-details", label: "Reviewing request details" }]}
                 >
-                  Written by the agent. withHuman has not checked it against the request.
+                  Written by the agent. It has not been checked.
                 </InfoCard>
               </p>
               <Markdown className="max-w-[560px] text-body text-ink-secondary">{request.agent_reasoning}</Markdown>
@@ -456,7 +456,7 @@ export function RequestDetail({
                   </>
                 )
               ) : (
-                "Nobody has claimed this. Claim it so other reviewers stand down."
+                "Nobody is reviewing this yet."
               )}
             </span>
             <span className="flex shrink-0 items-center gap-1">
@@ -527,7 +527,7 @@ export function RequestDetail({
           </div>
           {decidable === "break_glass" ? (
             <p className="text-micro font-normal text-ink-faint">
-              This request was not routed to you. Deciding it is recorded as made outside routing.
+              This request was not sent to you. Deciding it is recorded as outside routing.
             </p>
           ) : null}
         </div>
@@ -537,7 +537,7 @@ export function RequestDetail({
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Decide outside routing?"
-        description="This request was not routed to you. Your decision is recorded as made outside routing and you may be asked to sign in again."
+        description="This request was not sent to you. Your decision is recorded as outside routing."
         confirmLabel={confirmStatus === "denied" ? "Deny outside routing" : "Approve outside routing"}
         tone={confirmStatus === "denied" ? "danger" : "approve"}
         onConfirm={() => submit(confirmStatus, true)}
@@ -726,7 +726,7 @@ function EscalationCountdownLine({
   let explanation: string;
   if (countdown.kind === "paused") {
     text = "Escalation paused";
-    explanation = "A claim holds the escalation timers. They pick up where they left off when the claim is released.";
+    explanation = "Paused while someone has claimed the request.";
   } else {
     const due = new Date(countdown.at).getTime() <= now;
     const when = due ? "now" : `in ${formatRemaining(countdown.at, now)}`;
@@ -739,7 +739,7 @@ function EscalationCountdownLine({
         break;
       case "last_level":
         text = `${who}${countdown.team ? "escalation ends" : "Escalation ends"} ${when}`;
-        explanation = `The last level of ${document} has been notified. ${moment}: it runs again if it repeats, otherwise the request waits until it expires.`;
+        explanation = `The last level of ${document} has been notified. After ${moment}, the request waits until it expires.`;
         break;
       case "repeat":
         text = `${who}${countdown.team ? "repeats" : "Repeats"} ${when}`;
@@ -802,7 +802,7 @@ function BlockedCallout({
         icon={<ShieldIcon width={15} height={15} />}
         title="This request matched no escalation path"
       >
-        Your organization sends unrouted requests to break-glass reviewers only.
+        Only break-glass reviewers can decide it.
       </Callout>
     );
   }
@@ -817,8 +817,7 @@ function BlockedCallout({
         icon={<ShieldIcon width={15} height={15} />}
         title="This request's path reaches nobody"
       >
-        {pathName} has no level that applies to this request, so nobody was
-        asked. Only a break-glass reviewer can decide it outside routing.
+        {pathName} notifies nobody for this request. Only a break-glass reviewer can decide it.
       </Callout>
     );
   }
@@ -827,11 +826,11 @@ function BlockedCallout({
     <Callout
       tone="neutral"
       icon={<ShieldIcon width={15} height={15} />}
-      title="This request was routed to someone else"
+      title="This request was sent to someone else"
     >
       {named
-        ? `Only the people it was routed to can decide it: ${named}. Ask one of them, or ask an owner to decide outside routing.`
-        : "Only the people it was routed to can decide it. Ask one of them, or ask an owner to decide outside routing."}
+        ? `Ask ${named} to decide it.`
+        : "Ask one of the people it was sent to."}
     </Callout>
   );
 }
@@ -885,7 +884,7 @@ function DecisionCallout({ request, decision }: { request: ApprovalRequest; deci
   if (decision.status === "expired") {
     return (
       <Callout tone="neutral" icon={<ClockIcon width={15} height={15} />} title="Expired">
-        Nobody decided before the deadline, so the agent was told no.
+        Nobody decided before the deadline. The agent was told no.
         {when}
       </Callout>
     );
@@ -893,8 +892,7 @@ function DecisionCallout({ request, decision }: { request: ApprovalRequest; deci
   if (decision.status === "cancelled") {
     return (
       <Callout tone="neutral" icon={<DashIcon width={15} height={15} />} title="Withdrawn">
-        {request.agent_name} on {request.agent_instance_name} withdrew the request before anyone decided, so
-        there was nothing left to approve.
+        {request.agent_name} on {request.agent_instance_name} withdrew the request before anyone decided.
         {when}
       </Callout>
     );
@@ -985,9 +983,8 @@ export function requestMoments(
         key: "agent-owner-handoff",
         at: routing.agent_owner_handed_off_at,
         tone: "neutral",
-        title: path
-          ? <>The agent's owner was deactivated, so {path} took over</>
-          : <>The agent's owner was deactivated, so every authorized reviewer can decide</>,
+        title: path ? <>Sent to {path} instead</> : <>Sent to every authorized reviewer instead</>,
+        detail: "the agent's owner was deactivated",
       });
     }
   }
@@ -1018,7 +1015,7 @@ export function requestMoments(
       tone: "neutral",
       marker: <ClockIcon width={14} height={14} />,
       title: "Expired",
-      detail: "nobody decided in time, so the agent was told no",
+      detail: "the agent was told no",
     });
   } else if (decision?.status === "cancelled") {
     list.push({
@@ -1027,7 +1024,7 @@ export function requestMoments(
       tone: "neutral",
       marker: <DashIcon width={14} height={14} />,
       title: <>Withdrawn by {agent}</>,
-      detail: "the agent stopped waiting, so nobody had to decide",
+      detail: "the agent stopped waiting",
     });
   } else if (decision) {
     const approved = decision.status === "approved";
@@ -1217,7 +1214,7 @@ function PresentationFooter({ request }: { request: ApprovalRequest }) {
         </>
       ) : (
         <>
-          Shown by shape: no presentation names this tool.
+          No presentation covers this tool.
           <Link
             to="/settings/tool-presentations/new"
             search={{ tool: request.tool, runtime, server, request: request.id }}

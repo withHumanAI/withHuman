@@ -76,7 +76,7 @@ export function EscalationPathsScreen({
         <EmptyState
           icon={<ProgressIcon width={18} height={18} />}
           title="No escalation paths yet"
-          description="Add an escalation path to start routing to the right people."
+          description="Add an escalation path to choose who gets notified."
           action={
             canWrite ? (
               <Button variant="primary" onClick={startNew}>
@@ -119,8 +119,8 @@ export function EscalationPathsScreen({
                 title="No escalation paths match"
                 description={
                   filter === "archived"
-                    ? "No archived path matches. Archived paths keep their revisions and stay readable here."
-                    : "Try a different search, or another filter."
+                    ? "Try a different search."
+                    : "Try a different search or filter."
                 }
               />
             ) : (

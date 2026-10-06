@@ -124,7 +124,7 @@ export function useSlackLink(onLinked: () => void | Promise<void>) {
     } catch (reason: unknown) {
       const description =
         reason instanceof RequestError && reason.code === "slack_no_match"
-          ? "No account in your Slack workspace uses one of your confirmed email addresses. Add the email you use in Slack, confirm it, then try again."
+          ? "No Slack account matches your confirmed email addresses. Add the email you use in Slack, then try again."
           : reason instanceof RequestError && reason.status === 404
             ? `Ask an admin to connect ${organization}'s Slack workspace under Integrations first.`
             : reason instanceof RequestError && reason.status === 409
@@ -162,7 +162,7 @@ export function useDiscordLink() {
       const description =
         reason instanceof RequestError && reason.code === "discord_not_connected"
           ? can("connection.write")
-            ? "Connect your Discord server under Integrations, then return here to link your account."
+            ? "Connect your Discord server under Integrations first."
             : `Ask an admin to connect ${organization}'s Discord server under Integrations first.`
           : reason instanceof RequestError && reason.code === "discord_not_configured"
             ? "This deployment has no Discord application configured."
@@ -215,7 +215,7 @@ const EMAIL_ROW = typedMethodRow({
  * removed here and needs no proving. */
 const ACCOUNT_EMAIL_ROW: ContactMethodRow = {
   ...EMAIL_ROW,
-  subtitle: () => "Account email. Every account message goes here.",
+  subtitle: () => "Account email",
   badge: () => ({ tone: "neutral", label: "Account email", icon: <CheckIcon /> }),
   removeLabel: null,
   confirm: null,
@@ -326,7 +326,7 @@ export function ChannelRows({
           </Badge>
         </SettingRow>
       ) : null}
-      {slack && !slack.available ? <Callout tone="neutral">Slack is unavailable. Reconnect the workspace and match your account again. Saved rules are kept; account email is used when no other channel in a rule can reach you.</Callout> : null}
+      {slack && !slack.available ? <Callout tone="neutral">Slack is unavailable. Link your account again after the workspace is reconnected.</Callout> : null}
       {discord ? (
         <SettingRow
           icon={<DiscordIcon />}
@@ -475,7 +475,7 @@ export interface ContactFormCopy {
 
 export const EMAIL_FORM: ContactFormCopy = {
   title: "Add an email address",
-  description: "We send a six digit code to the address; enter it on the new row to confirm it.",
+  description: "We'll send a code to confirm it.",
   field: "Address",
   type: "email",
   placeholder: "you@example.com",
@@ -606,17 +606,19 @@ export function channelGuideCopy(
       title: "Add Slack",
       description: "Get notified via Slack DM.",
       body: workspace
-        ? `withHuman is installed in ${workspace.team_name}. It finds your Slack account by email. If it cannot find you, add the email address you use in Slack and confirm it.`
-        : "withHuman is not installed in your Slack workspace yet. An admin installs it under Integrations. Come back here afterwards to link your account.",
+        ? `Link your Slack account in ${workspace.team_name}. It must use one of your confirmed email addresses.`
+        : canConnect
+          ? "Install withHuman in your Slack workspace under Integrations first."
+          : `Ask an admin to install withHuman in ${organization}'s Slack workspace under Integrations first.`,
       done: "Linked",
     },
     discord: {
       title: "Add Discord",
       description: "Get notified via Discord DM.",
       body: server
-        ? `withHuman is installed in ${server.guild_name}. Link your Discord account to receive direct messages. You must be a member of that server and allow direct messages from server members in your Discord privacy settings.`
+        ? `Link your Discord account to get notified by direct message. You must be a member of ${server.guild_name} and allow direct messages from its members.`
         : canConnect
-          ? "Connect your Discord server under Integrations, then return here to link your account."
+          ? "Connect your Discord server under Integrations first."
           : `Ask an admin to connect ${organization}'s Discord server under Integrations first.`,
       done: "Linked",
     },

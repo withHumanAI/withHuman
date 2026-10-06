@@ -74,14 +74,14 @@ function decisionErrorMessage(reason: unknown): string {
   }
   switch (reason.code) {
     case "api_keys_disabled":
-      return "An administrator turned personal API keys off, so agents cannot be connected.";
+      return "An administrator turned personal API keys off.";
     case "api_key_scoping_unavailable":
       return "This edition cannot scope keys. Choose everything you can do.";
     case "plan_required":
       return "Your plan does not include scoped keys. Choose everything you can do.";
     case "forbidden":
       if (reason.message.includes("too old")) {
-        return "Sign in again before granting a permission that can decide requests or is marked dangerous.";
+        return "Sign in again to grant these permissions.";
       }
       if (reason.message.includes("insufficient")) {
         return "Granting these permissions needs a multi-factor sign-in.";
@@ -203,7 +203,7 @@ export function OAuthConsentScreen({ search }: { search: OAuthAuthorizationReque
       <Frame>
         <TerminalCard
           title="This link is incomplete"
-          message="The agent did not send everything an authorization needs. Start the connection again from the agent."
+          message="Start the connection again from the agent."
         />
       </Frame>
     );
@@ -226,8 +226,7 @@ export function OAuthConsentScreen({ search }: { search: OAuthAuthorizationReque
           <p className="mt-1.5 text-body text-ink-muted">
             <span className="text-ink">{preview.client.name}</span> wants to use withHuman as{" "}
             <span className="text-ink">{person}</span> in <span className="text-ink">{organization}</span>. It
-            can set up approval pipelines, escalation paths, teams and webhook endpoints with the
-            permissions you choose, and everything it does is recorded under your name.
+            gets the permissions you choose below.
           </p>
           <p className="mt-1.5 text-label text-ink-faint">
             You will be sent back to {hostOf(preview.client.redirect_uri)}.
@@ -236,8 +235,7 @@ export function OAuthConsentScreen({ search }: { search: OAuthAuthorizationReque
 
         {!preview.personal_api_keys_allowed ? (
           <Callout tone="warn" title="Personal API keys are turned off">
-            An administrator turned personal API keys off for {organization}, so agents cannot be
-            connected to it.
+            Ask an administrator to turn them on for {organization}.
           </Callout>
         ) : preview.scoping_enabled ? (
           <div className="flex flex-col gap-3">
@@ -254,7 +252,7 @@ export function OAuthConsentScreen({ search }: { search: OAuthAuthorizationReque
               <RadioOption
                 value="scoped"
                 label="Only these permissions"
-                description="The agent can use a permission only while you still hold it."
+                description="The agent can use only the permissions you pick."
               />
             </RadioGroup>
             {scoped ? (
@@ -276,8 +274,7 @@ export function OAuthConsentScreen({ search }: { search: OAuthAuthorizationReque
           </div>
         ) : (
           <p className="text-body text-ink-muted">
-            The agent will be able to do everything you can do, and follows your permissions as
-            they change.
+            The agent will be able to do everything you can do.
           </p>
         )}
 

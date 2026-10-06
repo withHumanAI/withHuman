@@ -76,9 +76,9 @@ export function OnboardingApprovals({
               <XIcon width={15} height={15} />
             )
           }
-          title={`Loop closed: ${request.tool} was ${STATUS_LABEL[request.status].toLowerCase()}`}
+          title={`${request.tool} was ${STATUS_LABEL[request.status].toLowerCase()}`}
         >
-          {request.agent_name} received your decision and carried on.
+          {request.agent_name} received your decision.
         </Callout>
       ))}
       {pending || closed.length === 0 ? (
@@ -89,8 +89,7 @@ export function OnboardingApprovals({
                 <div>
                   <CardTitle>The agent is waiting for your approval</CardTitle>
                   <CardDescription>
-                    The agent is currently paused on your decision, check it, decide what to do
-                    then check back.
+                    Review the request and decide.
                   </CardDescription>
                 </div>
               </CardHeader>

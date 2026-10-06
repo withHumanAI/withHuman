@@ -72,7 +72,7 @@ export function AddReviewerMenu({
       toast.add({
         type: "approve",
         title: "Reviewer added",
-        description: `${candidate.name} has been told about this request.`,
+        description: `${candidate.name} was notified.`,
       });
     } catch (reason) {
       toast.add({
@@ -96,7 +96,7 @@ export function AddReviewerMenu({
             disabled: addingId !== null,
             action: () => void add(candidate),
           }))
-        : [{ id: "none", label: "Nobody else can decide requests", disabled: true, action: () => undefined }]
+        : [{ id: "none", label: "Nobody else can review requests", disabled: true, action: () => undefined }]
       : people.state === "failed"
         ? [{ id: "failed", label: "Could not load the people who can review", disabled: true, action: () => undefined }]
         : [{ id: "loading", label: "Loading people", disabled: true, action: () => undefined }];

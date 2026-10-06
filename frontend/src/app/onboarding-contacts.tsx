@@ -101,8 +101,7 @@ export function OnboardingContactStep({
         <div>
           <CardTitle>Get notified</CardTitle>
           <CardDescription>
-            When a request waits for you, this is where withHuman reaches you. Your account email
-            is already on the list; add another channel to be reached faster.
+            Add channels to get notified about requests.
           </CardDescription>
         </div>
       </CardHeader>
@@ -222,9 +221,7 @@ export function OnboardingRulesStep({
         <div>
           <CardTitle>Decide how each request reaches you</CardTitle>
           <CardDescription>
-            Urgent requests and standard ones each climb a ladder of channels until you answer.
-            Some channels join a ladder as soon as you add them; the rest are used once you add
-            them as a rule.
+            Choose which channels notify you, and when, for urgent and standard requests.
           </CardDescription>
         </div>
       </CardHeader>

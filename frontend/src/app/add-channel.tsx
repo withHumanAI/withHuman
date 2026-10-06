@@ -79,11 +79,11 @@ function Picker({ methods }: { methods: ContactMethod[] }) {
   return (
     <SettingsPage
       title="Add a channel"
-      description="Add ways for withHuman to reach you."
+      description="Add ways to get notified."
       back={<PageBackLink to="/settings/notifications">Notifications</PageBackLink>}
     >
       <SettingsSection>
-        <SettingRow icon={<MailIcon />} label="Email" description="Another address, alongside your account email.">
+        <SettingRow icon={<MailIcon />} label="Email" description="Get notified at another email address.">
           {add("email", "Add address")}
         </SettingRow>
         {extensions.contactKinds.map((entry) => {

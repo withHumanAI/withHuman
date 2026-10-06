@@ -38,7 +38,7 @@ function UnknownBlockDetails({
   return (
     <>
       <Callout tone="warn">
-        This deployment cannot edit a "{block.type}" block. Its stored settings are kept as they are.
+        This deployment can't edit "{block.type}" blocks.
       </Callout>
       <SummaryField label="Reason">
         <SummaryText empty="No reason stored.">{block.reason}</SummaryText>

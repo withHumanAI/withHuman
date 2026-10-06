@@ -32,7 +32,7 @@ export function TextFieldsSection() {
             label="Key"
             mono
             placeholder="payments"
-            info="The unique identifier of this path. Referenced by pipelines. Cannot be changed after creation."
+            info="The path's unique identifier. It can't be changed later."
             defaultValue=""
           />
           <TextField

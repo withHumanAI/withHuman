@@ -50,22 +50,21 @@ export function RevisionActivationDialog({
       <DialogContent>
         <DialogTitle>Make revision {revision} active?</DialogTitle>
         <DialogDescription>
-          Your changes are saved as a draft and are not live yet.{" "}
+          Your changes are saved as a draft.{" "}
           {activeRevision === null
-            ? "There is currently no active revision."
+            ? "No revision is active yet."
             : `Revision ${activeRevision} is still active.`}{" "}
           {activationDescription}
         </DialogDescription>
         {!canActivate ? (
           <Callout className="mt-4" tone="neutral">
-            You can save drafts, but you do not have permission to activate them.
-            Someone with activation permission can make this revision live.
+            You do not have permission to activate revisions.
           </Callout>
         ) : null}
         {error ? (
           <div role="alert" className="mt-4">
             <Callout tone="deny" title={`Revision ${revision} saved, activation failed`}>
-              {error} Your saved revision is still available. You can keep it as a draft.
+              {error}
             </Callout>
           </div>
         ) : null}

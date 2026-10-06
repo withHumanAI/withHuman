@@ -186,8 +186,8 @@ export function OrganizationScreen({
             title="Approvals"
             description={
               canEdit
-                ? "Who may decide a request, and how fresh their sign-in has to be."
-                : "Who may decide a request, and how fresh their sign-in has to be. Only people who can change organization settings can edit these."
+                ? "Rules for reviewers who decide requests."
+                : "Rules for reviewers who decide requests. You don't have permission to edit these."
             }
           >
             <SettingRow
@@ -216,7 +216,7 @@ export function OrganizationScreen({
             </SettingRow>
             <SettingRow
               label="Ask reviewers to sign in again after"
-              description="A decision made later than this since the last sign-in is refused until they sign in again."
+              description="How long reviewers can decide requests before signing in again."
             >
               <DurationField
                 aria-label="Ask reviewers to sign in again after"
@@ -227,7 +227,7 @@ export function OrganizationScreen({
             </SettingRow>
             <SettingRow
               label="Release a claim after"
-              description="How long a reviewer can hold onto a review without providing a decision."
+              description="How long a reviewer can claim a request without deciding it."
             >
               <DurationField
                 aria-label="Release a claim after"
@@ -289,7 +289,7 @@ export function OrganizationScreen({
                 <RadioOption
                   value="routed_only"
                   label="Only the people it was routed to"
-                  description="Readers see requests routed to them and requests their own agents made. Owners and auditors always see everything."
+                  description="People see requests routed to them and requests their own agents made."
                   disabled={!canEdit}
                 />
               </RadioGroup>
@@ -302,7 +302,7 @@ export function OrganizationScreen({
           >
             <SettingRow
               label="Let members create personal API keys"
-              description="Turning this off will cause all personal API keys to stop working. Turning it back on will return requests to normal."
+              description="Turning this off stops all personal API keys from working."
             >
               <Switch
                 aria-label="Let members create personal API keys"

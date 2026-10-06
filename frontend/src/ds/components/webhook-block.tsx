@@ -55,10 +55,10 @@ const TIMEOUTS = ["2s", "5s", "10s", "30s"] as const;
 const ATTEMPTS = [1, 2, 3] as const;
 
 const OUTCOME_ROWS: { value: WebhookOutcome; label: string; hint: string }[] = [
-  { value: "next", label: "Continue", hint: "Allow this service to pass the request and its results to the next block without deciding it." },
-  { value: "human", label: "Ask a human", hint: "Allow this service to request human review using the selected escalation path or pipeline default." },
-  { value: "approve", label: "Approve", hint: "Allow this service to approve requests automatically, without human review. An approval stops the pipeline." },
-  { value: "deny", label: "Deny", hint: "Allow this service to deny requests automatically, without human review. A denial stops the pipeline." },
+  { value: "next", label: "Continue", hint: "Pass the request to the next block." },
+  { value: "human", label: "Ask a human", hint: "Send the request to a human." },
+  { value: "approve", label: "Approve", hint: "Approve the request automatically." },
+  { value: "deny", label: "Deny", hint: "Deny the request automatically." },
 ];
 
 export function hostOf(url: string): string {
@@ -189,7 +189,7 @@ export function WebhookBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Choose the webhook endpoint that receives this request for review. The service returns Continue, Ask a human, Approve, or Deny; this block controls which answers it accepts. Manage Webhook Endpoint lets you configure the destination URL."
+          info="Choose the webhook endpoint that reviews this request."
           docsLinks={[{ href: "https://withhuman.ai/docs/web-app/webhook-blocks#endpoints-and-allowed-outcomes", label: "Webhook endpoints and outcomes" }]}
         >
           Webhook Endpoint
@@ -226,8 +226,8 @@ export function WebhookBlockCard({
         {(endpoint && !endpoint.active) || (!endpoint && block.endpointKey) ? (
           <p role="alert" className="text-micro text-deny">
             {endpoint
-              ? "This service is archived. Restore it or choose another before activating the pipeline."
-              : "This service is no longer available. Choose another one."}
+              ? "This endpoint is archived. Choose another one."
+              : "This endpoint is no longer available. Choose another one."}
           </p>
         ) : null}
       </div>
@@ -235,7 +235,7 @@ export function WebhookBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Choose which decisions this service can make. Any other answer sends the request to a human."
+          info="Choose which answers the endpoint can give."
           docsLinks={[{ href: "https://withhuman.ai/docs/web-app/webhook-blocks#endpoints-and-allowed-outcomes", label: "Allowed webhook outcomes" }]}
         >
           The endpoint may answer
@@ -265,7 +265,7 @@ export function WebhookBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="The requested action, its details, and the agent are always sent to this service."
+          info="The endpoint always sees the tool call, its arguments and the agent."
           docsLinks={[{ href: "https://withhuman.ai/docs/web-app/webhook-blocks#inputs-and-delivery-settings", label: "Webhook inputs and delivery" }]}
         >
           The endpoint also sees
@@ -320,7 +320,7 @@ export function WebhookBlockCard({
         <div className="flex flex-col gap-1.5">
           <InfoLabel
             className="text-label text-ink-secondary"
-            info="Temporary connection problems are retried. If the service cannot provide a valid answer, a human reviews the request."
+            info="How many times to call the endpoint before asking a human."
             docsLinks={[{ href: "https://withhuman.ai/docs/web-app/webhook-blocks#inputs-and-delivery-settings", label: "Timeouts and retries" }]}
           >
             Attempts
@@ -346,7 +346,7 @@ export function WebhookBlockCard({
         <div className="flex flex-col gap-1.5">
           <InfoLabel
             className="text-label text-ink-secondary"
-            info={["Who reviews the request when this service asks a human or cannot provide an answer.", describeRoute?.(block.target ?? null)].filter(Boolean).join(" ")}
+            info={["Who reviews the request when the endpoint asks a human or fails.", describeRoute?.(block.target ?? null)].filter(Boolean).join(" ")}
             docsLinks={[{ href: "https://withhuman.ai/docs/web-app/approval-pipelines#human-review", label: "Routing requests to reviewers" }]}
           >
             Escalation path
@@ -426,7 +426,7 @@ export function WebhookBlockSummaryCard({
           </p>
         ) : (
           <p className="text-body text-ink-muted">
-            {block.endpointKey ? "This service is no longer available." : "No endpoint selected."}
+            {block.endpointKey ? "This endpoint is no longer available." : "No endpoint selected."}
           </p>
         )}
       </SummaryField>
@@ -454,7 +454,7 @@ export function WebhookBlockSummaryCard({
       </SummaryField>
 
       <SummaryField label="Reason">
-        <SummaryText empty="No reason given. The agent receives only the outcome.">{block.reason}</SummaryText>
+        <SummaryText empty="No reason given.">{block.reason}</SummaryText>
       </SummaryField>
     </BlockSummaryCard>
   );

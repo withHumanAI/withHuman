@@ -162,8 +162,7 @@ export function ChangeRoleDialog({
       <DialogContent className="w-[min(520px,calc(100vw-32px))]">
         <DialogTitle>Change role for {name}</DialogTitle>
         <DialogDescription>
-          The role applies across the whole organization and takes effect
-          immediately.
+          The role applies across the whole organization.
         </DialogDescription>
         <DialogBody className="flex flex-col gap-4">
           {replacesCustom ? (
@@ -180,7 +179,7 @@ export function ChangeRoleDialog({
           />
           {inherited ? (
             <p className="text-label text-ink-muted">
-              Access {name} inherits from teams stays as it is.
+              {name} keeps the access their teams give them.
             </p>
           ) : null}
         </DialogBody>

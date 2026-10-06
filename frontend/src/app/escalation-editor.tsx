@@ -94,9 +94,9 @@ const SUGGESTIONS = [...FIXED_FIELDS.map((field) => field.path), "/request/argum
 const COPY = {
   organization: {
     stepsDescription:
-      "Your routing path for approval requests. Defines how withHuman will reach out to people.",
+      "Choose who gets notified, and in what order.",
     stepsEmpty:
-      "No steps yet. Add at least one before saving; a request routed to an empty path would wait unannounced in the queue.",
+      "No steps yet. Add at least one before saving.",
     notifyPlaceholder: "Teams or people to notify",
     repeatDescription:
       "When the last step finishes without a decision, run the path again.",
@@ -107,9 +107,9 @@ const COPY = {
   },
   team: {
     stepsDescription:
-      "Walked in order while the path level that named the team keeps its own timer running; the request deadline caps every timer. Round robin and on-call rotations come later; today a level names members or everyone on the team.",
+      "Choose who on the team gets notified, and in what order.",
     stepsEmpty:
-      "No steps yet. Without steps the policy is the same as none: a request reaching the team notifies everyone on it at once.",
+      "No steps yet. Without steps, everyone on the team is notified at once.",
     notifyPlaceholder: "Everyone or members to notify",
     repeatDescription:
       "When the last step finishes without a decision, run the policy again.",
@@ -146,8 +146,8 @@ function AddNodeMenu({
       (
         [
           ["level", "Notify people or teams and wait for a decision", "notify-steps"],
-          ["if_else", "Take different steps depending on the request, the clock, or the urgency", "conditions"],
-          ["defer", "Hold quietly until a window opens", "working-hours-and-deferral"],
+          ["if_else", "Take different steps for different requests", "conditions"],
+          ["defer", "Hold the request until working hours", "working-hours-and-deferral"],
         ] as const
       ).map(([type, info, anchor]) => ({
         id: type,
@@ -446,10 +446,6 @@ function NodeEditor({
               onCheckedChange={(standardOnly) => onChange({ ...node, standardOnly })}
             />
           </FieldRow>
-          <p className="text-micro font-normal text-ink-faint">
-            A defer never outlives the request deadline: it ends early if the
-            remaining levels would no longer fit.
-          </p>
         </>
       );
     case "if_else":
@@ -496,7 +492,7 @@ function Branch({
       </div>
       {nodes.length === 0 ? (
         <p className="text-micro font-normal text-ink-faint">
-          No steps: this branch deliberately does nothing and falls through.
+          No steps yet.
         </p>
       ) : (
         <NodeList nodes={nodes} onChange={onChange} context={context} />
@@ -681,7 +677,7 @@ export function EscalationDocumentEditor({
         <CardHeader>
           <div>
             <CardTitle>Working hours</CardTitle>
-            <CardDescription>Time windows that you can reference in your routing paths.</CardDescription>
+            <CardDescription>Time windows you can use in your steps.</CardDescription>
           </div>
         </CardHeader>
         <CardBody>

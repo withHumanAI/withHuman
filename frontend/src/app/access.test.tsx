@@ -82,7 +82,7 @@ describe("without an enterprise SSO door", () => {
     vi.spyOn(api, "loginMethods").mockResolvedValue({ password: false, sso_organizations: [SSO_ORGANIZATIONS[0]] });
     renderAccess();
     await submitEmail();
-    await waitFor(() => screen.getByText(/single sign-on, which is not available on this deployment/));
+    await waitFor(() => screen.getByText(/single sign-on. It is not available on this deployment/));
     expect(sessionStorage.getItem("wh-staged-login-method")).toBeNull();
     expect(screen.queryByRole("button", { name: /Continue with SSO/ })).toBeNull();
   });

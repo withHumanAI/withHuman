@@ -22,7 +22,7 @@ export function TestRequestDialog({
   sampleText,
   onSampleTextChange,
   onRun,
-  description = "See what would happen to a sample request, one block at a time. This does not create a real approval request.",
+  description = "See what would happen to a sample request.",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;

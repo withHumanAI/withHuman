@@ -414,8 +414,8 @@ function TeamPolicyLink({ team }: { team: Team }) {
     return (
       <span className="text-ink-muted">
         {policy.latest_revision !== null
-          ? "No active revision, everyone notified at once"
-          : "None, everyone notified at once"}
+          ? "No active revision"
+          : "None"}
       </span>
     );
   }
@@ -474,14 +474,14 @@ function TeamPolicyCard({ teamId, teamName }: { teamId: string; teamName: string
       <HoverCardBody>
         {tree ? (
           tree.nodes.length === 0 ? (
-            <HoverCardNote>No steps: everyone on the team is notified at once.</HoverCardNote>
+            <HoverCardNote>Everyone on the team is notified at once.</HoverCardNote>
           ) : (
             <PathTree nodes={tree.nodes} repeat={tree.repeat} depth={1} />
           )
         ) : (
           <Unready
             loaded={policy}
-            missing="No active policy. A path reaching the team notifies everyone on it at once."
+            missing="No active policy. Everyone on the team is notified at once."
           />
         )}
       </HoverCardBody>
@@ -532,16 +532,14 @@ function EscalationPathCard({ pathKey, name }: { pathKey: string; name: string }
       <HoverCardBody>
         {tree ? (
           tree.nodes.length === 0 ? (
-            <HoverCardNote>No steps: the path reaches nobody.</HoverCardNote>
+            <HoverCardNote>This path notifies nobody.</HoverCardNote>
           ) : (
             <PathTree nodes={tree.nodes} repeat={tree.repeat} depth={1} />
           )
         ) : revision.status === "missing" && summary?.archived_at ? (
-          <HoverCardNote>Archived {formatRelative(summary.archived_at)} ago. It can never be active again.</HoverCardNote>
+          <HoverCardNote>Archived {formatRelative(summary.archived_at)} ago.</HoverCardNote>
         ) : revision.status === "missing" && summary ? (
-          <HoverCardNote>
-            No revision is active. A request reaching it waits for any authorized reviewer.
-          </HoverCardNote>
+          <HoverCardNote>No revision is active.</HoverCardNote>
         ) : (
           <Unready loaded={revision} missing="This escalation path no longer exists." />
         )}
@@ -774,12 +772,12 @@ function PipelineBlockCard({ block }: { block: Extract<Reference, { kind: "pipel
     <div className="flex flex-col gap-1 pt-1">
       {block.endOfBranch ? (
         <p className="text-body text-ink-secondary">
-          No block in this branch decided, so the request went to a human.
+          No block in this branch decided. The request went to a human.
         </p>
       ) : null}
       {block.errorCode ? (
         <p className="text-body text-warn">
-          This block failed ({blockErrorLabel(block.errorCode)}), so the request went to a human. It did not match.
+          This block failed ({blockErrorLabel(block.errorCode)}). The request went to a human.
         </p>
       ) : null}
       {block.reason ? <p className="text-body text-ink">{block.reason}</p> : null}
@@ -1203,7 +1201,7 @@ function ToolCard({ tool, server }: { tool: string; server?: string }) {
             </HoverCardFact>
           </HoverCardFacts>
         ) : (
-          <HoverCardNote>The runtime's own tool, named as the agent asked.</HoverCardNote>
+          <HoverCardNote>Built into the agent's runtime.</HoverCardNote>
         )}
       </HoverCardBody>
     </>

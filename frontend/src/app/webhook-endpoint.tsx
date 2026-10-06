@@ -179,7 +179,7 @@ export function WebhookEndpointScreen({
     setDraft({ name: revision.name, url: revision.url });
     toast.add({
       title: `Editing from revision ${revision.revision}`,
-      description: "The editor holds its destination now. Save to create a new revision.",
+      description: "Save to create a new revision.",
     });
   }
 
@@ -189,7 +189,7 @@ export function WebhookEndpointScreen({
       await api.activateWebhookEndpointRevision(endpointKey, revision.revision, activeRevision);
       toast.add({
         title: `Revision ${revision.revision} active`,
-        description: "Deliveries from the next request on go to it.",
+        description: "New deliveries go to it.",
       });
       await router.invalidate();
     } catch (reason) {
@@ -203,10 +203,7 @@ export function WebhookEndpointScreen({
     if (activeRevision === null) return;
     try {
       await api.archiveWebhookEndpoint(endpointKey, activeRevision);
-      toast.add({
-        title: "Webhook endpoint archived",
-        description: "Pipelines posting to it cannot be activated until a revision is active again.",
-      });
+      toast.add({ title: "Webhook endpoint archived" });
       setArchiving(false);
       await router.invalidate();
     } catch (reason) {
@@ -216,7 +213,7 @@ export function WebhookEndpointScreen({
         await router.invalidate();
         toast.add({
           title: "Archive refused",
-          description: "An active pipeline revision posts to this endpoint. The pipelines using it are listed.",
+          description: "An active pipeline posts to this endpoint.",
           type: "deny",
         });
         return;
@@ -345,7 +342,7 @@ export function WebhookEndpointScreen({
           <div>
             <CardTitle>Destination</CardTitle>
             <CardDescription>
-              The destination address for the receiving webhook.
+              The URL that receives deliveries.
             </CardDescription>
           </div>
         </CardHeader>
@@ -359,8 +356,7 @@ export function WebhookEndpointScreen({
           />
           {isNew ? (
             <p className="mt-3 text-micro text-ink-muted">
-              A signing secret is generated with the first revision and shown once; the receiver
-              verifies every delivery with it.
+              The signing secret is shown once, after you save.
             </p>
           ) : secretRotatedAt ? (
             <p className="mt-3 text-micro text-ink-muted">
@@ -413,8 +409,7 @@ export function WebhookEndpointScreen({
             <div>
               <CardTitle>Used by</CardTitle>
               <CardDescription>
-                Active pipeline revisions with a webhook block posting here. Archiving is refused
-                while any exist.
+                Active pipelines that post to this endpoint.
               </CardDescription>
             </div>
           </CardHeader>
@@ -434,8 +429,8 @@ export function WebhookEndpointScreen({
             <DialogTitle>This endpoint is in use</DialogTitle>
             <DialogDescription>
               {uses.length === 1
-                ? "An active pipeline revision posts to this endpoint. Activate a pipeline revision without that block, then archive it."
-                : `${uses.length} active pipeline revision references post to this endpoint. Activate pipeline revisions without those blocks, then archive it.`}
+                ? "An active pipeline posts to this endpoint. Remove its webhook block first."
+                : `${uses.length} active pipeline blocks post to this endpoint. Remove those webhook blocks first.`}
             </DialogDescription>
             <DialogBody>
               <PipelineUseList uses={uses} />
@@ -450,7 +445,7 @@ export function WebhookEndpointScreen({
           open
           onOpenChange={(open) => !open && setArchiving(false)}
           title="Archive this webhook endpoint?"
-          description="The endpoint keeps its revisions and its secret, but pipelines posting to it cannot be activated until a revision is active again, and a suspended request that resumes onto it is handed to a human."
+          description="Pipelines cannot use it until you activate a revision again."
           confirmLabel="Archive endpoint"
           onConfirm={archive}
         />
@@ -460,7 +455,7 @@ export function WebhookEndpointScreen({
           open
           onOpenChange={(open) => !open && setRotating(false)}
           title="Rotate the signing secret?"
-          description="The current secret stops working immediately for every revision and every pipeline that uses this endpoint. Update the receiver with the new secret right after."
+          description="The current secret stops working immediately. Update the receiver with the new secret."
           confirmLabel="Rotate secret"
           tone="danger"
           onConfirm={rotate}
@@ -485,8 +480,8 @@ export function WebhookEndpointScreen({
             </DialogTitle>
             <DialogDescription>
               {viewing.is_active
-                ? "The active revision: deliveries go here now."
-                : "An inactive revision, shown as it was saved. Activate it from the list to deliver here again."}
+                ? "This revision is active."
+                : "This revision is inactive."}
             </DialogDescription>
             <DialogBody>
               <DescriptionList>
@@ -549,18 +544,17 @@ function SecretDialog({
         </DialogTitle>
         <DialogDescription>
           {rotated
-            ? "The previous secret has already stopped working. Paste this one into the receiver now; it is shown only once."
-            : "Paste it into the receiver now. It is shown only once and stays the same across revisions."}
+            ? "The previous secret no longer works. Paste this one into the receiver now. It is shown only once."
+            : "Paste it into the receiver now. It is shown only once."}
         </DialogDescription>
         <DialogBody className="flex flex-col gap-5">
           <CodeBlock label="signing secret" code={secret} />
           <div className="flex flex-col gap-2">
             <p className="text-label text-ink-secondary">
-              How to check a delivery really came from withHuman
+              Verifying deliveries
             </p>
             <p className="text-micro text-ink-muted">
-              Every delivery carries this header. withHuman builds the digest from the secret
-              above, the time it sent the delivery, and the exact bytes of the request body.
+              Every delivery carries this header:
             </p>
             <CodeBlock
               copyable={false}
@@ -570,10 +564,8 @@ function SecretDialog({
               ].join("\n")}
             />
             <p className="text-micro text-ink-muted">
-              On your side, run the same calculation over the raw body (before parsing it) and
-              compare the result with v1. A match means the delivery came from withHuman and was
-              not changed on the way. Also reject any delivery whose timestamp is more than five
-              minutes old, so a captured delivery cannot be replayed later.
+              Compute the digest over the raw body, before parsing it, and compare it with v1.
+              Reject deliveries whose timestamp is more than five minutes old.
             </p>
           </div>
         </DialogBody>
@@ -615,14 +607,13 @@ function TestResultDialog({
       <DialogContent>
         <DialogTitle>Test delivery to revision {revision.revision}</DialogTitle>
         <DialogDescription>
-          A signed webhook_endpoint.test payload was posted to {hostOf(revision.url)}, flagged as
-          a preview.
+          A signed webhook_endpoint.test payload was sent to {hostOf(revision.url)}.
         </DialogDescription>
         <DialogBody className="flex flex-col gap-3">
           <Callout
             tone={ok ? "approve" : "deny"}
             icon={ok ? undefined : <AlertIcon width={15} height={15} />}
-            title={ok ? "The endpoint answered a valid outcome document" : result.message ?? "The delivery failed"}
+            title={ok ? "The endpoint answered with a valid outcome" : result.message ?? "The delivery failed"}
           >
             <span className="font-mono text-[12px]">
               {result.status_code ? `HTTP ${result.status_code}` : "no response"} · {result.duration_ms} ms

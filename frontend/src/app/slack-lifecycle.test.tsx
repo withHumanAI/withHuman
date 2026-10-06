@@ -25,7 +25,7 @@ it("shows a disconnected workspace with reconnect and hides member sync", () => 
   expect(screen.getByText("Disconnected")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Reconnect" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Sync members" })).toBeNull();
-  expect(screen.getByText(/restore their saved rules/)).toBeTruthy();
+  expect(screen.getByText(/Slack notifications are paused/)).toBeTruthy();
 });
 
 it("preserves unavailable Slack selections and their saved rule references", () => {

@@ -266,7 +266,7 @@ export function TeamsScreen({
           <EmptyState
             icon={<PeopleIcon width={18} height={18} />}
             title="No teams match"
-            description="Try another name or permission, or change the team status filter."
+            description="Try a different search or filter."
             action={<Button variant="neutral" onClick={() => setQuery("")}>Clear search</Button>}
           />
         ) : teams.length === 0 ? (
@@ -274,8 +274,8 @@ export function TeamsScreen({
             icon={<PeopleIcon width={18} height={18} />}
             title={status === "archived" ? "No archived teams" : "No teams yet"}
             description={status === "archived"
-              ? "Archived teams and their rosters remain available here."
-              : "Teams group reviewers so escalation paths can notify a set of people that changes with staffing."}
+              ? "Archived teams will appear here."
+              : "Create a team to notify a group of people together."}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -303,7 +303,7 @@ export function TeamsScreen({
       <NameDialog
         open={creating}
         title="New team"
-        description="A team is a named set of members. Escalation paths can notify a team, and its membership resolves when the notification goes out."
+        description="Give the team a name."
         confirmLabel="Create team"
         onOpenChange={setCreating}
         onSubmit={async (name) => {
@@ -315,7 +315,7 @@ export function TeamsScreen({
         <NameDialog
           open
           title={`Rename ${renaming.name}`}
-          description="Changing the name won't break routing."
+          description="Changing the name won't affect who gets notified."
           confirmLabel="Rename team"
           initialName={renaming.name}
           onOpenChange={(open) => !open && setRenaming(null)}
@@ -331,7 +331,7 @@ export function TeamsScreen({
           open
           onOpenChange={(open) => !open && setArchiving(null)}
           title={`Archive ${archiving.name}?`}
-          description="The team and its roster stay available in Archived teams. Its access grants are revoked and its escalation policy is deactivated. Archiving is permanent and is refused while an active escalation path or a pending request still targets this team."
+          description="Its members lose the team's permissions. This can't be undone."
           confirmLabel="Archive team"
           typeToConfirm={archiving.member_count > 0 ? archiving.name : undefined}
           onConfirm={async () => {
@@ -346,7 +346,7 @@ export function TeamsScreen({
 
 const TITLE = "Teams";
 const DESCRIPTION =
-  "Teams are groups of people that can have their own escalation paths and permissions. Manage them here.";
+  "Group people so you can notify them and give them permissions together.";
 
 export function NameDialog({
   open,
@@ -488,8 +488,7 @@ export function TeamMembersDialog({
       <DialogContent>
         <DialogTitle>Members of {team.name}</DialogTitle>
         <DialogDescription>
-          Manual assignments only. Directory group members sync in alongside
-          them and are managed by your identity provider.
+          Choose who belongs to this team.
         </DialogDescription>
         <DialogBody className="flex flex-col gap-4">
           {loading ? null : (

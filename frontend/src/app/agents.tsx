@@ -52,7 +52,7 @@ const STATUS_FILTERS: StatusFilter[] = [
 
 const STATUS_FILTER_LABEL: Record<StatusFilter, string> = {
   current: "Current agents",
-  all: "All, archived included",
+  all: "All agents",
   ...CONNECTION_LABEL,
 };
 
@@ -172,7 +172,7 @@ export function AgentsScreen({
           <div>
             <h1 className="text-title-lg text-ink">Agents</h1>
             <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-              A list of all your agents. Add new ones or investigate the ones you already have.
+              Add new agents or look into the ones you already have.
             </p>
           </div>
           {canCreate ? (
@@ -193,8 +193,8 @@ export function AgentsScreen({
               title="No agents you can see yet"
               description={
                 canCreate
-                  ? "Add one you manage and it appears here."
-                  : "Once an agent you can see is added it appears here."
+                  ? "Agents you add will appear here."
+                  : "Agents you can see will appear here."
               }
               action={
                 canCreate ? (
@@ -211,7 +211,7 @@ export function AgentsScreen({
               description={
                 canCreate
                   ? "Add a new agent"
-                  : "An administrator adds agents; once one is added it appears here."
+                  : "Agents an administrator adds will appear here."
               }
               action={
                 canCreate ? (
@@ -263,10 +263,10 @@ export function AgentsScreen({
                   status === "all"
                     ? "Try a different search."
                     : status === "archived"
-                      ? "No archived agent matches. Archived agents keep their instances and history and stay readable here."
+                      ? "No archived agents match."
                       : status === "current" && !query.trim()
-                        ? "Every agent here is archived. Choose Archived in the status filter to see them."
-                        : "Try a different search, or widen the status filter."
+                        ? "All agents are archived. Filter by Archived to see them."
+                        : "Try a different search or status filter."
                 }
               />
             ) : (
@@ -325,7 +325,7 @@ function InstanceCount({ agent }: { agent: AgentSummary }) {
             <Badge tone={live > 0 ? "approve" : "warn"}>{live} live</Badge>
           </HoverCardTitle>
           <HoverCardMeta>
-            Live means the instance is active and holds an unexpired, unrevoked credential.
+            Live instances hold a valid credential.
           </HoverCardMeta>
           <HoverCardBody>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">

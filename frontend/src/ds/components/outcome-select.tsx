@@ -12,10 +12,10 @@ import { CheckIcon, PersonIcon, XIcon } from "@/ds/icons";
 export type BlockOutcome = "approve" | "deny" | "human";
 
 export const OUTCOME_HELP: Record<BlockOutcome | "next", string> = {
-  approve: "Approve the request automatically. The agent may carry out the action, and no later approval blocks run.",
-  deny: "Deny the request automatically. The agent must not carry out the action, and no later approval blocks run.",
-  human: "Pause for human review using the selected escalation path or pipeline default. No later approval blocks run.",
-  next: "Leave the request undecided and pass it to the next block. If no remaining block decides, it goes to human review.",
+  approve: "Approve the request automatically.",
+  deny: "Deny the request automatically.",
+  human: "Ask a human to review the request.",
+  next: "Pass the request to the next block.",
 };
 
 const SEGMENTS: {

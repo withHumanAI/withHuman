@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_app/connect_/authorize")({
     } catch (reason) {
       const error =
         reason instanceof RequestError && reason.status === 404
-          ? "The enrollment code or requested agent was not found. Check your organization and the code, or run install again if the code has expired."
+          ? "The enrollment code or agent was not found. Run install again to get a new code."
           : reason instanceof Error
             ? reason.message
             : "Unable to load the enrollment. Try again.";

@@ -60,7 +60,7 @@ describe("Discord setup", () => {
   it("lets an ordinary member link once a server is connected", () => {
     access.connect = false;
     render(guide({ guild_name: "Community" }));
-    expect(screen.getByText(/withHuman is installed in Community/)).toBeTruthy();
+    expect(screen.getByText(/You must be a member of Community/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Link Discord" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Go to Integrations" })).toBeNull();
   });
@@ -77,7 +77,7 @@ describe("Discord setup", () => {
     invalidate.mockImplementationOnce(async () => { view.rerender(guide()); });
     fireEvent.click(screen.getByRole("button", { name: "Link Discord" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({
-      description: "Connect your Discord server under Integrations, then return here to link your account.",
+      description: "Connect your Discord server under Integrations first.",
     })));
     expect(invalidate).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Go to Integrations" })).toBeTruthy();

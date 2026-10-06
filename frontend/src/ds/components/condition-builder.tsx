@@ -689,7 +689,7 @@ function ConditionLeafRow({
           <XIcon width={12} height={12} />
         </IconButton>
       ) : null}
-      {node.field === "/request/tool" && (catalog?.tools.length ?? 0) > 0 ? <p className="w-full text-micro text-ink-muted">A tool name matches every source that sends that name.</p> : null}
+      {node.field === "/request/tool" && (catalog?.tools.length ?? 0) > 0 ? <p className="w-full text-micro text-ink-muted">Matches this tool name from every source.</p> : null}
       {field ? <p className="w-full text-micro text-ink-muted">{field.description} {field.types.join(" | ")}{field.required ? " · Required" : ""}{field.partial ? " · Present in some definitions" : ""}. {field.sources.join(", ")}</p> : null}
       {warning ? <p role="status" className="w-full text-micro text-warn">{warning}</p> : null}
     </div>

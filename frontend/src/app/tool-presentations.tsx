@@ -41,7 +41,7 @@ export function loadToolPresentationsPage(): Promise<ToolPresentationsPageData> 
   );
 }
 
-const DESCRIPTION = "Choose how each tool's arguments are shown to reviewers: rendered email bodies, diffs, commands, and a readable title.";
+const DESCRIPTION = "Choose how each tool's arguments are shown to reviewers.";
 
 /* Where a binding applies, as badges: the runtime, the MCP server, or
  * nothing when it binds to the tool name alone. */
@@ -132,7 +132,7 @@ export function ToolPresentationsScreen({
 
   const ownColumns: TableColumn<ToolPresentation>[] = [
     { id: "tool", label: "Tool", grow: true, cell: (entry) => <ToolCell binding={entry} title={entry.spec.title} /> },
-    { id: "binding", label: "Applies to", info: "The runtime and MCP server the entry is bound to. Any means every call of the tool.", docsLinks: [{ href: "https://withhuman.ai/docs/web-app/tool-presentations#matching-tools", label: "Matching tools and runtimes" }], width: 200, cell: (entry) => <BindingBadges binding={entry} /> },
+    { id: "binding", label: "Applies to", info: "The runtime and MCP server this presentation applies to.", docsLinks: [{ href: "https://withhuman.ai/docs/web-app/tool-presentations#matching-tools", label: "Matching tools and runtimes" }], width: 200, cell: (entry) => <BindingBadges binding={entry} /> },
     { id: "fields", label: "Fields", width: 72, align: "right", cell: (entry) => <span className="text-label text-ink-muted">{entry.spec.fields.length}</span> },
     { id: "updated", label: "Updated", width: 96, cell: (entry) => <span className="text-label text-ink-muted">{formatElapsed(entry.updated_at)} ago</span> },
   ];
@@ -163,7 +163,7 @@ export function ToolPresentationsScreen({
     return (
       <SettingsPage title="Tool presentations" description={DESCRIPTION}>
         <Callout tone="warn" title="You cannot read this page">
-          Reading tool presentations needs the organization.read permission.
+          You need the organization.read permission to view this page.
         </Callout>
       </SettingsPage>
     );
@@ -186,15 +186,14 @@ export function ToolPresentationsScreen({
           />
           <SettingsSection
             title="Your presentations"
-            description="Entries your organization wrote. One always wins over a built-in entry for the calls it matches."
+            description="Presentations your organization added."
             inset="none"
-            note="Only the way arguments are shown changes. Reviewers always see every argument, and the raw JSON stays one click away."
           >
             {page.presentations.length === 0 ? (
               <EmptyState
                 icon={<ToolIcon width={18} height={18} />}
                 title="No presentations of your own yet"
-                description="Requests render with the built-in catalog, and by shape for tools it does not know. Add a presentation to name a tool's arguments."
+                description="Add a presentation to change how a tool's arguments are shown."
                 action={canEdit ? <Button onClick={() => void navigate({ to: "/settings/tool-presentations/new", search: {} })}>New presentation</Button> : undefined}
               />
             ) : own.length === 0 ? (
@@ -221,7 +220,7 @@ export function ToolPresentationsScreen({
           </SettingsSection>
           <SettingsSection
             title="Built-in catalog"
-            description={`${plural(page.built_in.length, "entry").replace("entrys", "entries")} the product ships with. Customize one to start your own from it.`}
+            description={`Customize one of these ${plural(page.built_in.length, "entry").replace("entrys", "entries")} to start your own.`}
             inset="none"
           >
             {builtIn.length === 0 ? (
@@ -268,7 +267,7 @@ export function ToolPresentationsScreen({
           if (!open) setDeleting(null);
         }}
         title={deleting ? `Remove the presentation for ${deleting.tool}?` : "Remove presentation?"}
-        description="Requests for this tool go back to the built-in catalog, or render by shape when it has no entry. Nothing about the requests themselves changes."
+        description="Requests for this tool will be shown the default way."
         confirmLabel="Remove presentation"
         onConfirm={() => (deleting ? remove(deleting) : undefined)}
       />

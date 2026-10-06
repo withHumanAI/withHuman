@@ -222,7 +222,7 @@ export function PipelinesScreen({ page }: { page: PipelinesPage }) {
       {
         id: "referenced_by",
         label: "Delegated from",
-        info: "The delegate blocks that hand requests to this pipeline, grouped by the pipeline that holds them. Open a block to see its conditions.",
+        info: "The delegate blocks that send requests to this pipeline.",
         docsLinks: [{ href: "https://withhuman.ai/docs/web-app/approval-pipelines", label: "Delegating to a pipeline" }],
         width: 300,
         cell: (pipeline) => <DelegatedFrom pipeline={pipeline} />,
@@ -271,9 +271,9 @@ export function PipelinesScreen({ page }: { page: PipelinesPage }) {
         <div className="min-w-0">
           <h1 className="text-title-lg text-ink">Approval pipelines</h1>
           <p className="mt-1.5 max-w-[620px] text-body text-ink-muted">
-            Approval pipelines decide what to do with an agent’s request.{" "}
+            Approval pipelines let you decide what to do with approval requests automatically.{" "}
             {readsAll
-              ? "Every request enters the entry pipeline, whose delegate blocks can hand matching requests to pipelines other teams own."
+              ? "All requests go through the entry pipeline first."
               : "You see the pipelines you manage."}
           </p>
         </div>
@@ -330,7 +330,7 @@ export function PipelinesScreen({ page }: { page: PipelinesPage }) {
               <Badge tone="approve">Active revision {entry.active_revision}</Badge>
             </div>
             <p className="mt-0.5 text-micro text-ink-muted">
-              Every request runs these rules first. Delegate blocks here hand matching requests to the pipelines below.
+              All requests go through these rules first.
             </p>
           </div>
           <span
@@ -419,12 +419,12 @@ export function PipelinesScreen({ page }: { page: PipelinesPage }) {
                 "No pipelines you manage yet."
               ) : others.length === 0 ? (
                 canCreate
-                  ? "No other pipelines yet. Create one to give a team rules of its own, then hand requests to it with a delegate block."
-                  : "No other pipelines yet. Every request is decided by the entry pipeline."
+                  ? "No other pipelines yet. Create one to give a team its own rules."
+                  : "No other pipelines yet."
               ) : status === "archived" ? (
                 "No archived pipeline matches."
               ) : status === "active" && rows.length === 0 && !filter.trim() ? (
-                "Every other pipeline is archived. Create a new one to hand requests to."
+                "All other pipelines are archived."
               ) : (
                 <>
                   No pipeline matches{" "}
@@ -457,7 +457,7 @@ export function PipelinesScreen({ page }: { page: PipelinesPage }) {
         sampleText={sampleText}
         onSampleTextChange={setSampleText}
         onRun={runTest}
-        description="See what would happen to a sample request, one block at a time, starting in the entry pipeline. This does not create a real approval request."
+        description="See what would happen to a sample request, starting in the entry pipeline."
       />
     </Page>
   );
@@ -480,7 +480,7 @@ function DelegatedFrom({ pipeline }: { pipeline: RequestApprovalPipelineSummary 
     return <span className="text-ink-muted">None</span>;
   }
   if (groups.length === 0) {
-    return <span className="text-micro text-ink-muted">No delegate block hands requests here</span>;
+    return <span className="text-micro text-ink-muted">No delegate blocks send requests here</span>;
   }
   return (
     <span

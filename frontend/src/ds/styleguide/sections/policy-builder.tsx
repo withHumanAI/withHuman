@@ -451,7 +451,7 @@ export function PolicyBuilderSection() {
                 id: "delegate",
                 label: "Delegate to pipeline",
                 icon: <ArrowUpRightIcon width={14} height={14} />,
-                info: "Hands requests that match its conditions to another pipeline, whose owners decide what happens next.",
+                info: "Sends requests that match its conditions to another pipeline.",
               },
             ]}
             onChoose={() => undefined}

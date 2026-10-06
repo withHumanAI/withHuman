@@ -46,18 +46,18 @@ export function AgentToolsPanel({ agentSlug, data, search, onSearch }: { agentSl
   async function refresh() {
     setRefreshing(true); setRefreshError("");
     try { await api.toolCatalog({ agent_slug: agentSlug, refresh: true, limit: 1 }); await router.invalidate(); }
-    catch { setRefreshError(`${externalLabel} discovery could not be refreshed. Your last reported definitions are retained.`); }
+    catch { setRefreshError(`${externalLabel} tools could not be refreshed.`); }
     finally { setRefreshing(false); }
   }
   const columns: TableColumn<ToolCatalogEntry>[] = [
     {
       id: "tool", grow: true, label: "Tool",
-      info: "The exact tool name sent in approval requests. Open a tool to inspect its description and arguments. A pipeline condition matching this name applies to every source sending it.",
+      info: "The tool name sent in approval requests.",
       cell: (tool) => <><span className="block font-mono text-[12px]">{tool.name}</span><span className="line-clamp-2 text-micro text-ink-muted">{tool.description || tool.display_name || "No description supplied"}</span></>,
     },
     {
       id: "source", width: 160, label: "Source",
-      info: "The runtime or server that supplied this definition, followed by the reporting instance, or by the source when its tools are discovered centrally. Sources can expose the same tool name with different arguments.",
+      info: "The runtime or server that supplied this tool.",
       cell: (tool) => <><span className="block text-body">{tool.server || tool.runtime}</span><span className="text-micro text-ink-muted">{tool.instance_name || toolSourceLabel(tool.source)}</span></>,
     },
     {
@@ -66,20 +66,19 @@ export function AgentToolsPanel({ agentSlug, data, search, onSearch }: { agentSl
         <p><strong>Reported</strong> means a local instance discovered the tool.</p>
         {external.length > 0 ? <p><strong>Granted</strong> means it is available through the agent's {externalLabel} access.</p> : null}
         <p><strong>Unavailable</strong> means it was removed or access ended.</p>
-        <p><strong>Stale</strong> means a refresh failed and the last successful definition is retained.</p>
-        <p>These labels do not change pipeline decisions.</p>
+        <p><strong>Stale</strong> means the last refresh failed.</p>
       </>,
       cell: (tool) => <div className="flex flex-wrap gap-1"><Badge tone={tool.available ? "neutral" : "warn"}>{tool.available ? isExternal(tool.source) ? "Granted" : "Reported" : "Unavailable"}</Badge>{tool.stale ? <Badge tone="warn">Stale</Badge> : null}</div>,
     },
     {
       id: "seen", width: 150, label: "Last discovered",
-      info: "When this tool was last included in a successful discovery. An older discovery does not by itself mean the tool is unavailable.",
+      info: "When this tool was last discovered.",
       cell: (tool) => <span title={formatAbsolute(tool.last_seen_at)} className="text-micro text-ink-muted">{formatRelative(tool.last_seen_at)}</span>,
     },
   ];
   const selected = data.selected;
   return <>
-    <p className="text-body text-ink-muted">Tool definitions reported by this agent's instances{external.length > 0 ? ` and available through its ${externalLabel} access` : ""}.</p>
+    <p className="text-body text-ink-muted">Tools this agent's instances reported{external.length > 0 ? ` or can reach through ${externalLabel}` : ""}.</p>
     {data.error ? <Callout tone="warn" title="Catalogue unavailable">{data.error}</Callout> : null}
     <AgentToolServers agentSlug={agentSlug} servers={data.servers} refreshing={refreshing} refreshError={refreshError} onRefresh={() => void refresh()} onShowTools={(server) => { setQuery(server.name); change({ q: server.name, source: server.source }); }} />
     <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); change({ q: query || undefined }); }}>
@@ -93,7 +92,7 @@ export function AgentToolsPanel({ agentSlug, data, search, onSearch }: { agentSl
         {data.tools.length === 0 ? (
           <EmptyState
             title="No matching tools"
-            description="Try another search, clear the filters, or refresh tools using the section below."
+            description="Try another search or clear the filters."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -128,9 +127,9 @@ export function AgentToolsPanel({ agentSlug, data, search, onSearch }: { agentSl
       <p className="text-micro text-ink-muted">{selected.server || selected.runtime} · {selected.instance_name || toolSourceLabel(selected.source)} · Last discovered {formatAbsolute(selected.last_seen_at)}</p>
       {selected.input_schema ? <>
         <Table<SchemaField> aria-label="Tool arguments" selectable={false} selected={new Set()} onSelectedChange={() => {}} columns={[
-          { id: "path", width: 200, label: "Argument", info: "An input field declared by the tool. Dots show nested object fields. Open the full argument schema for its exact structure.", cell: (field) => <span className="font-mono text-[12px]">{field.path.replace("/request/arguments/", "").split("/").map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~")).join(".")}</span> },
-          { id: "type", width: 150, label: "Type", info: "The value types and requiredness declared by the tool's schema. Complex definitions remain available in the full argument schema.", cell: (field) => <span>{field.types.join(" | ") || "See schema"}{field.required ? " · Required" : ""}</span> },
-          { id: "description", grow: true, label: "Description", info: "The field description and any allowed values supplied by the tool's schema.", cell: (field) => <span>{field.description}{field.values.length ? ` Allowed values: ${field.values.map((value) => JSON.stringify(value)).join(", ")}` : ""}</span> },
+          { id: "path", width: 200, label: "Argument", info: "An input field declared by the tool.", cell: (field) => <span className="font-mono text-[12px]">{field.path.replace("/request/arguments/", "").split("/").map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~")).join(".")}</span> },
+          { id: "type", width: 150, label: "Type", info: "The value types the tool declares, and whether the field is required.", cell: (field) => <span>{field.types.join(" | ") || "See schema"}{field.required ? " · Required" : ""}</span> },
+          { id: "description", grow: true, label: "Description", info: "The field's description and allowed values.", cell: (field) => <span>{field.description}{field.values.length ? ` Allowed values: ${field.values.map((value) => JSON.stringify(value)).join(", ")}` : ""}</span> },
         ]} items={schemaFields(selected.input_schema)} getId={(field) => field.path} />
         <details><summary className="cursor-pointer text-label">Full argument schema</summary><CodeBlock code={JSON.stringify(selected.input_schema, null, 2)} label="JSON Schema" /></details>
       </> : <p className="text-body text-ink-muted">Argument schema unavailable.</p>}
@@ -151,7 +150,7 @@ export function AgentToolsPanel({ agentSlug, data, search, onSearch }: { agentSl
       ) : null}
       <Card className="space-y-3 p-5">
         <h3 className="text-label">Local tools</h3>
-        <p className="text-body text-ink-muted">Run this on the instance's machine, from the project whose tools you want to discover. Replace &lt;runtime&gt; with its runtime, such as claude-code or codex. Setup also reports tools automatically.</p>
+        <p className="text-body text-ink-muted">Run this on the instance's machine, from the project folder. Replace &lt;runtime&gt; with the runtime, such as claude-code or codex.</p>
         <CodeBlock code={`withhuman agent refresh-tools <runtime> --agent ${agentSlug}`} />
       </Card>
     </section>

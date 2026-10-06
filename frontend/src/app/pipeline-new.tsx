@@ -35,13 +35,13 @@ export function NewPipelineScreen() {
     key === ""
       ? ""
       : key === ENTRY_PIPELINE_KEY
-        ? "This key is the entry pipeline's."
+        ? "This key is reserved."
         : !PIPELINE_KEY_PATTERN.test(key)
           ? "Lowercase letters, digits, dots, dashes, and underscores; up to 63 characters."
           : !validPipelineKey(key)
             ? "This key is reserved."
             : taken === key
-              ? "A pipeline with this key already exists, or existed once. Keys are never reused."
+              ? "This key is already taken."
               : "";
   const canCreate = name.trim() !== "" && key !== ENTRY_PIPELINE_KEY && validPipelineKey(key) && taken !== key;
 
@@ -52,7 +52,7 @@ export function NewPipelineScreen() {
       toast.add({
         type: "approve",
         title: `${revision.name} created`,
-        description: "Add blocks, then hand requests to it with a delegate block in another pipeline.",
+        description: "Add blocks to decide what happens to its requests.",
       });
       await navigate({ ...pipelineLink(revision.pipeline_key, { edit: true }), replace: true });
     } catch (reason) {
@@ -75,8 +75,7 @@ export function NewPipelineScreen() {
       <PageHeader back={<PageBackLink to="/pipelines">Approval pipelines</PageBackLink>}>
         <h1 className="text-title-lg text-ink">New pipeline</h1>
         <p className="mt-1.5 max-w-[620px] text-body text-ink-muted">
-          A pipeline of its own, with its own revisions and its own owners. Requests reach it when a
-          delegate block in another pipeline hands them over.
+          Create a pipeline that other pipelines can delegate requests to.
         </p>
       </PageHeader>
       <Card>
@@ -103,13 +102,11 @@ export function NewPipelineScreen() {
             placeholder="payments"
             className="w-72"
             error={keyError}
-            info="The unique identifier of this pipeline. Delegate blocks name it, and permissions can be pinned to it. Cannot be changed after creation."
+            info="The pipeline's unique identifier. It can't be changed later."
             docsLinks={[{ href: "https://withhuman.ai/docs/web-app/approval-pipelines#pipelines", label: "Creating pipelines" }]}
           />
           <Callout tone="neutral">
-            The pipeline starts empty and active: a request handed to it goes straight to a human
-            until its blocks say otherwise. To give a team ownership, grant them pipeline
-            permissions at this pipeline's scope from the Teams or Members page.
+            Requests sent to this pipeline go to a human until you add blocks.
           </Callout>
         </CardBody>
         <CardFooter className="justify-end gap-2">

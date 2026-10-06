@@ -125,7 +125,7 @@ export function TeamScreen({
       title={team.name}
       description={
         team.directory_managed
-          ? "Synced from your directory: its name and membership are managed by your identity provider."
+          ? "Managed by your identity provider."
           : members.length === 1
             ? "1 member."
             : `${members.length} members.`
@@ -136,13 +136,13 @@ export function TeamScreen({
         <div className="flex flex-col items-start gap-2">
           <Badge>Archived</Badge>
           <p className="text-body text-ink-muted">
-            This team is read-only. Its roster and policy history are preserved, and it no longer grants access or receives requests.
+            This team is read-only.
           </p>
         </div>
       ) : null}
       <SettingsSection
         title="Members"
-        description="Everyone on this team. Directory group members sync in alongside the ones added here."
+        description="Everyone on this team."
         inset={members.length === 0 ? "none" : "rows"}
         action={
           canEditMembers ? (
@@ -197,7 +197,7 @@ export function TeamScreen({
       {customPermissions || team.assignments.length > 0 ? (
         <SettingsSection
           title="Permissions"
-          description="Permissions every member inherits while they belong to this team."
+          description="Permissions every member of this team gets."
           inset={team.assignments.length === 0 ? "none" : "rows"}
           action={
             canAssign ? (
@@ -208,10 +208,7 @@ export function TeamScreen({
           }
         >
           {team.assignments.length === 0 ? (
-            <EmptyState
-              title="No permissions yet"
-              description="Members keep their direct permissions and access from other teams."
-            />
+            <EmptyState title="No permissions yet" />
           ) : (
             team.assignments.map((assignment) => (
               <SettingRow
@@ -232,7 +229,7 @@ export function TeamScreen({
 
       <SettingsSection
         title="Escalation policy"
-        description={archived ? "The team's saved escalation policy is retained as read-only history." : "Who on the team is notified, and in what order, when a request reaches it. Without a policy every member is notified at once."}
+        description={archived ? "This policy is read-only." : "Choose who on the team gets notified, and in what order."}
       >
         <SettingRow
           icon={<BroadcastIcon />}
@@ -271,7 +268,7 @@ export function TeamScreen({
           <SettingsSection title="Team">
             <SettingRow
               label="Name"
-              description="Changing the name won't break routing."
+              description="Changing the name won't affect who gets notified."
             >
               <Button size="sm" variant="neutral" onClick={() => setRenaming(true)}>
                 Rename
@@ -285,7 +282,7 @@ export function TeamScreen({
           >
             <SettingRow
               label="Archive team"
-              description="Retain the team and its roster as read-only history, revoke its access grants, and deactivate its escalation policy."
+              description="Make this team read-only and remove its permissions."
             >
               <Button size="sm" variant="danger" onClick={() => setArchiving(true)}>
                 Archive team
@@ -313,7 +310,7 @@ export function TeamScreen({
         <NameDialog
           open
           title={`Rename ${team.name}`}
-          description="Changing the name won't break routing."
+          description="Changing the name won't affect who gets notified."
           confirmLabel="Rename team"
           initialName={team.name}
           onOpenChange={(open) => !open && setRenaming(false)}
@@ -328,7 +325,7 @@ export function TeamScreen({
           open
           onOpenChange={(open) => !open && setArchiving(false)}
           title={`Archive ${team.name}?`}
-          description="The team and its roster stay available in Archived teams. Its access grants are revoked and its escalation policy is deactivated. Archiving is permanent and is refused while an active escalation path or a pending request still targets this team."
+          description="Its members lose the team's permissions. This can't be undone."
           confirmLabel="Archive team"
           typeToConfirm={members.length > 0 ? team.name : undefined}
           onConfirm={async () => {

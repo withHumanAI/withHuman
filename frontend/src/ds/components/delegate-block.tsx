@@ -142,7 +142,7 @@ export function DelegateBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Choose the conditions a request must meet to continue in the other pipeline. A request that does not match skips this block and continues to the next one."
+          info="Requests that match continue in the other pipeline."
           docsLinks={[DELEGATE_DOCS.when]}
         >
           When
@@ -161,7 +161,7 @@ export function DelegateBlockCard({
       <div className="flex flex-col gap-1.5">
         <InfoLabel
           className="text-label text-ink-secondary"
-          info="Matching requests continue in this pipeline's active revision, whose owners decide what happens next. If it runs out of blocks, the request goes to a human with that pipeline's default reviewers, else this pipeline's, and the pipeline stops."
+          info="Matching requests continue in this pipeline."
           docsLinks={[DELEGATE_DOCS.target]}
         >
           Continue in pipeline
@@ -254,7 +254,7 @@ export function DelegateBlockSummaryCard({
           {pipeline && !pipeline.active ? <Badge tone="warn">Archived</Badge> : null}
         </span>
         <p className="text-micro text-ink-muted">
-          Its owners decide what happens next. If it runs out of blocks, the request goes to a human and the pipeline stops.
+          Matching requests continue in this pipeline.
         </p>
       </SummaryField>
     </BlockSummaryCard>

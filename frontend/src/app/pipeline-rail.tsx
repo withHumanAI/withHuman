@@ -171,7 +171,7 @@ export function addChoices(availability: Record<string, boolean> = {}): Pipeline
       id: "outcome",
       label: "Outcome block",
       icon: <ChevronDownIcon width={14} height={14} />,
-      info: "Approves, denies, or asks a human for every request that reaches it, and the pipeline stops. Put one in a branch to decide only the requests that match.",
+      info: "Approves, denies, or asks a human about every request that reaches it.",
     },
     {
       id: "webhook",
@@ -190,13 +190,13 @@ export function addChoices(availability: Record<string, boolean> = {}): Pipeline
       id: "branch",
       label: "Branch",
       icon: <CornerDownRightIcon width={14} height={14} />,
-      info: "Runs its own blocks only for requests that match its conditions. If none of them decides, the request goes to a human and the pipeline stops.",
+      info: "Runs its own blocks only for requests that match its conditions.",
     },
     {
       id: "delegate",
       label: "Delegate to pipeline",
       icon: <ArrowUpRightIcon width={14} height={14} />,
-      info: "Hands requests that match its conditions to another pipeline, whose owners decide what happens next. If that pipeline runs out of blocks, the request goes to a human and the pipeline stops.",
+      info: "Sends requests that match its conditions to another pipeline.",
     },
   ];
 }
@@ -284,7 +284,7 @@ export function useRailEditor(
       title={removal
         ? `Remove “${removal.branch.name || "Untitled branch"}” and its ${count} ${count === 1 ? "block" : "blocks"}?`
         : ""}
-      description="The branch and every block inside it leave this draft. Requests are not affected until you create and activate a revision."
+      description="The branch and its blocks are removed from this draft."
       confirmLabel="Remove branch"
       onConfirm={() => {
         if (removal) setDraft((drafts) => removeDraft(drafts, removal.branch.id));
@@ -301,7 +301,7 @@ export function UnreachableNotice({ block, children }: { block: BlockDraft; chil
   return (
     <div className="my-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-micro text-ink-muted">
       <Badge tone="warn" icon={<AlertIcon width={12} height={12} />}>Unreachable</Badge>
-      <span>Requests stop at “{block.name || "Untitled block"}”, an earlier Outcome block. Outcome blocks decide every request that reaches them, so nothing will ever get this far. {children}</span>
+      <span>Requests stop at “{block.name || "Untitled block"}”, an earlier Outcome block. {children}</span>
     </div>
   );
 }

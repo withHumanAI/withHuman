@@ -196,7 +196,6 @@ export function AgentScreen({ page }: { page: AgentPage }) {
       toast.add({
         type: "approve",
         title: "Agent renamed",
-        description: `Reviewers now see ${next} on its requests.`,
       });
     }
   }
@@ -227,7 +226,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
           <EmptyState
             icon={<AgentIcon width={18} height={18} />}
             title="Agent not found"
-            description="It may have been created in another organization, or the link is stale."
+            description="This agent is not in this organization."
             action={
               <Button onClick={() => void navigate({ to: "/agents" })}>
                 Back to agents
@@ -338,7 +337,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
     {
       id: "instance",
       label: "Instance",
-      info: "One running copy of this agent, e.g. a specific agent running on CI, a container, a laptop, etc.",
+      info: "One running copy of this agent, such as on a laptop or in CI.",
       docsLinks: [{ href: "https://withhuman.ai/docs/web-app/agents#instance-connections", label: "Connecting agent instances" }],
       grow: true,
       cell: (instance) => (
@@ -357,7 +356,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
           {
             id: "owner",
             label: "Owner",
-            info: "The member this instance belongs to. It acts on their behalf and is disabled when they leave the organization.",
+            info: "The member this instance acts for.",
             width: 160,
             cell: (instance: AgentInstanceDetail) =>
               instance.owner_display_name ? (
@@ -389,7 +388,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
     {
       id: "credential",
       label: "Credential",
-      info: "Whether the instance's newest credential still lets it in. Hover a state for when it expires.",
+      info: "Whether the instance's newest credential still works.",
       docsLinks: [{ href: "https://withhuman.ai/docs/web-app/agents#credential-revocation", label: "Managing instance credentials" }],
       width: 130,
       cell: (instance) => <CredentialState instance={instance} />,
@@ -615,11 +614,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
           tone="warn"
           title={`Archived ${agent.archived_at ? formatAbsolute(agent.archived_at) : ""}`.trim()}
         >
-          Every credential was revoked and nothing can be enrolled under this
-          agent while it stays archived. Its instances and requests stay here
-          for the record, its name is free for a new agent, and its slug stays
-          reserved. Restore it to bring the agent back. Machines that still
-          run it block every tool call until someone runs{" "}
+          Machines that still run this agent block every tool call until you run{" "}
           <code className="font-mono text-[12px]">
             withhuman agent eject &lt;runtime&gt;
           </code>{" "}
@@ -627,13 +622,12 @@ export function AgentScreen({ page }: { page: AgentPage }) {
         </Callout>
       ) : disabled ? (
         <Callout tone="warn" title="This agent is disabled">
-          Its credentials are kept but none of them resolve, so machines that
-          still run it block every tool call. Enable it again to let every
-          instance back in without re-enrolling, or run{" "}
+          Machines that still run it block every tool call until you enable it
+          or run{" "}
           <code className="font-mono text-[12px]">
             withhuman agent eject &lt;runtime&gt;
           </code>{" "}
-          on a machine to stop gating it.
+          there.
         </Callout>
       ) : null}
 
@@ -716,7 +710,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
                 </h3>
                 <p className="text-label font-normal text-ink-muted">
                   {agent.recent_request_count.toLocaleString()} in the last 7
-                  days. Browse all requests and their outcomes.
+                  days.
                 </p>
               </div>
               <span className="text-title-lg tabular-nums text-ink">
@@ -734,15 +728,14 @@ export function AgentScreen({ page }: { page: AgentPage }) {
               {
                 title: "Instances",
                 count: agent.instance_count,
-                description: `${agent.live_instance_count.toLocaleString()} with a live credential. View runtimes and manage their access.`,
+                description: `${agent.live_instance_count.toLocaleString()} with a live credential.`,
                 icon: <AgentIcon width={18} height={18} />,
                 search: { tab: "instances" },
               },
               {
                 title: "Provisioner tokens",
                 count: agent.provisioner_count,
-                description:
-                  "Find tokens, check expiry dates, and revoke access to instance registration.",
+                description: "Let your platform register instances.",
                 icon: <LockIcon width={18} height={18} />,
                 search: { tab: "provisioners" },
               },
@@ -790,7 +783,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             {provisionerToken ? (
               <div className="flex flex-col gap-2 border-b-hairline border-edge px-5 py-4">
                 <Callout tone="warn" title="Copy this token now">
-                  withHuman stores only its hash; it will not be shown again.
+                  It will not be shown again.
                 </Callout>
                 <CodeBlock label="provisioner token" code={provisionerToken} />
               </div>
@@ -860,7 +853,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
                     }
                     description={
                       agent.instance_count === 0
-                        ? "An instance appears when a runtime enrolls through the CLI, is registered here, or is minted with a provisioner token."
+                        ? "Instances appear here when a runtime connects."
                         : "Try another search or clear the filters."
                     }
                   />
@@ -948,10 +941,8 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             title={`Archive ${agent.name}?`}
             description={
               <>
-                Every instance stops resolving and nothing can be enrolled
-                under this agent while it is archived. All instance
-                credentials and provisioner tokens are revoked for good, even
-                if you restore the agent later.
+                Every credential and provisioner token is revoked for good,
+                even if you restore the agent.
                 <BlockedRuntimesNote
                   instances={agent.instances}
                   way="reinstall it under another agent"
@@ -968,8 +959,6 @@ export function AgentScreen({ page }: { page: AgentPage }) {
               if (ok) {
                 toast.add({
                   title: "Agent archived",
-                  description:
-                    "It stays readable here. Restore it to bring it back.",
                 });
                 setArchiving(false);
               }
@@ -983,12 +972,10 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             }
             description={
               disabled
-                ? "Every instance with a live credential can open requests again. Nothing needs to re-enroll."
+                ? "Instances with a live credential can make requests again."
                 : (
                     <>
-                      Every instance stops resolving immediately, credentials
-                      included. Enabling the agent later lets them back in
-                      without re-enrolling.
+                      All its instances lose access until you enable it again.
                       <BlockedRuntimesNote
                         instances={agent.instances}
                         way="enable the agent again"
@@ -1014,7 +1001,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
             <NameDialog
               open
               title={`Rename ${renamingInstance.name}`}
-              description="The name must be unique within the agent. Requests already made keep the old name."
+              description="The name must be unique within the agent."
               confirmLabel="Rename instance"
               initialName={renamingInstance.name}
               onOpenChange={(open) => !open && setRenamingInstance(null)}
@@ -1034,9 +1021,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
               title={`Revoke the credential for ${revokingCredential.name}?`}
               description={
                 <>
-                  The instance loses access immediately and cannot get it
-                  back: it has to enroll again for a new credential. Other
-                  instances are untouched.
+                  The instance loses access and has to enroll again.
                   <BlockedRuntimesNote way="enroll it again" />
                 </>
               }
@@ -1062,7 +1047,7 @@ export function AgentScreen({ page }: { page: AgentPage }) {
               open
               onOpenChange={(open) => !open && setRevokingProvisioner(null)}
               title="Revoke this provisioner token?"
-              description="The platform holding it can no longer mint instances. Instances it already minted keep their own credentials."
+              description="The platform holding it can no longer register instances."
               confirmLabel="Revoke token"
               onConfirm={async () => {
                 const ok = await act(
@@ -1100,10 +1085,10 @@ function CredentialState({ instance }: { instance: AgentInstanceDetail }) {
           </HoverCardTitle>
           <HoverCardMeta>
             {credential.revoked_at
-              ? "Revoked by hand. The instance has to enroll again for a new one."
+              ? "The instance has to enroll again."
               : expired
-                ? "Past its expiry. The instance has to enroll again for a new one."
-                : `Lets the instance in for another ${formatUntil(credential.expires_at)}.`}
+                ? "The instance has to enroll again."
+                : `Valid for another ${formatUntil(credential.expires_at)}.`}
           </HoverCardMeta>
           <HoverCardBody>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
@@ -1169,11 +1154,11 @@ function BlockedRuntimesNote({
     .map((instance) => instance.name);
   return (
     <span className="mt-3 block">
-      Runtimes still running it block every tool call until someone runs{" "}
+      Machines still running it block every tool call until you run{" "}
       <code className="font-mono text-[12px]">
         withhuman agent eject &lt;runtime&gt;
       </code>{" "}
-      on that machine, or you {way}.
+      there, or {way}.
       {connected.length > 0 ? (
         <>
           {" "}

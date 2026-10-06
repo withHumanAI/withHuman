@@ -14,7 +14,7 @@ export function AppearanceScreen() {
   return (
     <SettingsPage
       title="Appearance"
-      description="How withHuman looks in this browser. The choice is saved on this device only."
+      description="How withHuman looks in this browser."
     >
       <SettingsSection
         title="Theme"
@@ -28,8 +28,8 @@ export function AppearanceScreen() {
             onValueChange={(value) => setTheme(value as ThemePreference)}
           >
             <RadioOption value="system" label="System" description="Match the operating system." />
-            <RadioOption value="light" label="Light" description="Porcelain canvas, onyx ink." />
-            <RadioOption value="dark" label="Dark" description="For dim rooms and late reviews." />
+            <RadioOption value="light" label="Light" description="Light background, dark text." />
+            <RadioOption value="dark" label="Dark" description="Dark background, light text." />
           </RadioGroup>
         </div>
       </SettingsSection>

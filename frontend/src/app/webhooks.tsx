@@ -88,7 +88,7 @@ export function WebhooksScreen({
         <EmptyState
           icon={<SettingsIcon width={18} height={18} />}
           title="Webhook endpoints are managed by administrators"
-          description="You need the webhook.read permission to see endpoints, or pipeline.read to see the ones your pipelines use."
+          description="You need the webhook.read permission to see endpoints."
         />
       </Page>
     );
@@ -101,7 +101,7 @@ export function WebhooksScreen({
         <EmptyState
           icon={<SettingsIcon width={18} height={18} />}
           title="Webhook endpoints are not configured"
-          description="Signing secrets are sealed under the deployment secrets key. Set WITHHUMAN_SECRETS_KEY on the server and the worker to enable endpoints and webhook blocks."
+          description="Set WITHHUMAN_SECRETS_KEY on the server and the worker to use webhooks."
         />
       </Page>
     );
@@ -169,8 +169,8 @@ export function WebhooksScreen({
                 title="No webhook endpoints match"
                 description={
                   filter === "archived"
-                    ? "No archived endpoint matches. An archived endpoint keeps its revisions and secret until a revision is active again."
-                    : "Try a different search, or another filter."
+                    ? "No archived endpoints match."
+                    : "Try a different search or filter."
                 }
               />
             ) : (
@@ -234,8 +234,7 @@ function ScreenHeader() {
     <div>
       <h1 className="text-title-lg text-ink">Webhook endpoints</h1>
       <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-        Configure webhooks to use in your approval pipelines. These webhooks can be called to
-        decide whether to approve or deny agent approval requests.
+        Add webhooks to use in your approval pipelines.
       </p>
     </div>
   );
@@ -268,7 +267,7 @@ function NewEndpointDialog({
         <form onSubmit={submit} className="flex min-h-0 flex-col">
           <DialogTitle>New webhook endpoint</DialogTitle>
           <DialogDescription>
-            Name the webhook, it must be globally unique. Try to make it descriptive.
+            Choose a unique key for the endpoint.
           </DialogDescription>
           <DialogBody>
             <TextField

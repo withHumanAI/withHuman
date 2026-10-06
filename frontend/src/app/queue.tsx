@@ -269,7 +269,7 @@ const EMPTY_COPY: Record<QueueScope | "resolved", { title: string; description: 
   },
   resolved: {
     title: "No requests here",
-    description: "Requests will show up here as their status changes.",
+    description: "Requests you can see will appear here.",
   },
 };
 
@@ -513,7 +513,7 @@ export function QueueScreen({
               <EmptyState
                 icon={<InboxIcon />}
                 title="Select a request"
-                description="Choose an item from the queue to review it here."
+                description="Choose a request from the queue to review it."
               />
             </div>
           )}

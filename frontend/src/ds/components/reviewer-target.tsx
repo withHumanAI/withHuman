@@ -121,8 +121,7 @@ export function TargetBadge({
     <HoverCard content={<>
       <HoverCardTitle>The agent's owner</HoverCardTitle>
       <HoverCardBody>
-        The person who owns the agent instance that made the request is asked, and only they
-        can decide it. If the agent has no owner, such as a service agent, the request goes to{" "}
+        The agent's owner decides the request. If the agent has no owner, it goes to{" "}
         {target.id ? target.name : "the pipeline default"} instead.
       </HoverCardBody>
     </>}>
@@ -134,8 +133,8 @@ export function TargetBadge({
       <HoverCardTitle>{fallbackLabel ?? "Pipeline default"}</HoverCardTitle>
       <HoverCardBody>
         {fallbackLabel === "Any authorized reviewer"
-          ? "No escalation path is assigned. The request waits in the review queue for someone with permission to approve or deny it."
-          : "This block inherits the pipeline's default escalation path. If no path is assigned, the request waits in the review queue for any authorized reviewer."}
+          ? "Anyone with permission can decide the request."
+          : "Uses the pipeline's default escalation path."}
       </HoverCardBody>
     </>}>
       {chip}

@@ -214,8 +214,7 @@ export function EscalationRoute({
       <Well>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-micro font-normal text-ink-muted">
-            {target.name} has no active revision. A pipeline naming it cannot be activated, and a
-            request reaching it waits for any authorized reviewer.
+            {target.name} has no active revision.
           </p>
           <EditPathLink pathKey={target.id} label="Open escalation path" />
         </div>
@@ -226,7 +225,7 @@ export function EscalationRoute({
     <Well>
       {target.type === "agent_owner" ? (
         <p className="text-micro font-normal text-ink-muted">
-          The agent's owner decides. If the agent has no owner, this path takes the request:
+          The agent's owner reviews. If there is no owner, this path is used:
         </p>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">

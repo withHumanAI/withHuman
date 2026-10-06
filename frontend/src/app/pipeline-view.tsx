@@ -115,7 +115,7 @@ const FIXED_FIELD_PATHS = new Set(FIXED_FIELDS.map((field) => field.path));
  */
 
 const REVISIONS_INFO =
-  "Every change you make to a pipeline creates a new revision. A revision is only running when it is made active. You can roll back to any revision at any time.";
+  "Every change creates a new revision. Only the active revision runs.";
 
 type PendingAction = { kind: "activate"; revision: RequestApprovalPipelineRevisionSummary } | null;
 
@@ -436,7 +436,7 @@ export function PipelineViewScreen({
   const inheritedLabel = entry ? "Any authorized reviewer" : "The delegating pipeline's default";
   const describeTargetRoute = (target: ReviewerTarget | null) =>
     target?.type === "agent_owner"
-      ? `Asks the person who owns the agent instance that made the request, and only they can decide it. If the agent has no owner, it goes to ${target.id ? target.name : "the pipeline default"}.`
+      ? `Asks the agent's owner. Without one, it goes to ${target.id ? target.name : "the pipeline default"}.`
       : target
         ? ""
         : `Uses pipeline default: ${currentDefault?.type === "agent_owner" ? agentOwnerLabel(currentDefault.name) : (currentDefault?.name ?? inheritedLabel)}.`;
@@ -544,7 +544,6 @@ export function PipelineViewScreen({
       startEdit(revision);
       toast.add({
         title: `Editing from revision ${summary.revision}`,
-        description: "The editor holds its blocks now. Create revision saves them as a new one.",
       });
     } catch (reason) {
       toast.add({
@@ -695,7 +694,7 @@ export function PipelineViewScreen({
   async function handleMutationError(reason: unknown) {
     if (reason instanceof RequestError && reason.status === 412) {
       setConflict(
-        "Another administrator changed the active revision after this page loaded. The latest history is shown below. Review it before trying again.",
+        "Someone else changed the active revision. Review the latest history below before trying again.",
       );
       await router.invalidate();
       return;
@@ -720,7 +719,6 @@ export function PipelineViewScreen({
       setArchiving(false);
       toast.add({
         title: "Pipeline archived",
-        description: "It stays readable, but no revision can be activated and no pipeline can delegate to it.",
       });
       await navigate({ to: "/pipelines" });
     } catch (reason) {
@@ -731,7 +729,7 @@ export function PipelineViewScreen({
         toast.add({
           type: "deny",
           title: "Archive refused",
-          description: "An active pipeline revision delegates to this pipeline. The pipelines using it are listed.",
+          description: "Another pipeline now delegates to this one.",
         });
         return;
       }
@@ -814,8 +812,7 @@ export function PipelineViewScreen({
           </h1>
         </PageHeader>
         <Callout tone="warn" icon={<AlertIcon width={15} height={15} />} title="No pipeline has this key">
-          A pipeline appears here once it is created on the overview. Check the key, or open one of
-          the pipelines listed there.
+          Check the key, or open a pipeline from the overview.
         </Callout>
       </Page>
     );
@@ -855,8 +852,8 @@ export function PipelineViewScreen({
             blocks={railBlocks}
             lastLabel="Otherwise"
             emptyText={entry
-              ? "No checks here yet. Every request goes to the default reviewers below."
-              : "No blocks in this pipeline yet. Add steps by editing."}
+              ? "No blocks yet. Every request goes to the default reviewers below."
+              : "No blocks in this pipeline yet."}
           />
         </div>
       </RailProvider>
@@ -894,8 +891,8 @@ export function PipelineViewScreen({
             </div>
             <p className="mt-1.5 max-w-[620px] text-body text-ink-muted">
               {entry
-                ? "Every request starts here. Blocks are checked from top to bottom until one approves, denies, or asks a human. A delegate block hands matching requests to another pipeline."
-                : "Requests reach this pipeline through delegate blocks in other pipelines. Blocks are checked from top to bottom until one approves, denies, or asks a human."}
+                ? "All requests go through this pipeline first."
+                : "Requests reach this pipeline from delegate blocks in other pipelines."}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
@@ -960,8 +957,7 @@ export function PipelineViewScreen({
 
       {archived ? (
         <Callout tone="warn" title="This pipeline is archived">
-          Its revisions can still be viewed, but none can be activated, no pipeline can delegate
-          to it, and its key cannot be reused.
+          You can view its revisions, but not activate them.
         </Callout>
       ) : null}
       {conflict ? (
@@ -991,7 +987,7 @@ export function PipelineViewScreen({
           value={draftName}
           onChange={(event) => setDraftName(event.target.value)}
           className="max-w-[380px]"
-          info="Shown wherever this pipeline is named. Renaming creates a revision like any other change."
+          info="Renaming creates a new revision."
         />
       ) : null}
 
@@ -1010,7 +1006,7 @@ export function PipelineViewScreen({
                 />
               ))}
             </span>
-          ) : "No active pipeline delegates here yet. Add a delegate block to the entry pipeline, or to another one, to send requests this way."}
+          ) : "Add a delegate block to another pipeline to send requests here."}
         />
         <PipelineConnector label="Check the blocks in order" />
 
@@ -1018,9 +1014,7 @@ export function PipelineViewScreen({
 
         {!reachability.stoppedBy && (editing || railBlocks.length === 0) ? <PipelineConnector /> : null}
         {reachability.stoppedBy ? (
-          <UnreachableNotice block={reachability.stoppedBy}>
-            Requests cannot reach this fallback. Its default escalation path still applies to human outcomes that inherit it.
-          </UnreachableNotice>
+          <UnreachableNotice block={reachability.stoppedBy} />
         ) : null}
         <div
           className={cn(
@@ -1078,8 +1072,8 @@ export function PipelineViewScreen({
             <DialogTitle>This pipeline is in use</DialogTitle>
             <DialogDescription>
               {uses.length === 1
-                ? "An active pipeline revision delegates to this pipeline. Activate a revision of that pipeline without the delegate block, then archive this one."
-                : `${uses.length} active pipeline revisions delegate to this pipeline. Activate revisions of those pipelines without the delegate blocks, then archive this one.`}
+                ? "Remove the delegate block from the pipeline below, then archive this one."
+                : "Remove the delegate blocks from the pipelines below, then archive this one."}
             </DialogDescription>
             <DialogBody>
               <PipelineUseList uses={uses} />
@@ -1094,7 +1088,7 @@ export function PipelineViewScreen({
           open
           onOpenChange={(open) => !open && setArchiving(false)}
           title={`Archive ${pipelineName}?`}
-          description="The pipeline keeps its revisions for the record and requests already in progress keep the revision they pinned, but it is never active again, no pipeline can delegate to it, and its key cannot be reused. This cannot be undone."
+          description="This can't be undone. The pipeline's key can't be reused."
           confirmLabel="Archive pipeline"
           typeToConfirm={pipelineName}
           onConfirm={archive}
@@ -1118,8 +1112,7 @@ export function PipelineViewScreen({
                 : `Revision ${pendingAction.revision.revision} cannot be activated yet`}
             </DialogTitle>
             <DialogDescription>
-              Something this revision depends on is no longer in place. Restore it, or create a new
-              revision that does not need it.
+              Restore what it depends on, or create a revision that doesn't need it.
             </DialogDescription>
             <DialogBody>
               <RevisionDependencies references={references} pathNames={pathNames} />
@@ -1138,7 +1131,7 @@ export function PipelineViewScreen({
               ? `Roll back to revision ${pendingAction.revision.revision}`
               : `Activate revision ${pendingAction?.revision.revision ?? ""}`
           }
-          description="New requests will use these rules immediately. Requests already in progress will keep their existing rules."
+          description="New requests will use this revision immediately."
           confirmLabel={
             pendingAction && activeNumber !== null && pendingAction.revision.revision < activeNumber
               ? "Roll back"
@@ -1171,7 +1164,7 @@ export function activationRefusal(reason: RequestError): string | null {
     }
     case "request_approval_pipeline_inactive": {
       const pipelines = keys("pipelines");
-      return `${list(pipelines, "Pipeline", "Pipelines")} no active revision or ${pipelines.length === 1 ? "is" : "are"} archived. A delegate block cannot hand requests there.`;
+      return `${list(pipelines, "Pipeline", "Pipelines")} no active revision or ${pipelines.length === 1 ? "is" : "are"} archived.`;
     }
     case "request_approval_pipeline_delegation_cycle": {
       const pipelines = keys("pipelines");
@@ -1182,7 +1175,7 @@ export function activationRefusal(reason: RequestError): string | null {
       return `Pipelines would delegate more than ${typeof maximum === "number" ? maximum : "the allowed number of"} levels deep. Flatten the chain.`;
     }
     case "request_approval_pipeline_too_large":
-      return "The entry pipeline and everything it delegates to would hold more blocks than a request can run. Remove blocks or delegate less.";
+      return "The pipelines together would hold too many blocks. Remove blocks or delegate less.";
     default:
       return null;
   }

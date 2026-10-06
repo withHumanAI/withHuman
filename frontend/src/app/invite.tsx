@@ -125,8 +125,8 @@ export function InviteScreen({ token }: { token: string }) {
             <>
               <Callout tone="accent">
                 {sso
-                  ? "This organization signs in with single sign-on. Continue with your corporate identity to accept."
-                  : "This organization signs in with single sign-on, which is not available on this deployment."}
+                  ? "Continue with single sign-on to accept."
+                  : "This organization requires single sign-on. It isn't available on this deployment."}
               </Callout>
               {sso ? (
                 <Button

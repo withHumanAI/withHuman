@@ -226,8 +226,7 @@ export function PermissionPolicyFields({
               </Select>
               {options.length === 0 ? (
                 <p className="text-label text-ink-muted">
-                  No resources are available within your permission-management
-                  scope.
+                  There are no resources you can grant access to.
                 </p>
               ) : null}
             </>
@@ -244,7 +243,7 @@ export function PermissionPolicyFields({
         <>
           <Callout tone="accent">
             {value.scope_kind === "organization" ? (
-              "These permissions apply throughout the organization, including future resources."
+              "These permissions apply across the whole organization."
             ) : (
               <>
                 {needsResources ? (
@@ -253,10 +252,8 @@ export function PermissionPolicyFields({
                     to enable permissions.{" "}
                   </span>
                 ) : null}
-                These permissions apply only to the{" "}
-                {SCOPE_LABELS[value.scope_kind].toLowerCase()} selected above.
-                For access across the entire organization, choose the
-                Organization scope.
+                These permissions apply only to the selected{" "}
+                {SCOPE_LABELS[value.scope_kind].toLowerCase()}.
               </>
             )}
           </Callout>
@@ -334,8 +331,7 @@ export function PermissionPolicyFields({
                         </code>
                         {!allowed && !needsResources ? (
                           <p className="text-label text-ink-muted">
-                            You cannot grant this permission across the selected
-                            scope.
+                            You cannot grant this permission at this scope.
                           </p>
                         ) : null}
                       </div>
@@ -397,7 +393,7 @@ export const MEMBER_POLICIES: PermissionPolicySubject = {
 export const TEAM_POLICIES: PermissionPolicySubject = {
   collection: "teams",
   holder: "human",
-  description: "Every team member receives these permissions while they belong to this team.",
+  description: "Every team member gets these permissions.",
   back: { to: "/settings/teams", label: "Teams" },
 };
 
@@ -580,7 +576,7 @@ export function PermissionPoliciesScreen({
         <>
           {page.is_owner ? (
             <Callout title="Organization ownership">
-              Ownership is protected separately from permission policies.
+              Permission policies do not change ownership.
             </Callout>
           ) : null}
           {!customPermissions ? (
@@ -612,8 +608,7 @@ export function PermissionPoliciesScreen({
               </SettingsSection>
               {subject.collection === "teams" && principal.team_ids?.includes(principalId) ? (
                 <Callout>
-                  You belong to this team. This change also affects your
-                  inherited access.
+                  This change also affects your own access.
                 </Callout>
               ) : null}
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -708,7 +703,7 @@ export function PermissionPoliciesScreen({
                     description={
                       query
                         ? "Try another resource or permission."
-                        : "Add a policy to grant access at an organization or resource scope."
+                        : "Add a policy to grant access."
                     }
                   />
                 )}

@@ -95,9 +95,9 @@ const KIND_LABELS: Record<PresentationKind, string> = {
 };
 
 const KIND_HINTS: Partial<Record<PresentationKind, string>> = {
-  html: "Rendered in a sandbox that runs no script and loads nothing. The source is one click away.",
+  html: "Rendered with scripts and external content blocked.",
   diff: "A patch as text at one path, or the pair of strings before and after a change.",
-  list: "Each element renders with the item settings; their paths are relative to the element.",
+  list: "Paths in the element settings are relative to each element.",
   enum: "A short value shown as a badge.",
   reference: "An opaque identifier, in mono.",
 };
@@ -402,7 +402,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
   return (
     <SettingsPage
       title={editing ? `Presentation for ${draft.tool || "a tool"}` : "New tool presentation"}
-      description="Say which calls this applies to, what to call them, and how each argument is shown. The preview is exactly what reviewers see."
+      description="Choose how reviewers see this tool's requests."
       back={back}
       action={saveButton}
     >
@@ -420,7 +420,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
 
       <SettingsSection
         title="Applies to"
-        description="The tool name is exact. Leave the server or runtime empty to match any; when several entries match a call, the most specific wins and yours beat the built-in ones."
+        description="Leave the server or runtime empty to match any."
       >
         <div className="grid grid-cols-1 gap-4 py-3 @md:grid-cols-3">
           <TextField
@@ -430,7 +430,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
             onChange={(event) => update({ tool: event.target.value })}
             placeholder="create_or_update_draft"
             disabled={!canEdit}
-            description="The name the server defines, as the request carries it."
+            description="The exact tool name."
           />
           <TextField
             label="MCP server"
@@ -448,14 +448,14 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
             onChange={(event) => update({ runtime: event.target.value })}
             placeholder="Any"
             disabled={!canEdit}
-            description="The runtime the adapter reports, such as claude-code."
+            description="The runtime, such as claude-code."
           />
         </div>
       </SettingsSection>
 
       <SettingsSection
         title="Title"
-        description="What the request is called instead of the tool name. {{/path}} inserts an argument; when none of them resolve the tool name is used."
+        description="Shown instead of the tool name. {{/path}} inserts an argument."
       >
         <div className="py-3">
           <TextField
@@ -470,7 +470,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
 
       <SettingsSection
         title="Fields"
-        description="One per argument worth framing, in the order they should read. Arguments no field names still show after them, rendered by their shape."
+        description="Add a field for each argument you want to label, in reading order."
         action={
           canEdit ? (
             <Button size="sm" onClick={() => update({ fields: [...draft.fields, emptyField()] })}>
@@ -483,7 +483,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
       >
         {draft.fields.length === 0 ? (
           <p className="px-5 py-6 text-center text-label text-ink-muted">
-            No fields yet. Every argument renders by its shape until one is added.
+            No fields yet.
           </p>
         ) : (
           <ol className="flex flex-col">
@@ -508,7 +508,7 @@ export function ToolPresentationEditorScreen({ data, canEdit }: { data: ToolPres
 
       <SettingsSection
         title="Preview"
-        description="Paste a sample of the tool's arguments to see how they will read. Opened from a request, its arguments are already here."
+        description="Paste sample arguments to see what reviewers will see."
       >
         <div className="flex flex-col gap-4 py-3">
           <TextArea

@@ -101,11 +101,11 @@ const STEPS: Array<Pick<Step, "title" | "description">> = [
     description: "One command on the machine the agent runs on.",
   },
   { title: "Choose agents", description: "Pick the runtimes the CLI found." },
-  { title: "Get notified", description: "Choose where withHuman reaches you." },
+  { title: "Get notified", description: "Choose where you get notified." },
   { title: "Set rules", description: "Decide how each request reaches you." },
   {
     title: "Choose tools",
-    description: "Say which calls wait for you, in your own words.",
+    description: "Choose which calls wait for you.",
   },
   { title: "Test it", description: "Trigger a gated call and decide it here." },
 ];
@@ -183,8 +183,8 @@ export function OnboardingScreen({
         <Card>
           <EmptyState
             icon={<AgentIcon width={18} height={18} />}
-            title="Onboarding needs an owner who can connect agents and review requests"
-            description="The guided setup connects agents, writes a pipeline and an escalation path, and ends with a request you decide. Ask an owner to run it, or to give you those permissions."
+            title="Ask an owner to run the setup"
+            description="You need permission to connect agents and review requests."
           />
         </Card>
       )}
@@ -412,8 +412,7 @@ function OnboardingFlow({ page }: { page: ChannelsPage }) {
           <div>
             <CardTitle>This setup session expired</CardTitle>
             <CardDescription>
-              A session lives one hour. Nothing was lost: start again and the CLI picks up from the
-              new code.
+              Start again to get a new code.
             </CardDescription>
           </div>
         </CardHeader>
@@ -433,7 +432,7 @@ function OnboardingFlow({ page }: { page: ChannelsPage }) {
         begin={staleBegin ? null : begin}
         error={
           staleBegin
-            ? "A newer setup session was started from another tab or machine, so this code no longer works. Start again to get a fresh one."
+            ? "A newer setup started in another tab or on another machine. Start again to get a new code."
             : beginError
         }
         beginning={beginning}
@@ -446,7 +445,7 @@ function OnboardingFlow({ page }: { page: ChannelsPage }) {
     pane = (
       <WaitingCard
         title="Choose agents"
-        description="The CLI is connected and looking for supported agent runtimes."
+        description="The CLI is looking for agents."
         label={
           <>
             Detecting agents on <MachineBadge name={hostname} />
@@ -535,7 +534,7 @@ function OnboardingFlow({ page }: { page: ChannelsPage }) {
       <div className="flex flex-col items-center text-center">
         <h1 className="text-title-lg text-ink">Set up your first agent</h1>
         <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-          Get started withHuman. Connect your local agents.
+          Connect your local agents to withHuman.
         </p>
       </div>
       <Stepper orientation="horizontal" steps={steps} />
@@ -544,11 +543,7 @@ function OnboardingFlow({ page }: { page: ChannelsPage }) {
         open={confirmRestart}
         onOpenChange={setConfirmRestart}
         title="Start the setup over?"
-        description={
-          beforeProvisioning
-            ? "This closes the current session. You will get a fresh code and run the setup command on the machine again; nothing has been written yet."
-            : "This closes the current session and issues a fresh code to run on the machine again."
-        }
+        description="You'll get a new code to run on the machine again."
         confirmLabel="Start over"
         tone="approve"
         onConfirm={() => start()}
@@ -662,7 +657,7 @@ function InstallStep({
       <CardHeader>
         <div>
           <CardTitle>Connect your first agent</CardTitle>
-          <CardDescription>Install the withHuman CLI. It will detect your agents.</CardDescription>
+          <CardDescription>Install the withHuman CLI.</CardDescription>
         </div>
       </CardHeader>
       <CardBody className="flex flex-col gap-4">
@@ -745,7 +740,7 @@ function ChooseAgentsStep({
             {installed.length > 0 ? (
               <>
                 We found {installed.length} {installed.length === 1 ? "agent" : "agents"} on{" "}
-                <MachineBadge name={hostname} />. Pick the ones you want to hook up to withHuman.
+                <MachineBadge name={hostname} />. Choose the ones to connect.
               </>
             ) : (
               <>
@@ -765,9 +760,8 @@ function ChooseAgentsStep({
           />
         ))}
         {installed.length === 0 ? (
-          <Callout tone="neutral" title="Nothing to protect yet">
-            Install one of the agents above on this machine and run the setup command again, or skip
-            for now and connect agents by hand later.
+          <Callout tone="neutral" title="No agents to connect">
+            Install one of the agents above, then run the setup command again.
           </Callout>
         ) : null}
         {error ? <Callout tone="warn">{error}</Callout> : null}
@@ -1190,7 +1184,7 @@ function ChooseToolsStep({
             value="agent"
             icon={<AgentIcon width={16} height={16} />}
             label="With my coding agent"
-            description="Paste a prompt into your coding agent and it writes the rules with you."
+            description="Paste a prompt into your coding agent to write the rules."
           />
           <RadioCard
             value="describe"
@@ -1198,8 +1192,8 @@ function ChooseToolsStep({
             label="Describe it in words"
             description={
               assistantEnabled
-                ? "Say what should wait for you and withHuman writes the rules."
-                : "This deployment has no setup assistant model configured."
+                ? "Say what should wait for you."
+                : "Not available on this deployment."
             }
             disabled={!assistantEnabled}
           />
@@ -1386,7 +1380,7 @@ function ConnectionStatus({
   let text: string;
   switch (session.status) {
     case "agents_selected":
-      text = `Still discovering what ${names} can call.`;
+      text = `Finding the tools ${names} can call.`;
       break;
     case "tools_discovered":
     case "provisioning":
@@ -1893,7 +1887,7 @@ function TestStep({
               </ul>
             ) : (
               <Callout tone="neutral">
-                Your standard ladder could not be loaded. The prompt still goes to your account
+                Your notification settings could not be loaded. The prompt goes to your account
                 email.
               </Callout>
             )}
@@ -1903,7 +1897,7 @@ function TestStep({
 
       <OnboardingApprovals
         activity={activity}
-        waitingDescription="Run the command above. The agent will wait for you to approve it before continuing; check your phone, inbox, or chat app for the prompt too."
+        waitingDescription="Run the command above. The request will appear here."
         next={
           decided ? (
             /* One row: the question and its "no" on the left, Finish on the right. */
@@ -1952,10 +1946,10 @@ function DoneCard({
         title={skipped ? "Setup skipped" : "Setup complete"}
         description={
           !skipped
-            ? "Gated calls from your agents now wait in the review queue, the escalation path notifies you when one waits too long, and prompts reach you through your channels."
+            ? "Calls that need your approval will appear in the review queue."
             : enrolled
-              ? "Your agents are connected and gated calls wait in the review queue. Choose how withHuman reaches you any time under Settings, Notifications."
-              : "You can run the guided setup any time from the command palette, or connect agents by hand from the agents page."
+              ? "Your agents are connected. Choose how you get notified under Settings, Notifications."
+              : "You can run the guided setup any time from the command palette."
         }
         action={
           <div className="flex flex-wrap items-center justify-center gap-2.5">

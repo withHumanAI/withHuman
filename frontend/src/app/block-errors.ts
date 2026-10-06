@@ -7,7 +7,7 @@ import { extensions } from "./extensions";
  * adds labels the codes only it reports through its registry entry. */
 const BLOCK_ERROR_LABEL: Record<string, string> = {
   invalid_input: "the request could not be read",
-  evaluation_error: "a condition could not be evaluated against this request",
+  evaluation_error: "a condition could not be evaluated",
   cost_limit_exceeded: "the conditions cost too much to evaluate",
   resource_limit_exceeded: "the conditions exceeded a resource limit",
   timeout: "the block timed out",
@@ -17,7 +17,7 @@ const BLOCK_ERROR_LABEL: Record<string, string> = {
   endpoint_unreachable: "the endpoint could not be reached",
   endpoint_error: "the endpoint failed",
   endpoint_rejected: "the endpoint rejected the delivery",
-  outcome_not_allowed: "the endpoint answered with an outcome the block does not allow",
+  outcome_not_allowed: "the endpoint's outcome is not allowed",
   endpoint_unavailable: "the endpoint is unavailable",
 };
 

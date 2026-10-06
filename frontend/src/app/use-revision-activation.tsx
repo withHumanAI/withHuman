@@ -28,7 +28,7 @@ export function useRevisionActivation() {
       title: `Revision ${pending.revision} ${active ? "active" : "saved as draft"}`,
       description: active
         ? pending.activationDescription
-        : "Your changes are not live. You can activate this saved revision later.",
+        : "Activate it later to make your changes live.",
     });
     setPending(null);
     pending.resolve();
@@ -46,7 +46,7 @@ export function useRevisionActivation() {
           await pending.activate();
         } catch (reason) {
           if (reason instanceof RequestError && reason.status === 412) {
-            throw new Error("Someone changed the active revision. Keep this draft and review the updated page before activating it.");
+            throw new Error("Someone else changed the active revision. Keep this draft and review the page first.");
           }
           throw reason;
         }

@@ -46,7 +46,7 @@ function rememberEmail(email: string) {
 /* The social callback redirects here when the provider round trip itself
  * failed, before there was anything to sign in with. */
 const SOCIAL_ERRORS: Record<string, string> = {
-  provider_denied: "The sign-in was cancelled at the provider. Try again when you are ready.",
+  provider_denied: "The sign-in was cancelled at the provider.",
   flow_invalid: "That sign-in attempt is no longer valid. Start again from this page.",
   social_not_configured: "That sign-in method is not enabled on this deployment",
   social_failed: "Signing in with the provider failed. Try again or use another method.",
@@ -56,10 +56,8 @@ const LOGIN_ERRORS: Record<string, string> = {
   no_organizations: "This account does not belong to any organization yet",
   sso_required: "This organization signs in with single sign-on",
   no_account: "No withHuman account uses this email yet.",
-  email_unverified:
-    "Your email address is not verified with this provider. Verify it there, or use another sign-in method.",
-  domain_captured:
-    "Your team already uses withHuman with single sign-on. Sign in with your work email instead of creating a new organization.",
+  email_unverified: "Your email address is not verified with this provider.",
+  domain_captured: "Your team already uses withHuman. Sign in with your work email.",
   social_flow_invalid: "That sign-in attempt expired. Start again from this page.",
   invalid_credentials: "That email and password do not match.",
   unauthenticated: "The sign-in expired. Try again.",
@@ -400,12 +398,7 @@ export function AccessScreen({
         <div className="flex w-full max-w-[360px] flex-col gap-4 rounded-lg border-hairline border-edge bg-surface p-6 shadow-sm">
           <div>
             <h1 className="text-title text-ink">Choose an organization</h1>
-            <p className="mt-1 text-body text-ink-muted">
-              {email
-                ? `${email} belongs to several organizations.`
-                : "Your account belongs to several organizations."}{" "}
-              Pick the one to sign in to.
-            </p>
+            <p className="mt-1 text-body text-ink-muted">Pick the organization to sign in to.</p>
           </div>
           <div className="flex flex-col gap-2">
             {login.organizations.map((organization) => (
@@ -478,7 +471,7 @@ export function AccessScreen({
               <Callout tone="accent">
                 {sso
                   ? "This account signs in with single sign-on."
-                  : "This account signs in with single sign-on, which is not available on this deployment."}
+                  : "This account signs in with single sign-on. It is not available on this deployment."}
               </Callout>
             ) : null}
             {noticeCallout}
@@ -541,16 +534,13 @@ export function AccessScreen({
             <div>
               <h1 className="text-title text-ink">Set up this instance</h1>
               <p className="mt-1 text-body text-ink-muted">
-                A one-time ceremony: it creates the organization and its
-                first owner.
+                Create the organization and its first owner.
               </p>
             </div>
             <Callout tone="accent">
-              The server generated the bootstrap secret on first run. Find it
-              in the data directory as{" "}
-              <span className="font-mono text-[12px]">bootstrap-secret</span>{" "}
-              (by default under{" "}
-              <span className="font-mono text-[12px]">~/.withhuman</span>).
+              Find the bootstrap secret in the{" "}
+              <span className="font-mono text-[12px]">bootstrap-secret</span> file in the data
+              directory (<span className="font-mono text-[12px]">~/.withhuman</span> by default).
             </Callout>
 
             <FieldGroup label="Instance">

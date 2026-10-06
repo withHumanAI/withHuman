@@ -211,9 +211,7 @@ export function APIKeysScreen({
 
       {!organizationView && mine && !allowed ? (
         <Callout tone="warn" title="Personal API keys are turned off">
-          An administrator turned personal API keys off for this organization.
-          Existing keys are kept but every call with one is refused until an
-          administrator turns them on again.
+          Calls with existing keys are refused until an administrator turns them back on.
         </Callout>
       ) : null}
 
@@ -268,13 +266,13 @@ export function APIKeysScreen({
                 <EmptyState
                   icon={<LockIcon width={18} height={18} />}
                   title={organizationView ? "No organization API keys yet" : "No personal API keys in the organization yet"}
-                  description={organizationView ? "Create an organization key for a shared integration. Its access survives changes to its creator’s membership." : "Nobody has created a personal key."}
+                  description={organizationView ? "Create an organization key for a shared integration." : "Nobody has created a personal key."}
                 />
               ) : (
                 <EmptyState
                   icon={<LockIcon width={18} height={18} />}
                   title="No personal API keys yet"
-                  description="Create a key to let a script act as you outside the browser. You will see the key once, when it is created."
+                  description="Create a key to let a script act as you."
                 />
               )
             ) : visible.length === 0 ? (
@@ -283,7 +281,7 @@ export function APIKeysScreen({
                 description={
                   !searching && status === "active"
                     ? "Every key here has expired or was revoked. Choose All to see them."
-                    : "Try a different search, or show every status."
+                    : "Try a different search or status filter."
                 }
               />
             ) : (
@@ -316,8 +314,8 @@ export function APIKeysScreen({
         title={revoking ? `Revoke ${revoking.key.name}?` : "Revoke key?"}
         description={
           revoking?.own
-            ? "Every script using this key stops working immediately. The key stays in the list as revoked and cannot be brought back."
-            : "Every script the owner runs with this key stops working immediately. The key stays in their list as revoked and cannot be brought back."
+            ? "Scripts using this key stop working immediately. This can't be undone."
+            : "Scripts the owner runs with this key stop working immediately. This can't be undone."
         }
         confirmLabel="Revoke key"
         onConfirm={() => (revoking ? revoke(revoking) : undefined)}
@@ -386,7 +384,7 @@ function KeyTable({
     {
       id: "permissions",
       label: "Permissions",
-      info: "Personal keys follow their creator. Organization keys carry independent scoped grants.",
+      info: "Personal keys act with their creator's permissions. Organization keys have their own.",
       docsLinks: [{ href: "https://withhuman.ai/docs/web-app/api-keys#key-types", label: "Personal and organization keys" }],
       width: 150,
       cell: (key) => (
@@ -507,7 +505,7 @@ function PermissionsCell({
           </HoverCardTitle>
           <HoverCardMeta>
             {narrowed
-              ? `${lost.length === 1 ? "One listed permission is" : `${lost.length} listed permissions are`} no longer yours, so the key cannot use ${lost.length === 1 ? "it" : "them"}.`
+              ? `The key can no longer use ${lost.length === 1 ? "one of these permissions" : `${lost.length} of these permissions`}.`
               : own
                 ? "The key can use each of these only while you still hold it."
                 : "The key can use each of these only while its owner still holds it."}
@@ -588,23 +586,21 @@ function McpServerSection() {
           <TabPanel value="codex" className="flex flex-col gap-2">
             <CodeBlock code={`codex mcp add withhuman --url ${endpoint}`} wrap />
             <p className="text-micro text-ink-faint">
-              Codex opens the sign-in as part of adding the server. If it does not, run codex mcp
-              login withhuman.
+              Codex opens the sign-in when you add the server.
             </p>
           </TabPanel>
           <TabPanel value="cursor" className="flex flex-col gap-2">
             <CodeBlock label="~/.cursor/mcp.json" code={clientConfig} />
             <p className="text-micro text-ink-faint">
-              Add this for every project, or to .cursor/mcp.json inside one project, then turn the
-              server on under MCP in Cursor's settings. Cursor opens the sign-in in your browser.
+              Add this, then turn the server on under MCP in Cursor's settings. Cursor opens the
+              sign-in in your browser.
             </p>
           </TabPanel>
           <TabPanel value="other" className="flex flex-col gap-2">
             <CodeBlock label="MCP server settings" code={clientConfig} />
             <p className="text-micro text-ink-faint">
-              Any client that supports the streamable HTTP transport can connect. Add a server named
-              withhuman with the address above and no command; most clients accept this JSON shape.
-              The client opens the sign-in in your browser the first time it reaches withHuman.
+              Add a server named withhuman with the address above. The client opens the sign-in in
+              your browser the first time it reaches withHuman.
             </p>
           </TabPanel>
         </Tabs>

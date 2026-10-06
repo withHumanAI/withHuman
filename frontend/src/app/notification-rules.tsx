@@ -186,7 +186,7 @@ export function NotificationLadders({
 
   return (
     <>
-      {unavailableSlack ? <Callout tone="neutral">Unavailable Slack steps are skipped. If a rule has no other usable channel, notifications go to your account email until Slack is matched again.</Callout> : null}
+      {unavailableSlack ? <Callout tone="neutral">Slack steps are skipped while Slack is unavailable.</Callout> : null}
       {LADDERS.map((ladder) => (
         <Frame
           key={ladder.urgency}

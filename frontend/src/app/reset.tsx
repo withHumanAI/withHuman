@@ -48,14 +48,12 @@ export function ResetRequestScreen() {
         <div>
           <h1 className="text-title text-ink">Reset your password</h1>
           <p className="mt-1 text-body text-ink-muted">
-            Enter the email on your account and we will send a link that sets a new
-            password. The link works once and expires in an hour.
+            Enter your account's email to get a reset link.
           </p>
         </div>
         {sent ? (
           <Callout tone="approve" icon={<CheckIcon width={15} height={15} />}>
-            If an account with a password uses {email.trim()}, the link is on its way.
-            Check your inbox, and your spam folder.
+            If {email.trim()} has an account, a reset link is on its way.
           </Callout>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-4">
@@ -100,7 +98,7 @@ export function ResetCompleteScreen({ token }: { token: string }) {
       .passwordResetPreview(token)
       .catch(() => {
         if (!cancelled) {
-          setTerminal("This link is no longer valid. Links work once and expire after an hour. Request a new one.");
+          setTerminal("This link has expired or was already used.");
         }
       })
       .finally(() => {
