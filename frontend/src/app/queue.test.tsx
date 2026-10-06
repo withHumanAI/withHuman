@@ -149,10 +149,10 @@ describe("review queue intent preloading", () => {
       fireEvent.click(item);
       await advance(0);
     };
-    await choose("Yours to decide");
+    await choose("Can review");
     expect(router.state.location.search).toEqual({ filter: "all", scope: "decidable" });
     expect(useQueue).toHaveBeenLastCalledWith("decidable");
-    expect(heading.textContent).toContain("Yours to decide");
+    expect(heading.textContent).toContain("Can review");
 
     await choose("All visible");
     expect(router.state.location.search).toEqual({ filter: "all", scope: "visible" });

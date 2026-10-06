@@ -184,9 +184,9 @@ function rowText(request: ApprovalRequest) {
 /* The layers as the page names them: the heading is the layer, so each
  * label must read as a title on its own and as a choice in the menu. */
 const LAYERS: Array<{ value: QueueScope; label: string; description: string }> = [
-  { value: "notified", label: "Sent to you", description: "Requests withHuman asked you to review." },
-  { value: "decidable", label: "Yours to decide", description: "Everything routed to you, notified or not." },
-  { value: "visible", label: "All visible", description: "Everything you can see, whoever decides it." },
+  { value: "notified", label: "Sent to you", description: "Requests you were notified about" },
+  { value: "decidable", label: "Can review", description: "Everything you can review" },
+  { value: "visible", label: "All visible", description: "All requests you can see" },
 ];
 
 /* The heading doubles as the layer switcher, in the way a mail client's
@@ -257,16 +257,15 @@ function LayerHeading({
 const EMPTY_COPY: Record<QueueScope | "resolved", { title: string; description: string }> = {
   notified: {
     title: "Nothing waiting for you",
-    description:
-      "Requests sent to you will appear here. Switch to Can decide for everything routed to you, notified or not.",
+    description: "Requests sent to you will appear here.",
   },
   decidable: {
-    title: "Nothing routed to you",
-    description: "Requests you can decide will appear here, whether or not you were notified yet.",
+    title: "Nothing to review",
+    description: "Requests you can review will appear here.",
   },
   visible: {
     title: "Nothing pending",
-    description: "Every pending request you can see will appear here, whoever decides it.",
+    description: "Pending requests you can see will appear here.",
   },
   resolved: {
     title: "No requests here",

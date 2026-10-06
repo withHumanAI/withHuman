@@ -293,9 +293,7 @@ export function TeamEscalationPolicyScreen({
           <div>
             <h1 className="text-title-lg text-ink">Escalation policy</h1>
             <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-              Who on {team.name} is asked when an escalation path hands a request to the team,
-              and what happens when they do not respond. It runs inside the level that named the
-              team while that level's own timer keeps running.
+              Who on {team.name} is asked when an escalation path hands a request to the team.
             </p>
           </div>
           {canActivate && activeRevision !== null ? (

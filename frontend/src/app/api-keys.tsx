@@ -200,7 +200,7 @@ export function APIKeysScreen({
     <SettingsPage
       title={title}
       width={organizationView || everyone ? "default" : "narrow"}
-      description={organizationView ? "Give shared integrations their own scoped access, independent of any member." : "Let your scripts act with your permissions. Your keys follow your permissions as they change."}
+      description={organizationView ? "Give shared integrations their own scoped access." : "Let your scripts act with your permissions."}
       action={canCreate ? createButton : undefined}
     >
       {error ? (
@@ -582,7 +582,7 @@ function McpServerSection() {
             <CodeBlock code={`claude mcp add --transport http withhuman ${endpoint}`} wrap />
             <p className="text-micro text-ink-faint">
               Claude Code opens the sign-in in your browser the first time it uses a withHuman
-              tool. To connect right away, run /mcp and choose withhuman, then Authenticate.
+              tool.
             </p>
           </TabPanel>
           <TabPanel value="codex" className="flex flex-col gap-2">
@@ -609,7 +609,7 @@ function McpServerSection() {
           </TabPanel>
         </Tabs>
         <p className="text-micro text-ink-faint">
-          Full setup for each client, including headless use with an existing key, is in the{" "}
+          Full setup for each client is in the{" "}
           <a
             href="https://withhuman.ai/docs/web-app/mcp-server"
             target="_blank"

@@ -471,8 +471,7 @@ export function EscalationPathScreen({
               {isNew ? "New escalation path" : "Escalation path"}
             </h1>
             <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-              Which humans get asked when an approval pipeline routes a request to this path and
-              what happens when they do not respond.{" "}
+              Which humans get asked when an approval pipeline routes a request to this path.{" "}
               {archived
                 ? "This path is archived: it keeps its revisions for the record, but it cannot change and pipelines can no longer name it."
                 : isNew

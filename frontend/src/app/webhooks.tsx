@@ -126,7 +126,7 @@ export function WebhooksScreen({
         <EmptyState
           icon={<SettingsIcon width={18} height={18} />}
           title="No webhook endpoints yet"
-          description="An endpoint is a service you run that a webhook block can consult: withHuman signs and posts the request, and the endpoint answers with an outcome."
+          description="Add webhooks here to use in your pipelines."
           action={
             canManage ? (
               <Button variant="primary" onClick={() => setCreating(true)}>

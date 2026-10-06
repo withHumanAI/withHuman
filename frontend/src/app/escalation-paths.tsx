@@ -58,8 +58,7 @@ export function EscalationPathsScreen({
         <div>
           <h1 className="text-title-lg text-ink">Escalation paths</h1>
           <p className="mt-1.5 max-w-[560px] text-body text-ink-muted">
-            Escalation paths define which humans get asked to approve a request after
-            approval pipelines decide that a human request is needed.
+            Escalation paths define which specific humans get notified to approve requests.
           </p>
         </div>
         {canWrite ? (
