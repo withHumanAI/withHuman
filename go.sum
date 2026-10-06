@@ -50,6 +50,8 @@ github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20260922140551-b
 github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20260922140551-ba3bc5cc14cb/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
 github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140105-940c5234e8f6 h1:Pb7qmu8YLOYzysiunzun4Cmc4AoWB6KlIZh6Fp06wKE=
 github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140105-940c5234e8f6/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140724-52ecbfb78599 h1:+3km0U+nDbsA/WBGAzyMtfgusrj2XX1cZML/RtCUOOM=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140724-52ecbfb78599/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
