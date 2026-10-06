@@ -113,7 +113,7 @@ func (s *Service) AdmitExternalMember(ctx context.Context, input AdmitExternalMe
 		return domain.Principal{}, fmt.Errorf("resolve unattended default role: %w", err)
 	}
 	if role.Dangerous() {
-		return domain.Principal{}, fmt.Errorf("unattended admission cannot grant a role with dangerous permissions: %w", domain.ErrForbidden)
+		return domain.Principal{}, fmt.Errorf("roles with dangerous permissions cannot be granted automatically: %w", domain.ErrForbidden)
 	}
 	admit := application.AdmitExternalMemberInput{
 		OrganizationID: input.OrganizationID, MembershipID: domain.ID(uuid.NewString()),

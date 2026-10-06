@@ -73,9 +73,9 @@ func (s *Store) insertEscalationPathRevision(ctx context.Context, input applicat
 	case requireExisting && !exists:
 		return domain.EscalationPathRevision{}, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrNotFound)
 	case requireExisting && archived:
-		return domain.EscalationPathRevision{}, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrEscalationPathArchived)
+		return domain.EscalationPathRevision{}, domain.ErrEscalationPathArchived
 	case !requireExisting && exists:
-		return domain.EscalationPathRevision{}, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrEscalationPathExists)
+		return domain.EscalationPathRevision{}, domain.ErrEscalationPathExists
 	}
 	revision := domain.EscalationPathRevision{
 		ID: input.ID, OrganizationID: input.OrganizationID, PathKey: input.PathKey,
@@ -206,7 +206,7 @@ func (s *Store) ActivateEscalationPathRevision(ctx context.Context, input applic
 		return domain.EscalationPathRevision{}, err
 	}
 	if !expectedRevisionMatches(current.Revision, hasCurrent, input.ExpectedActiveRevision) {
-		return domain.EscalationPathRevision{}, fmt.Errorf("active escalation path revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.EscalationPathRevision{}, fmt.Errorf("this escalation path changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	target, err := scanEscalationPathRevision(tx.QueryRow(ctx, escalationPathSelect+
 		`WHERE organization_id = $1 AND path_key = $2 AND revision = $3`,
@@ -215,7 +215,7 @@ func (s *Store) ActivateEscalationPathRevision(ctx context.Context, input applic
 		return domain.EscalationPathRevision{}, err
 	}
 	if target.ArchivedAt != nil {
-		return domain.EscalationPathRevision{}, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrEscalationPathArchived)
+		return domain.EscalationPathRevision{}, domain.ErrEscalationPathArchived
 	}
 	if hasCurrent && current.ID == target.ID {
 		if err := tx.Commit(ctx); err != nil {
@@ -286,7 +286,7 @@ func (s *Store) ArchiveEscalationPath(ctx context.Context, input application.Arc
 		return nil, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrNotFound)
 	}
 	if revisions[0].ArchivedAt != nil {
-		return nil, fmt.Errorf("escalation path %q: %w", input.PathKey, domain.ErrEscalationPathArchived)
+		return nil, domain.ErrEscalationPathArchived
 	}
 	uses, err := listEscalationPathUses(ctx, tx, input.OrganizationID, input.PathKey)
 	if err != nil {

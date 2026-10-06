@@ -12,7 +12,7 @@ import (
 	"github.com/withHumanAI/withHuman/domain"
 )
 
-var ErrCheckUnavailable = errors.New("Slack connection could not be verified; try connecting again")
+var ErrCheckUnavailable = errors.New("could not check the Slack connection. Try connecting again")
 
 func (s *Service) activeConnection(ctx context.Context, orgID domain.ID) (domain.SlackConnection, string, error) {
 	connection, err := s.connections.GetSlackConnection(ctx, application.GetSlackConnectionInput{OrganizationID: orgID})

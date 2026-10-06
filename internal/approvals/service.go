@@ -192,7 +192,7 @@ func (s *Service) checkPendingLimit(ctx context.Context, organizationID domain.I
 		return err
 	}
 	if pending >= limit.Value {
-		return fmt.Errorf("organization is at its limit of %d pending approval requests: %w", limit.Value, domain.ErrLimitExceeded)
+		return fmt.Errorf("the organization has reached its limit of %d pending requests: %w", limit.Value, domain.ErrLimitExceeded)
 	}
 	return nil
 }
@@ -598,7 +598,14 @@ type RoutingRejection struct {
 }
 
 func (r RoutingRejection) Error() string {
-	return domain.ErrNotTargeted.Error() + " (" + r.Code + ")"
+	switch r.Code {
+	case "break_glass_only":
+		return "only break-glass reviewers can decide requests sent to no one"
+	case "outside_routing_required":
+		return "confirm you want to decide a request not sent to you"
+	default:
+		return domain.ErrNotTargeted.Error()
+	}
 }
 
 func (r RoutingRejection) Unwrap() error { return domain.ErrNotTargeted }

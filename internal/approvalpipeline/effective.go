@@ -92,7 +92,7 @@ func (effective *effectivePipeline) appendSection(ctx context.Context, section *
 		return domain.PipelineDelegationCycleError{PipelineKeys: append(slices.Clone(stack), key)}
 	}
 	if len(effective.Blocks)+len(section.Blocks) > domain.MaximumEffectivePipelineBlocks {
-		return fmt.Errorf("effective pipeline exceeds %d blocks: %w", domain.MaximumEffectivePipelineBlocks, domain.ErrEffectivePipelineTooLarge)
+		return fmt.Errorf("%w, the limit is %d", domain.ErrEffectivePipelineTooLarge, domain.MaximumEffectivePipelineBlocks)
 	}
 	if len(section.Blocks) != len(section.Snapshots) {
 		return invalidPipelineDocument("compiled pipeline does not match its snapshots", nil)

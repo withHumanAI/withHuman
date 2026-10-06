@@ -30,14 +30,14 @@ var ErrNotConfigured = errors.New("slack is not configured on this deployment")
 // issued, already redeemed, or past its window. It wraps ErrInvalid so
 // generic handling still treats it as a bad request, while the callback
 // can tell it apart from Slack itself refusing the exchange.
-var ErrInstallExpired = fmt.Errorf("this Slack install has expired or was already used, start again: %w", domain.ErrInvalid)
+var ErrInstallExpired = fmt.Errorf("this Slack install has expired or was already used. Start again: %w", domain.ErrInvalid)
 
 // ErrNoSlackMatch means none of a person's confirmed addresses belongs to
 // an account in the connected workspace. It wraps ErrNotFound for generic
 // handling; the HTTP layer gives it its own code so the page can tell
 // "add the address you use in Slack" apart from "no workspace is
 // connected".
-var ErrNoSlackMatch = fmt.Errorf("no account in the connected Slack workspace uses one of your confirmed email addresses: %w", domain.ErrNotFound)
+var ErrNoSlackMatch = fmt.Errorf("no Slack account uses one of your verified email addresses: %w", domain.ErrNotFound)
 
 // StateTTL bounds how long an install may sit between opening Slack and
 // coming back. Long enough for an admin to read the consent screen, short

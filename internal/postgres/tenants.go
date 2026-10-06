@@ -70,7 +70,7 @@ func (s *Store) ActivateOrganization(ctx context.Context, input application.Acti
             VALUES ($1, $2, $3, $4, $5, true, $6, $6)`,
 			userID, providerKey, issuer, subject, input.Email, input.Now); err != nil {
 			if isUniqueViolation(err) {
-				return application.ActivationResult{}, fmt.Errorf("identity is linked to another account: %w", domain.ErrConflict)
+				return application.ActivationResult{}, fmt.Errorf("this sign-in is linked to another account: %w", domain.ErrConflict)
 			}
 			return application.ActivationResult{}, err
 		}

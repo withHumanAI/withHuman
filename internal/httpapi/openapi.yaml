@@ -3169,7 +3169,9 @@ paths:
         key keeps that session's assurance for later decisions. 403
         api_keys_disabled when the organization has turned personal keys
         off, 403 api_key_scoping_unavailable when this edition cannot scope
-        keys, 403 plan_required when the plan cannot.
+        keys, 403 plan_required when the plan cannot, 403
+        authentication_stale or authentication_weak when the session must
+        sign in again or with MFA first.
       operationId: createAPIKey
       x-withhuman-permission: api_key.issue
       x-withhuman-credential-kinds: [session]

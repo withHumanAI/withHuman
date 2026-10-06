@@ -61,7 +61,7 @@ func (s *Store) AdmitExternalMember(ctx context.Context, input application.Admit
         VALUES ($1, $2, $3, 'active', $4, $5, $5)`,
 		input.MembershipID, userID, input.OrganizationID, string(input.AdmissionSource), input.Now); err != nil {
 		if isUniqueViolation(err) {
-			return domain.Principal{}, fmt.Errorf("user is already a member of this organization: %w", domain.ErrConflict)
+			return domain.Principal{}, fmt.Errorf("this person is already a member: %w", domain.ErrConflict)
 		}
 		return domain.Principal{}, err
 	}

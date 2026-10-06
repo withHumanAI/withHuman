@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -19,11 +20,11 @@ var (
 	// ErrAgentOwnerRequired refuses registering an instance of a personal
 	// agent without the member it belongs to: only a signed-in person can
 	// enroll one, for themselves.
-	ErrAgentOwnerRequired = errors.New("an instance of a personal agent needs an owner")
+	ErrAgentOwnerRequired = errors.New("sign in to add an instance of a personal agent")
 	// ErrPersonalAgent refuses an operation a personal agent has no use
 	// for, such as a provisioner token: its instances are enrolled by
 	// the people they belong to.
-	ErrPersonalAgent = errors.New("the operation does not apply to a personal agent")
+	ErrPersonalAgent = errors.New("not available for personal agents")
 	// ErrAgentArchived refuses every write to an archived agent: the
 	// status switch, new instances and provisioners, and archiving it
 	// again. Archived agents are read only.
@@ -42,44 +43,44 @@ var (
 	// ErrRequestApprovalPipelineArchived refuses appending to, activating
 	// within, or archiving again a pipeline that was archived. Archived
 	// pipelines are read only.
-	ErrRequestApprovalPipelineArchived = errors.New("request approval pipeline is archived")
+	ErrRequestApprovalPipelineArchived = errors.New("this pipeline is archived")
 	// ErrRequestApprovalPipelineExists refuses creating a pipeline whose
 	// key was ever used, archived keys included.
-	ErrRequestApprovalPipelineExists = errors.New("request approval pipeline already exists")
+	ErrRequestApprovalPipelineExists = errors.New("a pipeline with this key already exists")
 	// ErrRequestApprovalPipelineEntry refuses what the entry pipeline
 	// never allows: creating it again or archiving it.
 	ErrRequestApprovalPipelineEntry = errors.New("the entry pipeline cannot be created or archived")
 	// ErrRequestApprovalPipelineInUse refuses archiving a pipeline a
 	// delegate block in an active pipeline revision still names.
-	ErrRequestApprovalPipelineInUse = errors.New("request approval pipeline is in use")
+	ErrRequestApprovalPipelineInUse = errors.New("another active pipeline delegates to this pipeline")
 	// ErrRequestApprovalPipelineNotFound rejects a delegate block that
 	// names a pipeline key with no live revision in the organization.
-	ErrRequestApprovalPipelineNotFound = errors.New("request approval pipeline not found")
+	ErrRequestApprovalPipelineNotFound = errors.New("pipeline not found")
 	// ErrRequestApprovalPipelineInactive refuses activating a pipeline
 	// revision that delegates to a pipeline with no active revision.
-	ErrRequestApprovalPipelineInactive = errors.New("request approval pipeline has no active revision")
+	ErrRequestApprovalPipelineInactive = errors.New("delegated pipeline has no active revision")
 	// ErrPipelineDelegationCycle refuses an activation that would let a
 	// request reach a pipeline it already passed through.
-	ErrPipelineDelegationCycle = errors.New("pipeline delegation forms a cycle")
+	ErrPipelineDelegationCycle = errors.New("delegate blocks would form a loop")
 	// ErrPipelineDelegationTooDeep refuses an activation whose delegation
 	// chain exceeds MaximumDelegationDepth.
-	ErrPipelineDelegationTooDeep = errors.New("pipeline delegation is too deep")
+	ErrPipelineDelegationTooDeep = errors.New("pipelines delegate too many levels deep")
 	// ErrEffectivePipelineTooLarge refuses an activation whose flattened
 	// effective pipeline exceeds MaximumEffectivePipelineBlocks.
-	ErrEffectivePipelineTooLarge = errors.New("effective pipeline is too large")
-	ErrAuthenticationStale       = errors.New("authentication is too old")
-	ErrAuthenticationWeak        = errors.New("authentication assurance is insufficient")
-	ErrEmailMismatch             = errors.New("authenticated email does not match the invitation")
+	ErrEffectivePipelineTooLarge = errors.New("pipeline has too many blocks")
+	ErrAuthenticationStale       = errors.New("sign in again to continue")
+	ErrAuthenticationWeak        = errors.New("sign in with multi-factor authentication to continue")
+	ErrEmailMismatch             = errors.New("this invitation is for a different email address")
 	// ErrUserExists refuses an unauthenticated admission that would attach
 	// an existing global account by email alone: the person must sign in
 	// to that account and accept from there.
-	ErrUserExists      = errors.New("an account with this email already exists")
-	ErrNotTargeted     = errors.New("reviewer is not targeted by this request's routing")
-	ErrAlreadyTerminal = errors.New("approval request is already terminal")
-	ErrLimitExceeded   = errors.New("plan limit exceeded")
+	ErrUserExists      = errors.New("an account with this email already exists. Sign in to accept")
+	ErrNotTargeted     = errors.New("this request was sent to other reviewers")
+	ErrAlreadyTerminal = errors.New("this request is no longer pending")
+	ErrLimitExceeded   = errors.New("limit reached")
 	// ErrWebhookUnconfigured means the deployment has no secrets key, so
 	// webhook endpoints cannot be stored and webhook blocks cannot compile.
-	ErrWebhookUnconfigured = errors.New("webhook runtime is not configured")
+	ErrWebhookUnconfigured = errors.New("webhooks are not configured on this server")
 	// ErrUnsupportedDeliveryType rejects an AAP instance delivery whose
 	// type this provider does not offer; webhook is the only one.
 	ErrUnsupportedDeliveryType = errors.New("delivery type is not supported")
@@ -97,7 +98,7 @@ var (
 	ErrIdempotencyInProgress = errors.New("an attempt with this idempotency key is in progress")
 	// ErrWebhookEndpointInUse refuses archiving an endpoint a webhook block
 	// in an active pipeline revision still references.
-	ErrWebhookEndpointInUse = errors.New("webhook endpoint is in use")
+	ErrWebhookEndpointInUse = errors.New("an active pipeline posts to this webhook endpoint")
 	// ErrWebhookEndpointNotFound rejects a block that references an
 	// endpoint key with no revision in the organization.
 	ErrWebhookEndpointNotFound = errors.New("webhook endpoint not found")
@@ -106,14 +107,14 @@ var (
 	ErrWebhookEndpointInactive = errors.New("webhook endpoint has no active revision")
 	// ErrEscalationPathInUse refuses archiving a path an active
 	// pipeline revision still names, as a block's path or as its default.
-	ErrEscalationPathInUse = errors.New("escalation path is in use")
+	ErrEscalationPathInUse = errors.New("an active pipeline uses this escalation path")
 	// ErrEscalationPathExists refuses creating a path whose key was ever
 	// used, archived keys included; post a revision to a live one instead.
-	ErrEscalationPathExists = errors.New("escalation path already exists")
+	ErrEscalationPathExists = errors.New("an escalation path with this key already exists")
 	// ErrEscalationPathArchived refuses appending to, activating, or
 	// archiving again a path that was archived. Archived paths are read
 	// only.
-	ErrEscalationPathArchived = errors.New("escalation path is archived")
+	ErrEscalationPathArchived = errors.New("this escalation path is archived")
 	// ErrEscalationPathInactive refuses activating a pipeline revision that
 	// names a path with no active revision.
 	ErrEscalationPathInactive = errors.New("escalation path has no active revision")
@@ -132,23 +133,23 @@ var (
 	// ErrMembershipInEscalationPath refuses suspending or deprovisioning a
 	// member an active escalation path revision still targets, unless the
 	// caller forces it and accepts the dangling target.
-	ErrMembershipInEscalationPath = errors.New("membership is targeted by an active escalation path")
+	ErrMembershipInEscalationPath = errors.New("this member is still in an active escalation path")
 	// ErrTeamMemberInEscalationPolicy refuses removing a member from a team
 	// while the team's active escalation policy still names them, unless
 	// the caller forces it and accepts that the level skips them.
-	ErrTeamMemberInEscalationPolicy = errors.New("team member is targeted by the team's active escalation policy")
+	ErrTeamMemberInEscalationPolicy = errors.New("the team's escalation policy still includes this member")
 	// ErrOnboardingState refuses an onboarding write the session's status
 	// does not allow: the other side has not taken its turn yet, or the
 	// session already moved on.
-	ErrOnboardingState = errors.New("onboarding session is not in a status that allows this step")
+	ErrOnboardingState = errors.New("setup is not ready for this step")
 	// ErrOnboardingExpired refuses every write to a session past its
 	// expiry; the person starts a new one from the page.
-	ErrOnboardingExpired = errors.New("onboarding session has expired")
+	ErrOnboardingExpired = errors.New("this setup has expired. Start again")
 	// ErrRoleBuiltIn refuses editing or deleting a built-in role row;
 	// those are reconciled from code.
 	// ErrPlanRequired refuses a capability the organization's plan does
 	// not include; the wrapping message names the capability and plan.
-	ErrPlanRequired = errors.New("plan does not include this capability")
+	ErrPlanRequired = errors.New("not included in your plan")
 	ErrRoleBuiltIn  = errors.New("built-in roles cannot be changed")
 	// ErrAPIKeysDisabled refuses minting or resolving a personal API key
 	// while the organization's policy switch is off. Existing keys are
@@ -156,14 +157,14 @@ var (
 	ErrAPIKeysDisabled = errors.New("personal API keys are disabled for this organization")
 	// ErrAPIKeyScopingUnavailable refuses a permission list on a key in
 	// the open edition, whose keys inherit the member's role unchanged.
-	ErrAPIKeyScopingUnavailable = errors.New("API key permission scoping is not available in this edition")
+	ErrAPIKeyScopingUnavailable = errors.New("this edition cannot scope API keys")
 	// ErrCustomPermissionsUnavailable refuses a permission policy write
 	// (a member's or team's own policies, or an invitation carrying them)
 	// on an edition that offers predefined roles alone.
-	ErrCustomPermissionsUnavailable = errors.New("custom permissions are not available in this edition; choose a predefined role")
+	ErrCustomPermissionsUnavailable = errors.New("custom permissions are not available in this edition. Choose a role")
 	// ErrAPIKeyNotAllowed refuses a browser-only operation (issuing keys,
 	// changing a password, browser hand-offs) presented with an API key.
-	ErrAPIKeyNotAllowed = errors.New("this operation cannot be performed with an API key")
+	ErrAPIKeyNotAllowed = errors.New("API keys cannot be used for this")
 	// ErrRoleAssigned refuses deleting a role while assignments still
 	// reference it.
 	ErrRoleAssigned = errors.New("role is still assigned")
@@ -176,7 +177,7 @@ type EscalationPathInUseError struct {
 }
 
 func (err EscalationPathInUseError) Error() string {
-	return fmt.Sprintf("%d active pipeline revision reference(s) name escalation path %q: %v", len(err.Uses), err.PathKey, ErrEscalationPathInUse)
+	return ErrEscalationPathInUse.Error()
 }
 
 func (err EscalationPathInUseError) Unwrap() error { return ErrEscalationPathInUse }
@@ -188,7 +189,7 @@ type EscalationPathsInactiveError struct {
 }
 
 func (err EscalationPathsInactiveError) Error() string {
-	return fmt.Sprintf("escalation paths %v: %v", err.PathKeys, ErrEscalationPathInactive)
+	return fmt.Sprintf("%v: %s", ErrEscalationPathInactive, strings.Join(err.PathKeys, ", "))
 }
 
 func (err EscalationPathsInactiveError) Unwrap() error { return ErrEscalationPathInactive }
@@ -201,7 +202,7 @@ type RequestApprovalPipelineInUseError struct {
 }
 
 func (err RequestApprovalPipelineInUseError) Error() string {
-	return fmt.Sprintf("%d active pipeline revision reference(s) delegate to pipeline %q: %v", len(err.Uses), err.PipelineKey, ErrRequestApprovalPipelineInUse)
+	return ErrRequestApprovalPipelineInUse.Error()
 }
 
 func (err RequestApprovalPipelineInUseError) Unwrap() error { return ErrRequestApprovalPipelineInUse }
@@ -213,7 +214,7 @@ type PipelinesInactiveError struct {
 }
 
 func (err PipelinesInactiveError) Error() string {
-	return fmt.Sprintf("pipelines %v: %v", err.PipelineKeys, ErrRequestApprovalPipelineInactive)
+	return fmt.Sprintf("%v: %s", ErrRequestApprovalPipelineInactive, strings.Join(err.PipelineKeys, ", "))
 }
 
 func (err PipelinesInactiveError) Unwrap() error { return ErrRequestApprovalPipelineInactive }
@@ -225,7 +226,7 @@ type PipelineDelegationCycleError struct {
 }
 
 func (err PipelineDelegationCycleError) Error() string {
-	return fmt.Sprintf("pipelines %v: %v", err.PipelineKeys, ErrPipelineDelegationCycle)
+	return fmt.Sprintf("%v: %s", ErrPipelineDelegationCycle, strings.Join(err.PipelineKeys, ", "))
 }
 
 func (err PipelineDelegationCycleError) Unwrap() error { return ErrPipelineDelegationCycle }
@@ -237,7 +238,7 @@ type PipelineDelegationTooDeepError struct {
 }
 
 func (err PipelineDelegationTooDeepError) Error() string {
-	return fmt.Sprintf("delegation depth %d exceeds %d: %v", err.Depth, MaximumDelegationDepth, ErrPipelineDelegationTooDeep)
+	return fmt.Sprintf("%v: %d levels, the limit is %d", ErrPipelineDelegationTooDeep, err.Depth, MaximumDelegationDepth)
 }
 
 func (err PipelineDelegationTooDeepError) Unwrap() error { return ErrPipelineDelegationTooDeep }
@@ -254,7 +255,7 @@ type MembershipInEscalationPathError struct {
 }
 
 func (err MembershipInEscalationPathError) Error() string {
-	return fmt.Sprintf("%d active escalation path(s) and %d team policy(ies) target membership %s: %v", len(err.Paths), len(err.TeamPolicies), err.MembershipID, ErrMembershipInEscalationPath)
+	return ErrMembershipInEscalationPath.Error()
 }
 
 func (err MembershipInEscalationPathError) Unwrap() error { return ErrMembershipInEscalationPath }
@@ -269,7 +270,10 @@ type TeamMemberInEscalationPolicyError struct {
 }
 
 func (err TeamMemberInEscalationPolicyError) Error() string {
-	return fmt.Sprintf("team %s escalation policy revision %d targets %d member(s) being removed: %v", err.TeamID, err.Revision, len(err.MembershipIDs), ErrTeamMemberInEscalationPolicy)
+	if len(err.MembershipIDs) > 1 {
+		return "the team's escalation policy still includes these members"
+	}
+	return ErrTeamMemberInEscalationPolicy.Error()
 }
 
 func (err TeamMemberInEscalationPolicyError) Unwrap() error { return ErrTeamMemberInEscalationPolicy }
@@ -282,7 +286,7 @@ type WebhookEndpointInUseError struct {
 }
 
 func (err WebhookEndpointInUseError) Error() string {
-	return fmt.Sprintf("%d active pipeline revision reference(s) post to webhook endpoint %q: %v", len(err.Uses), err.EndpointKey, ErrWebhookEndpointInUse)
+	return ErrWebhookEndpointInUse.Error()
 }
 
 func (err WebhookEndpointInUseError) Unwrap() error { return ErrWebhookEndpointInUse }
@@ -295,7 +299,7 @@ type WebhookEndpointsInactiveError struct {
 }
 
 func (err WebhookEndpointsInactiveError) Error() string {
-	return fmt.Sprintf("webhook endpoints %v: %v", err.EndpointKeys, ErrWebhookEndpointInactive)
+	return fmt.Sprintf("%v: %s", ErrWebhookEndpointInactive, strings.Join(err.EndpointKeys, ", "))
 }
 
 func (err WebhookEndpointsInactiveError) Unwrap() error { return ErrWebhookEndpointInactive }

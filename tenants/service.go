@@ -122,7 +122,7 @@ func (s *Service) ActivateOrganization(ctx context.Context, input ActivateOrgani
 		})
 		return result, nil
 	}
-	return application.ActivationResult{}, fmt.Errorf("could not allocate a unique organization slug: %w", domain.ErrConflict)
+	return application.ActivationResult{}, fmt.Errorf("could not find a free organization address. Try another name: %w", domain.ErrConflict)
 }
 
 type LifecycleActionInput struct {

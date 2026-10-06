@@ -11,7 +11,7 @@ import (
 // deployment did not wire: the hosted edition's SSO, directory sync and
 // verified domains, and core's own directory group grants without a role
 // repository. Routes map it to 501 enterprise_not_configured.
-var ErrEnterpriseNotConfigured = errors.New("enterprise connector is not configured")
+var ErrEnterpriseNotConfigured = errors.New("single sign-on is not enabled on this deployment")
 
 // LoginPolicy is an edition's say over how people sign in, consulted at
 // every login-shaped door: methods discovery, the password and social

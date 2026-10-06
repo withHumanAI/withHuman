@@ -207,7 +207,7 @@ func (s *Store) MutatePermissionPolicy(ctx context.Context, input application.Mu
 			return result, err
 		}
 	}
-	return domain.PermissionPolicy{}, fmt.Errorf("permissions changed concurrently; reload and try again: %w", domain.ErrConflict)
+	return domain.PermissionPolicy{}, fmt.Errorf("permissions changed. Reload and try again: %w", domain.ErrConflict)
 }
 
 func (s *Store) mutatePermissionPolicyAttempt(ctx context.Context, input application.MutatePermissionPolicyInput) (domain.PermissionPolicy, error) {
@@ -315,7 +315,7 @@ func (s *Store) mutatePermissionPolicy(ctx context.Context, tx pgx.Tx, input app
 			return empty, domain.ErrForbidden
 		}
 		if before.Revision != input.Revision {
-			return empty, fmt.Errorf("this policy has changed; reload before saving: %w", domain.ErrConflict)
+			return empty, fmt.Errorf("this policy changed. Reload and try again: %w", domain.ErrConflict)
 		}
 		if !policyScopeAllowed(input.Actor, domain.PermissionPolicyWrite, before.PermissionPolicySpec) {
 			return empty, domain.ErrForbidden
@@ -450,7 +450,7 @@ func (s *Store) CompilePermissionPolicies(ctx context.Context, input application
 				}
 				if domain.PermissionIsDangerous(key) {
 					if input.Unattended {
-						return nil, fmt.Errorf("sensitive permissions cannot be granted through automatic admission: %w", domain.ErrInvalid)
+						return nil, fmt.Errorf("sensitive permissions cannot be granted automatically: %w", domain.ErrInvalid)
 					}
 					sensitive = true
 				}

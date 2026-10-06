@@ -8,6 +8,7 @@ package teamescalation
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -241,7 +242,7 @@ func (service *Service) requireTeamTargets(ctx context.Context, organizationID, 
 		}
 	}
 	if len(missing) > 0 {
-		return invalidPolicyDocument(fmt.Errorf("user targets must be current members of the team: %v", missing))
+		return invalidPolicyDocument(errors.New("everyone in the policy must be on the team"))
 	}
 	return nil
 }
@@ -303,7 +304,7 @@ func authorize(principal domain.Principal, permission domain.Permission, teamID 
 }
 
 func invalidPolicyDocument(cause error) error {
-	return fmt.Errorf("team escalation policy document: %v: %w", cause, domain.ErrInvalid)
+	return fmt.Errorf("%v: %w", cause, domain.ErrInvalid)
 }
 
 func decodedPolicyRevision(stored domain.TeamEscalationPolicyRevision) (PolicyRevision, error) {

@@ -36,10 +36,10 @@ func EvaluateGrant(input GrantInput) *Rejection {
 		return &Rejection{Code: "scope_not_bindable", Err: fmt.Errorf("role %s cannot be assigned at %s scope: %w", input.Role.Key, input.Scope.Kind, domain.ErrInvalid)}
 	}
 	if input.Role.BuiltIn && input.Role.Key == domain.RoleOwner && !input.ActorIsOwner {
-		return &Rejection{Code: "owner_required", Err: fmt.Errorf("only an owner may grant or revoke the owner role: %w", domain.ErrForbidden)}
+		return &Rejection{Code: "owner_required", Err: fmt.Errorf("only an owner can grant or remove the owner role: %w", domain.ErrForbidden)}
 	}
 	if input.Unattended && input.Role.Dangerous() {
-		return &Rejection{Code: "dangerous_role_unattended", Err: fmt.Errorf("a role with dangerous permissions cannot be granted without a person deciding: %w", domain.ErrInvalid)}
+		return &Rejection{Code: "dangerous_role_unattended", Err: fmt.Errorf("roles with dangerous permissions cannot be granted automatically: %w", domain.ErrInvalid)}
 	}
 	resource := input.Scope.Resource()
 	if !holds(input.Actor.Grants, domain.PermissionPolicyWrite, resource) {

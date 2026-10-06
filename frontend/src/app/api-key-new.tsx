@@ -51,14 +51,10 @@ function createErrorMessage(reason: unknown): string {
       return "This edition cannot scope keys.";
     case "plan_required":
       return "Your plan does not include scoped keys.";
-    case "forbidden":
-      if (reason.message.includes("too old")) {
-        return "Sign in again to create a key with these permissions.";
-      }
-      if (reason.message.includes("insufficient")) {
-        return "Sign in with multi-factor authentication to create a key with these permissions.";
-      }
-      return reason.message;
+    case "authentication_stale":
+      return "Sign in again to create a key with these permissions.";
+    case "authentication_weak":
+      return "Sign in with multi-factor authentication to create a key with these permissions.";
     default:
       return reason.message;
   }

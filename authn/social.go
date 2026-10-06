@@ -62,12 +62,12 @@ func (s *Service) socialAuthenticator(key string) SocialAuthenticator {
 
 // ErrNoAccount is the login outcome for a verified identity that no
 // withHuman account uses yet. Login never creates accounts; signup does.
-var ErrNoAccount = errors.New("no account uses this email yet; create an organization to get started")
+var ErrNoAccount = errors.New("no withHuman account uses this email yet")
 
 // ErrEmailUnverified is the outcome for an unknown identity whose email
 // the provider has not verified: an unverified email can neither link to
 // an existing account nor found an organization.
-var ErrEmailUnverified = errors.New("the identity provider has not verified this email address")
+var ErrEmailUnverified = errors.New("your sign-in provider has not verified this email address")
 
 type AssertionLoginInput struct {
 	Assertion Assertion

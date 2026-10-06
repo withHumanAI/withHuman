@@ -304,7 +304,7 @@ func (s *Service) challenge(ctx context.Context, method domain.ContactMethod, co
 func (s *Service) VerifyByValue(ctx context.Context, kind domain.ContactMethodKind, value, code string) (domain.ContactMethod, error) {
 	value, code = strings.TrimSpace(value), strings.TrimSpace(code)
 	if !kind.Challengeable() || value == "" {
-		return domain.ContactMethod{}, fmt.Errorf("the address is not one a code proves: %w", domain.ErrInvalid)
+		return domain.ContactMethod{}, fmt.Errorf("this address cannot be verified with a code: %w", domain.ErrInvalid)
 	}
 	if code == "" {
 		return domain.ContactMethod{}, fmt.Errorf("the message carries no code: %w", domain.ErrInvalid)

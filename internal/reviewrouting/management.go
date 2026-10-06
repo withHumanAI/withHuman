@@ -285,10 +285,10 @@ func (service *ManagementService) requireResolvableTargets(ctx context.Context, 
 		return err
 	}
 	if len(resolved.MissingUsers) > 0 {
-		return invalidRoutingDocument("escalation path document", fmt.Errorf("user targets are not active members: %v", resolved.MissingUsers))
+		return invalidRoutingDocument("some people in this path are no longer active members", nil)
 	}
 	if len(resolved.MissingTeams) > 0 {
-		return invalidRoutingDocument("escalation path document", fmt.Errorf("team targets do not exist: %v", resolved.MissingTeams))
+		return invalidRoutingDocument("some teams in this path no longer exist", nil)
 	}
 	return nil
 }

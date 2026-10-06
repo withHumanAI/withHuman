@@ -46,7 +46,7 @@ func retryClaimWrite(attempt func() error) error {
 			return err
 		}
 	}
-	return fmt.Errorf("claim contended by concurrent writes: %w", domain.ErrConflict)
+	return fmt.Errorf("someone else changed this request. Try again: %w", domain.ErrConflict)
 }
 
 // ClaimApproval claims a pending request for the principal. The whole claim
@@ -154,7 +154,7 @@ func (s *Store) claimApproval(ctx context.Context, input application.ClaimApprov
 	}
 	if err == nil {
 		if domain.ID(openMembershipID) != principal.MembershipID {
-			return domain.Claim{}, fmt.Errorf("request is already claimed by another reviewer: %w", domain.ErrConflict)
+			return domain.Claim{}, fmt.Errorf("another reviewer already claimed this request: %w", domain.ErrConflict)
 		}
 		// Idempotent re-claim: return the live claim unchanged, without a
 		// fresh audit event. Extending expiry would turn the claim into an
@@ -174,7 +174,7 @@ func (s *Store) claimApproval(ctx context.Context, input application.ClaimApprov
 		expiresAt = deadlineAt
 	}
 	if !expiresAt.After(now) {
-		return domain.Claim{}, fmt.Errorf("request deadline has already passed: %w", domain.ErrAlreadyTerminal)
+		return domain.Claim{}, fmt.Errorf("%w: it expired", domain.ErrAlreadyTerminal)
 	}
 	claim := domain.Claim{
 		ID: domain.ID(uuid.NewString()), RequestID: requestID, OrganizationID: organizationID,
@@ -253,7 +253,7 @@ func (s *Store) releaseClaim(ctx context.Context, input application.ReleaseClaim
 		return "", domain.ErrNotFound
 	}
 	if domain.ID(membershipID) != input.MembershipID {
-		return "", fmt.Errorf("only the claimant can release a claim: %w", domain.ErrForbidden)
+		return "", fmt.Errorf("only the reviewer who claimed this request can release it: %w", domain.ErrForbidden)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE approval_request_claims
         SET released_at=$3,release_reason='released' WHERE organization_id=$1 AND id=$2`,

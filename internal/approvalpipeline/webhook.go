@@ -87,7 +87,7 @@ func CompileWebhookBlock(definition approvalblock.Definition, runtime *WebhookRu
 		return nil, errors.New("validate webhook block: definition is not a webhook block")
 	}
 	if runtime == nil || runtime.Endpoints == nil || runtime.Deliverer == nil {
-		return nil, fmt.Errorf("compile webhook block: %w", domain.ErrWebhookUnconfigured)
+		return nil, domain.ErrWebhookUnconfigured
 	}
 	cloned, err := cloneDefinition(definition)
 	if err != nil {

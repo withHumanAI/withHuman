@@ -249,7 +249,7 @@ func (s *Store) UpdateRole(ctx context.Context, input application.UpdateRoleInpu
 		return domain.RoleRow{}, err
 	}
 	if boundElsewhere {
-		return domain.RoleRow{}, fmt.Errorf("role is assigned at a scope kind it would no longer allow: %w", domain.ErrConflict)
+		return domain.RoleRow{}, fmt.Errorf("this role is still assigned where the change would not allow it: %w", domain.ErrConflict)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE roles SET name = $2, description = $3, permissions = $4,
         bindable_scope_kinds = $5, updated_at = $6 WHERE id = $1`,
@@ -283,7 +283,7 @@ func (s *Store) DeleteRole(ctx context.Context, input application.DeleteRoleInpu
 		return err
 	}
 	if role.AssignmentCount > 0 {
-		return fmt.Errorf("%w to %d principals", domain.ErrRoleAssigned, role.AssignmentCount)
+		return fmt.Errorf("%w %d times. Remove those assignments first", domain.ErrRoleAssigned, role.AssignmentCount)
 	}
 	// A pending invitation would grant the role on acceptance; deleting
 	// it out from under the invite is refused rather than silently
@@ -296,12 +296,12 @@ func (s *Store) DeleteRole(ctx context.Context, input application.DeleteRoleInpu
 		return err
 	}
 	if invited {
-		return fmt.Errorf("%w by a pending invitation", domain.ErrRoleAssigned)
+		return fmt.Errorf("%w in a pending invitation", domain.ErrRoleAssigned)
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM roles WHERE id = $1 AND organization_id = $2`,
 		input.RoleID, input.OrganizationID); err != nil {
 		if isForeignKeyViolation(err) {
-			return fmt.Errorf("%w as a domain default or directory group grant", domain.ErrRoleAssigned)
+			return fmt.Errorf("%w by a domain default or directory group", domain.ErrRoleAssigned)
 		}
 		return err
 	}
@@ -652,7 +652,7 @@ func (s *Store) grantAssignment(ctx context.Context, tx querier, organizationID 
 		return fmt.Errorf("%s: %w", message, domain.ErrInvalid)
 	}
 	if isUniqueViolation(err) {
-		return fmt.Errorf("the principal already holds this role at this scope: %w", domain.ErrConflict)
+		return fmt.Errorf("this role is already assigned here: %w", domain.ErrConflict)
 	}
 	if err != nil {
 		return err
@@ -735,7 +735,7 @@ func (s *Store) revokeAssignment(ctx context.Context, tx querier, organizationID
 	if _, err := tx.Exec(ctx, `DELETE FROM role_assignments WHERE organization_id = $1 AND id = $2`,
 		organizationID, stored.ID); err != nil {
 		if isLastOwnerViolation(err) {
-			return fmt.Errorf("organization must retain at least one active owner: %w", domain.ErrConflict)
+			return fmt.Errorf("the organization needs at least one active owner: %w", domain.ErrConflict)
 		}
 		return err
 	}
@@ -774,7 +774,7 @@ func (s *Store) ReplaceAssignments(ctx context.Context, input application.Replac
 		err = tx.QueryRow(ctx, `SELECT directory_managed FROM memberships
             WHERE organization_id = $1 AND id = $2 FOR UPDATE`, input.OrganizationID, input.PrincipalID).Scan(&directoryManaged)
 		if err == nil && directoryManaged {
-			return nil, fmt.Errorf("membership is directory managed: %w", domain.ErrConflict)
+			return nil, fmt.Errorf("this member is managed by your directory: %w", domain.ErrConflict)
 		}
 	case domain.PrincipalTeam:
 		err = requireLiveTeam(ctx, tx, input.OrganizationID, input.PrincipalID)
@@ -827,7 +827,7 @@ func (s *Store) ReplaceAssignments(ctx context.Context, input application.Replac
 	}
 	if err := tx.Commit(ctx); err != nil {
 		if isLastOwnerViolation(err) {
-			return nil, fmt.Errorf("organization must retain at least one active owner: %w", domain.ErrConflict)
+			return nil, fmt.Errorf("the organization needs at least one active owner: %w", domain.ErrConflict)
 		}
 		return nil, err
 	}

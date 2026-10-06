@@ -38,7 +38,7 @@ func (s *Store) CreateAgentProvisioner(ctx context.Context, input application.Cr
 	// A personal agent's instances belong to people, so there is no fleet
 	// to mint for and no token that could name an owner.
 	if domain.AgentKind(kind) == domain.AgentPersonal {
-		return domain.AgentProvisioner{}, fmt.Errorf("personal agents have no provisioner tokens: %w", domain.ErrPersonalAgent)
+		return domain.AgentProvisioner{}, domain.ErrPersonalAgent
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO agent_provisioners
         (id, organization_id, agent_id, created_by_actor_id, secret_hash, issued_at, expires_at)
@@ -85,7 +85,7 @@ func (s *Store) MintAgentInstance(ctx context.Context, input application.MintAge
 		return domain.AgentInstance{}, domain.ErrAgentInactive
 	}
 	if domain.AgentKind(agentKind) == domain.AgentPersonal {
-		return domain.AgentInstance{}, fmt.Errorf("personal agents have no provisioner tokens: %w", domain.ErrPersonalAgent)
+		return domain.AgentInstance{}, domain.ErrPersonalAgent
 	}
 	instance := domain.AgentInstance{
 		ID: input.InstanceID, OrganizationID: domain.ID(organizationID), AgentID: domain.ID(agentID),

@@ -271,7 +271,7 @@ func linkExternalIdentity(ctx context.Context, tx pgx.Tx, userID domain.ID, prov
 		return err
 	}
 	if boundUserID != string(userID) {
-		return fmt.Errorf("identity is linked to another account: %w", domain.ErrConflict)
+		return fmt.Errorf("this sign-in is linked to another account: %w", domain.ErrConflict)
 	}
 	return nil
 }

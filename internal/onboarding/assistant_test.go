@@ -291,7 +291,7 @@ func TestAssistantGuards(t *testing.T) {
 	}
 	h.sessions.sessions[begun.Session.ID].SelectedRuntimes = []string{"codex"}
 	session, err = h.service.Ask(ctx, h.principal, "Loop.")
-	if !errors.Is(err, ErrAssistantFailed) || !strings.Contains(session.Assistant[len(session.Assistant)-1].Error, "did not finish") {
+	if !errors.Is(err, ErrAssistantFailed) || !strings.Contains(session.Assistant[len(session.Assistant)-1].Error, "ran out of steps") {
 		t.Fatalf("step budget: %v %+v", err, session.Assistant[len(session.Assistant)-1])
 	}
 }

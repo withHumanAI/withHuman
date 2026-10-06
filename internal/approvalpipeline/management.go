@@ -375,7 +375,7 @@ func (service *ManagementService) Preview(ctx context.Context, principal domain.
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return PreviewResult{}, fmt.Errorf("delegate target has no active revision: %v: %w", err, domain.ErrRequestApprovalPipelineNotFound)
+			return PreviewResult{}, fmt.Errorf("%w or has no active revision", domain.ErrRequestApprovalPipelineNotFound)
 		}
 		if ctx.Err() != nil {
 			return PreviewResult{}, ctx.Err()
@@ -488,7 +488,7 @@ func (service *ManagementService) requireDelegateTargets(ctx context.Context, or
 		return nil
 	}
 	if slices.Contains(keys, pipelineKey) {
-		return invalidPipelineDocument(fmt.Sprintf("pipeline %q cannot delegate to itself", pipelineKey), nil)
+		return invalidPipelineDocument("a pipeline cannot delegate to itself", nil)
 	}
 	if service.pipelines == nil {
 		return nil
@@ -500,7 +500,7 @@ func (service *ManagementService) requireDelegateTargets(ctx context.Context, or
 		return err
 	}
 	if len(resolved.Missing) > 0 {
-		return fmt.Errorf("delegate blocks reference pipelines %v: %w", resolved.Missing, domain.ErrRequestApprovalPipelineNotFound)
+		return fmt.Errorf("%w: %s", domain.ErrRequestApprovalPipelineNotFound, strings.Join(resolved.Missing, ", "))
 	}
 	return nil
 }
@@ -548,7 +548,7 @@ func (service *ManagementService) requireEscalationPaths(ctx context.Context, or
 		return err
 	}
 	if len(resolved.Missing) > 0 {
-		return invalidPipelineDocument(fmt.Sprintf("escalation paths do not exist: %v", resolved.Missing), nil)
+		return invalidPipelineDocument("escalation path not found: "+strings.Join(resolved.Missing, ", "), nil)
 	}
 	return nil
 }
@@ -931,7 +931,7 @@ func (service *ManagementService) requireWebhookEndpoints(ctx context.Context, o
 		return nil
 	}
 	if runtime == nil || runtime.Endpoints == nil {
-		return fmt.Errorf("webhook blocks: %w", domain.ErrWebhookUnconfigured)
+		return domain.ErrWebhookUnconfigured
 	}
 	resolved, err := runtime.Endpoints.ResolveWebhookEndpoints(ctx, application.ResolveWebhookEndpointsInput{
 		OrganizationID: organizationID, EndpointKeys: keys,
@@ -940,7 +940,7 @@ func (service *ManagementService) requireWebhookEndpoints(ctx context.Context, o
 		return err
 	}
 	if len(resolved.Missing) > 0 {
-		return fmt.Errorf("webhook blocks reference endpoints %v: %w", resolved.Missing, domain.ErrWebhookEndpointNotFound)
+		return fmt.Errorf("%w: %s", domain.ErrWebhookEndpointNotFound, strings.Join(resolved.Missing, ", "))
 	}
 	return nil
 }

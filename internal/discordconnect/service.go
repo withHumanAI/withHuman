@@ -28,19 +28,19 @@ var ErrNotConfigured = errors.New("discord is not configured on this deployment"
 
 // ErrNotConnected means this organization must install the bot in a server
 // before a member can link their personal account.
-var ErrNotConnected = fmt.Errorf("connect your organization's Discord server before linking your account: %w", domain.ErrNotFound)
+var ErrNotConnected = fmt.Errorf("connect your organization's Discord server first: %w", domain.ErrNotFound)
 
 // ErrStateExpired means a callback carried a state that was never issued,
 // was minted for the other flow, was already redeemed, or is past its
 // window. It wraps ErrInvalid so generic handling treats it as a bad
 // request, while the callback can tell it apart from Discord refusing the
 // exchange.
-var ErrStateExpired = fmt.Errorf("this Discord flow has expired or was already used, start again: %w", domain.ErrInvalid)
+var ErrStateExpired = fmt.Errorf("this Discord flow has expired or was already used. Start again: %w", domain.ErrInvalid)
 
 // ErrNotGuildMember means the account a person authorized is not in the
 // organization's connected server. A bot can only message people it
 // shares a server with, so the link would be a dead end.
-var ErrNotGuildMember = fmt.Errorf("that Discord account is not a member of the organization's server: %w", domain.ErrForbidden)
+var ErrNotGuildMember = fmt.Errorf("that Discord account is not in your organization's server: %w", domain.ErrForbidden)
 
 // StateTTL bounds how long a round trip may sit between opening Discord
 // and coming back.

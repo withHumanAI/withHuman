@@ -111,10 +111,10 @@ func (s *Store) SetMembershipStatus(ctx context.Context, input application.SetMe
 		return domain.Membership{}, err
 	}
 	if directoryManaged {
-		return domain.Membership{}, fmt.Errorf("membership is directory managed: %w", domain.ErrConflict)
+		return domain.Membership{}, fmt.Errorf("this member is managed by your directory: %w", domain.ErrConflict)
 	}
 	if domain.MembershipStatus(currentStatus) == domain.MembershipDeprovisioned {
-		return domain.Membership{}, fmt.Errorf("membership is deprovisioned: %w", domain.ErrConflict)
+		return domain.Membership{}, fmt.Errorf("this member was removed: %w", domain.ErrConflict)
 	}
 	// Taking a member out of service leaves every active path that targets
 	// them pointing at nobody. Refuse unless the actor forces it, and then
@@ -152,7 +152,7 @@ func (s *Store) SetMembershipStatus(ctx context.Context, input application.SetMe
         WHERE organization_id = $1 AND id = $2`,
 		input.OrganizationID, input.MembershipID, string(input.Status), input.Now); err != nil {
 		if isLastOwnerViolation(err) {
-			return domain.Membership{}, fmt.Errorf("organization must retain at least one active owner: %w", domain.ErrConflict)
+			return domain.Membership{}, fmt.Errorf("the organization needs at least one active owner: %w", domain.ErrConflict)
 		}
 		return domain.Membership{}, err
 	}
@@ -197,7 +197,7 @@ func (s *Store) SetMembershipStatus(ctx context.Context, input application.SetMe
 	}
 	if err := tx.Commit(ctx); err != nil {
 		if isLastOwnerViolation(err) {
-			return domain.Membership{}, fmt.Errorf("organization must retain at least one active owner: %w", domain.ErrConflict)
+			return domain.Membership{}, fmt.Errorf("the organization needs at least one active owner: %w", domain.ErrConflict)
 		}
 		return domain.Membership{}, err
 	}

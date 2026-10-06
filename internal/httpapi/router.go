@@ -790,7 +790,7 @@ func (a *API) events(c *gin.Context) {
 	// at; a bad layer is refused before any frame, like the listing.
 	scope := application.QueueScope(c.Query("scope"))
 	if !scope.Valid() {
-		a.writeError(c, fmt.Errorf("scope: choose notified, decidable, or visible: %w", domain.ErrInvalid))
+		a.writeError(c, fmt.Errorf("scope must be notified, decidable, or visible: %w", domain.ErrInvalid))
 		return
 	}
 	c.Header("Content-Type", "text/event-stream")
@@ -1666,7 +1666,11 @@ func WriteError(c *gin.Context, logger *slog.Logger, err error) {
 		status, errorType, code = http.StatusForbidden, "authorization", "custom_permissions_unavailable"
 	case errors.Is(err, domain.ErrAPIKeyNotAllowed):
 		status, errorType, code = http.StatusForbidden, "authorization", "api_key_not_allowed"
-	case errors.Is(err, domain.ErrForbidden), errors.Is(err, domain.ErrMembershipInactive), errors.Is(err, domain.ErrAgentInactive), errors.Is(err, domain.ErrAuthenticationStale), errors.Is(err, domain.ErrAuthenticationWeak), errors.Is(err, domain.ErrNotTargeted):
+	case errors.Is(err, domain.ErrAuthenticationStale):
+		status, errorType, code = http.StatusForbidden, "authorization", "authentication_stale"
+	case errors.Is(err, domain.ErrAuthenticationWeak):
+		status, errorType, code = http.StatusForbidden, "authorization", "authentication_weak"
+	case errors.Is(err, domain.ErrForbidden), errors.Is(err, domain.ErrMembershipInactive), errors.Is(err, domain.ErrAgentInactive), errors.Is(err, domain.ErrNotTargeted):
 		status, errorType, code = http.StatusForbidden, "authorization", "forbidden"
 	case errors.Is(err, domain.ErrNotFound):
 		status, errorType, code = http.StatusNotFound, "not_found", "not_found"
@@ -1701,7 +1705,7 @@ func writeAPIError(c *gin.Context, status int, errorType, code, message string, 
 		requestID = uuid.NewString()
 		c.Header("X-Request-ID", requestID)
 	}
-	body := gin.H{"type": errorType, "code": code, "message": message, "request_id": requestID}
+	body := gin.H{"type": errorType, "code": code, "message": domain.PublicMessage(message), "request_id": requestID}
 	if details != nil {
 		body["details"] = details
 	}

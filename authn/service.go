@@ -770,7 +770,7 @@ func (s *Service) CreateAgentInstanceCredential(ctx context.Context, principal d
 	var ownerID domain.ID
 	if agent.Kind == domain.AgentPersonal {
 		if !humanMember(principal) {
-			return domain.AgentInstanceCredential{}, fmt.Errorf("only a signed-in member can register an instance of a personal agent: %w", domain.ErrAgentOwnerRequired)
+			return domain.AgentInstanceCredential{}, domain.ErrAgentOwnerRequired
 		}
 		ownerID = principal.MembershipID
 	}

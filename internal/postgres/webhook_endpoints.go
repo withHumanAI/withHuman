@@ -208,7 +208,7 @@ func (s *Store) ActivateWebhookEndpointRevision(ctx context.Context, input appli
 		return domain.WebhookEndpointRevision{}, err
 	}
 	if !expectedRevisionMatches(current.Revision, hasCurrent, input.ExpectedActiveRevision) {
-		return domain.WebhookEndpointRevision{}, fmt.Errorf("active webhook endpoint revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.WebhookEndpointRevision{}, fmt.Errorf("this webhook endpoint changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	target, err := scanWebhookEndpointRevision(tx.QueryRow(ctx, webhookEndpointSelect+
 		`WHERE organization_id = $1 AND endpoint_key = $2 AND revision = $3`, input.OrganizationID,
@@ -284,7 +284,7 @@ func (s *Store) DeactivateWebhookEndpoint(ctx context.Context, input application
 		return domain.WebhookEndpointRevision{}, err
 	}
 	if !hasCurrent || current.Revision != input.ExpectedActiveRevision {
-		return domain.WebhookEndpointRevision{}, fmt.Errorf("active webhook endpoint revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.WebhookEndpointRevision{}, fmt.Errorf("this webhook endpoint changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	// Pipeline activation takes this key's lock before it verifies the
 	// endpoint is active, so the uses read here cannot be stale.

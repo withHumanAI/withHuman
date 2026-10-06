@@ -113,14 +113,14 @@ func (s *Store) addApprovalReviewer(ctx context.Context, input application.AddAp
 		return domain.ApprovalReviewer{}, err
 	}
 	if domain.ApprovalStatus(requestStatus) != domain.ApprovalPending {
-		return domain.ApprovalReviewer{}, fmt.Errorf("request is not pending: %w", domain.ErrConflict)
+		return domain.ApprovalReviewer{}, fmt.Errorf("this request is no longer pending: %w", domain.ErrConflict)
 	}
 	pinned, escalated, err := readPinnedRouting(ctx, tx, organizationID, requestID)
 	if err != nil {
 		return domain.ApprovalReviewer{}, err
 	}
 	if !escalated && pinned.agentOwnerID == "" {
-		return domain.ApprovalReviewer{}, fmt.Errorf("request is not routed: %w", domain.ErrConflict)
+		return domain.ApprovalReviewer{}, fmt.Errorf("this request was not sent to anyone yet: %w", domain.ErrConflict)
 	}
 	// A path that reaches nobody for this request still scopes it: only a
 	// break-glass holder passes the check below, and pulling someone in
@@ -140,14 +140,14 @@ func (s *Store) addApprovalReviewer(ctx context.Context, input application.AddAp
 	resource := domain.RequestResource(requestID)
 	if !routingTargetsMembership(actor.MembershipID, userIDs, teamIDs, added, actorTeams) &&
 		authorization.Check(actor, domain.PermissionRequestDecideUnrouted, resource) != nil {
-		return domain.ApprovalReviewer{}, fmt.Errorf("only a routed reviewer may add reviewers: %w", domain.ErrForbidden)
+		return domain.ApprovalReviewer{}, fmt.Errorf("only reviewers this request was sent to can add reviewers: %w", domain.ErrForbidden)
 	}
 
 	var memberStatus, memberName string
 	err = tx.QueryRow(ctx, `SELECT m.status, u.display_name FROM memberships m JOIN users u ON u.id = m.user_id
         WHERE m.organization_id = $1 AND m.id = $2`, organizationID, input.MembershipID).Scan(&memberStatus, &memberName)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && domain.MembershipStatus(memberStatus) != domain.MembershipActive) {
-		return domain.ApprovalReviewer{}, fmt.Errorf("member is not active: %w", domain.ErrInvalid)
+		return domain.ApprovalReviewer{}, fmt.Errorf("this member is not active: %w", domain.ErrInvalid)
 	}
 	if err != nil {
 		return domain.ApprovalReviewer{}, err
@@ -157,7 +157,7 @@ func (s *Store) addApprovalReviewer(ctx context.Context, input application.AddAp
 		return domain.ApprovalReviewer{}, err
 	}
 	if authorization.Check(domain.Principal{Grants: grants}, domain.PermissionRequestDecide, resource) != nil {
-		return domain.ApprovalReviewer{}, fmt.Errorf("member cannot decide requests: %w", domain.ErrInvalid)
+		return domain.ApprovalReviewer{}, fmt.Errorf("this member cannot decide requests: %w", domain.ErrInvalid)
 	}
 
 	if _, err := tx.Exec(ctx, `INSERT INTO approval_request_reviewers
@@ -165,7 +165,7 @@ func (s *Store) addApprovalReviewer(ctx context.Context, input application.AddAp
         VALUES ($1, $2, $3, $4, $5)`,
 		requestID, organizationID, input.MembershipID, actor.MembershipID, input.Now); err != nil {
 		if isUniqueViolation(err) {
-			return domain.ApprovalReviewer{}, fmt.Errorf("already a reviewer: %w", domain.ErrConflict)
+			return domain.ApprovalReviewer{}, fmt.Errorf("this member is already a reviewer: %w", domain.ErrConflict)
 		}
 		return domain.ApprovalReviewer{}, err
 	}

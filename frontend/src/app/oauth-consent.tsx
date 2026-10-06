@@ -79,14 +79,10 @@ function decisionErrorMessage(reason: unknown): string {
       return "This edition cannot scope keys. Choose everything you can do.";
     case "plan_required":
       return "Your plan does not include scoped keys. Choose everything you can do.";
-    case "forbidden":
-      if (reason.message.includes("too old")) {
-        return "Sign in again to grant these permissions.";
-      }
-      if (reason.message.includes("insufficient")) {
-        return "Granting these permissions needs a multi-factor sign-in.";
-      }
-      return reason.message;
+    case "authentication_stale":
+      return "Sign in again to grant these permissions.";
+    case "authentication_weak":
+      return "Sign in with multi-factor authentication to grant these permissions.";
     default:
       return reason.message;
   }

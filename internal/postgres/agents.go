@@ -918,9 +918,9 @@ func (s *Store) disableMembershipAgentInstances(ctx context.Context, tx pgx.Tx, 
 func checkInstanceOwner(kind domain.AgentKind, membershipID domain.ID) error {
 	switch {
 	case kind == domain.AgentPersonal && membershipID == "":
-		return fmt.Errorf("an instance of a personal agent needs an owner: %w", domain.ErrAgentOwnerRequired)
+		return domain.ErrAgentOwnerRequired
 	case kind != domain.AgentPersonal && membershipID != "":
-		return fmt.Errorf("an instance of a service agent has no owner: %w", domain.ErrInvalid)
+		return fmt.Errorf("a service agent's instances have no owner: %w", domain.ErrInvalid)
 	}
 	return nil
 }

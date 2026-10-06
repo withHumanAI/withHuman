@@ -264,7 +264,7 @@ func (s *Store) GetInvitationByToken(ctx context.Context, input application.GetI
 	preview.Invitation = invitation
 	switch invitation.Status {
 	case domain.InvitationAccepted:
-		return application.InvitationPreview{}, fmt.Errorf("invitation was already accepted: %w", domain.ErrConflict)
+		return application.InvitationPreview{}, fmt.Errorf("this invitation was already accepted: %w", domain.ErrConflict)
 	case domain.InvitationRevoked, domain.InvitationExpired:
 		return application.InvitationPreview{}, domain.ErrNotFound
 	}
@@ -350,7 +350,7 @@ func (s *Store) acceptInvitation(ctx context.Context, input application.AcceptIn
 	}
 	switch domain.InvitationStatus(status) {
 	case domain.InvitationAccepted:
-		return domain.Principal{}, fmt.Errorf("invitation was already accepted: %w", domain.ErrConflict)
+		return domain.Principal{}, fmt.Errorf("this invitation was already accepted: %w", domain.ErrConflict)
 	case domain.InvitationRevoked, domain.InvitationExpired:
 		return domain.Principal{}, domain.ErrNotFound
 	}
@@ -393,7 +393,7 @@ func (s *Store) acceptInvitation(ctx context.Context, input application.AcceptIn
 			if _, err := tx.Exec(ctx, `INSERT INTO users (id, display_name, primary_email, status, created_at, updated_at)
                 VALUES ($1, $2, $3, 'active', $4, $4)`, userID, input.DisplayName, email, input.Now); err != nil {
 				if isUniqueViolation(err) {
-					return domain.Principal{}, fmt.Errorf("a user with this email already exists: %w", domain.ErrConflict)
+					return domain.Principal{}, fmt.Errorf("an account with this email already exists: %w", domain.ErrConflict)
 				}
 				return domain.Principal{}, err
 			}
@@ -429,7 +429,7 @@ func (s *Store) acceptInvitation(ctx context.Context, input application.AcceptIn
         VALUES ($1, $2, $3, 'active', 'invite', $4, $4)`,
 		input.MembershipID, userID, organizationID, input.Now); err != nil {
 		if isUniqueViolation(err) {
-			return domain.Principal{}, fmt.Errorf("user is already a member of this organization: %w", domain.ErrConflict)
+			return domain.Principal{}, fmt.Errorf("this person is already a member: %w", domain.ErrConflict)
 		}
 		return domain.Principal{}, err
 	}

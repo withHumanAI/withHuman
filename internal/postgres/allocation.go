@@ -43,7 +43,7 @@ func retrySerializable(attempt func() error) error {
 			return err
 		}
 	}
-	return fmt.Errorf("write contended by concurrent transactions: %w", domain.ErrConflict)
+	return fmt.Errorf("something else changed this at the same time. Try again: %w", domain.ErrConflict)
 }
 
 // allocation is one allocating transaction with its lock. Close releases

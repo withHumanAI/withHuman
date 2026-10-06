@@ -292,7 +292,7 @@ func (s *Service) ListMembers(ctx context.Context, principal domain.Principal, l
 // role everywhere requires holding it too.
 func (s *Service) targetForMutation(ctx context.Context, principal domain.Principal, membershipID domain.ID) (domain.Membership, error) {
 	if principal.MembershipID == membershipID {
-		return domain.Membership{}, fmt.Errorf("you cannot modify your own membership: %w", domain.ErrForbidden)
+		return domain.Membership{}, fmt.Errorf("you cannot change your own membership: %w", domain.ErrForbidden)
 	}
 	target, err := s.identities.GetMembership(ctx, application.GetMembershipInput{
 		OrganizationID: principal.OrganizationID, MembershipID: membershipID,
@@ -306,7 +306,7 @@ func (s *Service) targetForMutation(ctx context.Context, principal domain.Princi
 			return domain.Membership{}, err
 		}
 		if !actorIsOwner {
-			return domain.Membership{}, fmt.Errorf("only an owner may change a member who holds the owner role: %w", domain.ErrForbidden)
+			return domain.Membership{}, fmt.Errorf("only an owner can change another owner: %w", domain.ErrForbidden)
 		}
 	}
 	return target, nil

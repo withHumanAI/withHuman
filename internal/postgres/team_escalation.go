@@ -157,7 +157,7 @@ func (s *Store) ActivateTeamEscalationPolicyRevision(ctx context.Context, input 
 		return domain.TeamEscalationPolicyRevision{}, err
 	}
 	if !expectedRevisionMatches(current.Revision, hasCurrent, input.ExpectedActiveRevision) {
-		return domain.TeamEscalationPolicyRevision{}, fmt.Errorf("active team escalation policy revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.TeamEscalationPolicyRevision{}, fmt.Errorf("this escalation policy changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	target, err := scanTeamEscalationPolicyRevision(tx.QueryRow(ctx, teamEscalationPolicySelect+
 		`WHERE organization_id = $1 AND team_id = $2 AND revision = $3`, input.OrganizationID,
@@ -229,7 +229,7 @@ func (s *Store) DeactivateTeamEscalationPolicy(ctx context.Context, input applic
 		return domain.TeamEscalationPolicyRevision{}, err
 	}
 	if !hasCurrent || current.Revision != input.ExpectedActiveRevision {
-		return domain.TeamEscalationPolicyRevision{}, fmt.Errorf("active team escalation policy revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.TeamEscalationPolicyRevision{}, fmt.Errorf("this escalation policy changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	actorID, err := managementActorID(ctx, tx, input.OrganizationID, input.ActorID)
 	if err != nil {

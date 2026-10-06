@@ -233,7 +233,7 @@ func (s *Store) RenameTeam(ctx context.Context, input application.RenameTeamInpu
 		return domain.Team{}, err
 	}
 	if directoryManaged {
-		return domain.Team{}, fmt.Errorf("team is managed by your directory: %w", domain.ErrConflict)
+		return domain.Team{}, fmt.Errorf("this team is managed by your directory: %w", domain.ErrConflict)
 	}
 	_, err = tx.Exec(ctx, `UPDATE teams SET name = $3 WHERE organization_id = $1 AND id = $2`,
 		input.OrganizationID, input.TeamID, input.Name)
@@ -311,17 +311,17 @@ func (s *Store) ArchiveTeam(ctx context.Context, input application.ArchiveTeamIn
 		return tx.Commit(ctx)
 	}
 	if directoryManaged {
-		return fmt.Errorf("team is managed by your directory: %w", domain.ErrConflict)
+		return fmt.Errorf("this team is managed by your directory: %w", domain.ErrConflict)
 	}
 	if targeted, err := teamTargetedByActivePath(ctx, tx, input.OrganizationID, input.TeamID); err != nil {
 		return err
 	} else if targeted {
-		return fmt.Errorf("team is targeted by an active escalation path: %w", domain.ErrConflict)
+		return fmt.Errorf("this team is in an active escalation path: %w", domain.ErrConflict)
 	}
 	if targeted, err := teamTargetedByPendingRequest(ctx, tx, input.OrganizationID, input.TeamID); err != nil {
 		return err
 	} else if targeted {
-		return fmt.Errorf("team is targeted by a pending approval request: %w", domain.ErrConflict)
+		return fmt.Errorf("this team has pending requests: %w", domain.ErrConflict)
 	}
 	// The team's own grants and every grant scoped to it go with it.
 	if err := s.revokeAssignmentsWhere(ctx, tx, input.OrganizationID, domain.ActorHuman, input.ActorMembershipID, input.Now,
@@ -729,7 +729,7 @@ func requireLiveTeam(ctx context.Context, tx pgx.Tx, organizationID, teamID doma
 		return err
 	}
 	if archivedAt != nil {
-		return fmt.Errorf("team is archived: %w", domain.ErrConflict)
+		return fmt.Errorf("this team is archived: %w", domain.ErrConflict)
 	}
 	return nil
 }

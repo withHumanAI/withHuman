@@ -127,7 +127,7 @@ func (s *Service) Ask(ctx context.Context, principal domain.Principal, message s
 		return domain.OnboardingSession{}, err
 	}
 	if !assistantStatuses[session.Status] {
-		return domain.OnboardingSession{}, fmt.Errorf("session is %s, the agents are not connected yet: %w", session.Status, domain.ErrOnboardingState)
+		return domain.OnboardingSession{}, fmt.Errorf("%w: connect the agents first", domain.ErrOnboardingState)
 	}
 	now := s.clock.Now()
 	if assistantBusy(session, now) {
@@ -347,7 +347,7 @@ func (turn *assistantTurn) run(ctx context.Context, history []application.ToolUs
 		if len(calls) == 0 {
 			answer := strings.TrimSpace(text.String())
 			if output.StopReason == application.ToolUseStopMaxTokens {
-				return "", errors.New("the answer was cut short; ask again with a shorter request")
+				return "", errors.New("the answer was cut short. Ask a shorter question")
 			}
 			if answer == "" {
 				return "", errors.New("the model answered with nothing")
@@ -366,7 +366,7 @@ func (turn *assistantTurn) run(ctx context.Context, history []application.ToolUs
 		}
 		turn.history = append(turn.history, application.ToolUseMessage{Role: application.ToolUseRoleUser, Blocks: results})
 	}
-	return "", fmt.Errorf("it did not finish within %d steps; say what to change and it continues from here", maxAssistantSteps)
+	return "", errors.New("it ran out of steps. Say what to change to continue")
 }
 
 // logToolCall records one tool call the model made. A refused call is

@@ -150,7 +150,7 @@ func (s *Service) apiKeyPermissions(ctx context.Context, principal domain.Princi
 		if !s.config.APIKeyScopingEnabled {
 			return nil, domain.ErrAPIKeyScopingUnavailable
 		}
-		return nil, fmt.Errorf("scoping an API key needs the %s capability: %w", application.CapabilityAPIKeyScoping, domain.ErrPlanRequired)
+		return nil, fmt.Errorf("scoped API keys are %w", domain.ErrPlanRequired)
 	}
 	if len(requested) == 0 {
 		return nil, fmt.Errorf("API key permissions must name at least one permission: %w", domain.ErrInvalid)

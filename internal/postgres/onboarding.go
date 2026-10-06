@@ -287,7 +287,7 @@ func (s *Store) UpdateOnboardingSession(ctx context.Context, input application.U
 	if current.Expired(input.Now) {
 		return domain.OnboardingSession{}, domain.ErrOnboardingExpired
 	}
-	return domain.OnboardingSession{}, fmt.Errorf("session is %s: %w", current.Status, domain.ErrOnboardingState)
+	return domain.OnboardingSession{}, domain.ErrOnboardingState
 }
 
 func mustJSON(value any, empty string) []byte {
@@ -347,7 +347,7 @@ func (s *Store) CompleteOnboarding(ctx context.Context, input application.Comple
 	if input.Outcome == domain.OnboardingFinished {
 		terminal = domain.OnboardingCompleted
 		if sessionID != "" && domain.OnboardingStatus(status) != domain.OnboardingTested {
-			return fmt.Errorf("session is %s, finish needs tested: %w", status, domain.ErrOnboardingState)
+			return fmt.Errorf("%w: send a test request first", domain.ErrOnboardingState)
 		}
 	}
 	if sessionID != "" {

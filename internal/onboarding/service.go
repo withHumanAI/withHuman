@@ -325,11 +325,11 @@ func (s *Service) Provision(ctx context.Context, principal domain.Principal) (do
 		return domain.OnboardingSession{}, err
 	}
 	if session.Status != domain.OnboardingToolsDiscovered {
-		return domain.OnboardingSession{}, fmt.Errorf("session is %s: %w", session.Status, domain.ErrOnboardingState)
+		return domain.OnboardingSession{}, domain.ErrOnboardingState
 	}
 	if session.ChannelsSetAt == nil {
 		return domain.OnboardingSession{}, &StepError{Code: "channels_not_set",
-			Err: fmt.Errorf("choose how withHuman reaches you before the agents are connected: %w", domain.ErrInvalid)}
+			Err: fmt.Errorf("choose how you want to be notified first: %w", domain.ErrInvalid)}
 	}
 	generated, err := s.provision(ctx, principal, session)
 	if err != nil {
@@ -535,7 +535,7 @@ func (s *Service) RecordTest(ctx context.Context, principal domain.Principal, re
 		return domain.OnboardingSession{}, err
 	}
 	if session.Status != domain.OnboardingInstalled {
-		return domain.OnboardingSession{}, fmt.Errorf("session is %s: %w", session.Status, domain.ErrOnboardingState)
+		return domain.OnboardingSession{}, domain.ErrOnboardingState
 	}
 	if requestID == "" {
 		return domain.OnboardingSession{}, fmt.Errorf("request_id is required: %w", domain.ErrInvalid)
@@ -615,7 +615,7 @@ func (s *Service) SetGatedTools(ctx context.Context, principal domain.Principal,
 		return domain.OnboardingSession{}, err
 	}
 	if !assistantStatuses[session.Status] {
-		return domain.OnboardingSession{}, fmt.Errorf("session is %s, the agents are not connected yet: %w", session.Status, domain.ErrOnboardingState)
+		return domain.OnboardingSession{}, fmt.Errorf("%w: connect the agents first", domain.ErrOnboardingState)
 	}
 	if !session.Selected(runtime) {
 		return domain.OnboardingSession{}, &StepError{Code: "runtime_not_selected", Param: runtime,
@@ -677,7 +677,7 @@ func (s *Service) RecordRules(ctx context.Context, principal domain.Principal) (
 		return domain.OnboardingSession{}, err
 	}
 	if session.Status != domain.OnboardingInstalled && session.Status != domain.OnboardingTested {
-		return domain.OnboardingSession{}, fmt.Errorf("session is %s: %w", session.Status, domain.ErrOnboardingState)
+		return domain.OnboardingSession{}, domain.ErrOnboardingState
 	}
 	now := s.clock.Now()
 	return s.sessions.UpdateOnboardingSession(ctx, application.UpdateOnboardingSessionInput{
@@ -873,7 +873,7 @@ type Enrollment struct {
 // under a principal rebuilt from the session's membership.
 func (s *Service) Enroll(ctx context.Context, session domain.OnboardingSession) (EnrollResult, error) {
 	if session.Status != domain.OnboardingProvisioning {
-		return EnrollResult{}, fmt.Errorf("session is %s: %w", session.Status, domain.ErrOnboardingState)
+		return EnrollResult{}, domain.ErrOnboardingState
 	}
 	principal, err := s.delegatedPrincipal(ctx, session)
 	if err != nil {
@@ -930,7 +930,7 @@ func (s *Service) ensureAgent(ctx context.Context, principal domain.Principal, r
 	case err == nil:
 		if agent.Status == domain.AgentArchived {
 			return domain.Agent{}, &StepError{Code: "agent_archived", Param: runtime,
-				Err: fmt.Errorf("agent %s is archived: restore it in withHuman first: %w", runtime, domain.ErrAgentArchived)}
+				Err: fmt.Errorf("%w: restore %s first", domain.ErrAgentArchived, runtime)}
 		}
 		if agent.Status != domain.AgentActive {
 			return domain.Agent{}, fmt.Errorf("agent %s is disabled: %w", runtime, domain.ErrAgentInactive)

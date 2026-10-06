@@ -57,7 +57,7 @@ func (s *Store) CreateRequestApprovalPipeline(ctx context.Context, input applica
 		return domain.RequestApprovalPipelineRevision{}, err
 	}
 	if exists {
-		return domain.RequestApprovalPipelineRevision{}, fmt.Errorf("pipeline %q: %w", input.PipelineKey, domain.ErrRequestApprovalPipelineExists)
+		return domain.RequestApprovalPipelineRevision{}, domain.ErrRequestApprovalPipelineExists
 	}
 	revision, err := s.insertRequestApprovalPipelineRevision(ctx, tx, application.CreateRequestApprovalPipelineRevisionInput(input), 1, true)
 	if err != nil {
@@ -423,7 +423,7 @@ func (s *Store) ActivateRequestApprovalPipelineRevision(ctx context.Context, inp
 		return domain.RequestApprovalPipelineRevision{}, missingRequestApprovalPipeline(ctx, tx, input.OrganizationID, input.PipelineKey)
 	}
 	if current.Revision != input.ExpectedActiveRevision {
-		return domain.RequestApprovalPipelineRevision{}, fmt.Errorf("active request approval pipeline revision changed: %w", domain.ErrPreconditionFailed)
+		return domain.RequestApprovalPipelineRevision{}, fmt.Errorf("this pipeline changed. Reload and try again: %w", domain.ErrPreconditionFailed)
 	}
 	target, err := scanRequestApprovalPipelineRevision(tx.QueryRow(ctx, requestApprovalPipelineSelect+
 		`WHERE organization_id = $1 AND pipeline_key = $2 AND revision = $3`, input.OrganizationID,
@@ -432,7 +432,7 @@ func (s *Store) ActivateRequestApprovalPipelineRevision(ctx context.Context, inp
 		return domain.RequestApprovalPipelineRevision{}, err
 	}
 	if target.ArchivedAt != nil {
-		return domain.RequestApprovalPipelineRevision{}, fmt.Errorf("revision %d: %w", target.Revision, domain.ErrRequestApprovalPipelineArchived)
+		return domain.RequestApprovalPipelineRevision{}, domain.ErrRequestApprovalPipelineArchived
 	}
 	if current.ID == target.ID {
 		if err := tx.Commit(ctx); err != nil {
@@ -517,7 +517,7 @@ func (s *Store) ArchiveRequestApprovalPipeline(ctx context.Context, input applic
 		return nil, fmt.Errorf("pipeline %q: %w", input.PipelineKey, domain.ErrNotFound)
 	}
 	if revisions[0].ArchivedAt != nil {
-		return nil, fmt.Errorf("pipeline %q: %w", input.PipelineKey, domain.ErrRequestApprovalPipelineArchived)
+		return nil, domain.ErrRequestApprovalPipelineArchived
 	}
 	uses, err := listRequestApprovalPipelineUses(ctx, tx, input.OrganizationID, input.PipelineKey)
 	if err != nil {
@@ -667,7 +667,7 @@ func missingRequestApprovalPipeline(ctx context.Context, tx pgx.Tx, organization
 		return err
 	}
 	if archived {
-		return fmt.Errorf("request approval pipeline %q: %w", pipelineKey, domain.ErrRequestApprovalPipelineArchived)
+		return domain.ErrRequestApprovalPipelineArchived
 	}
 	return fmt.Errorf("request approval pipeline %q does not exist: %w", pipelineKey, domain.ErrNotFound)
 }
@@ -860,7 +860,7 @@ func checkPipelineGraph(sizes map[string]int, edges map[string][]string) error {
 			deepest = max(deepest, depthBelow[target]+1)
 			size += flattened[target]
 			if size > domain.MaximumEffectivePipelineBlocks {
-				return fmt.Errorf("effective pipeline exceeds %d blocks: %w", domain.MaximumEffectivePipelineBlocks, domain.ErrEffectivePipelineTooLarge)
+				return fmt.Errorf("%w, the limit is %d", domain.ErrEffectivePipelineTooLarge, domain.MaximumEffectivePipelineBlocks)
 			}
 		}
 		if deepest > domain.MaximumDelegationDepth {
