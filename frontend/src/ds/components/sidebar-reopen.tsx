@@ -22,6 +22,9 @@ export interface SidebarHandle {
   hold: (held: boolean) => void;
   /* Whether the caller is placing the control itself right now. */
   claim: (owned: boolean) => void;
+  /* Something in the hidden sidebar wants the person (the to-do bell
+   * has items), so the control carries the same mark. */
+  attention: boolean;
 }
 
 export const SidebarContext = createContext<SidebarHandle | null>(null);
@@ -57,7 +60,13 @@ export function SidebarReopenControl({
   return (
     <span className={className} style={style}>
       <Tooltip content="Show sidebar" keys="[">
-        <IconButton aria-label="Show sidebar" variant="neutral" size="sm" onClick={sidebar.reopen}>
+        <IconButton
+          aria-label={sidebar.attention ? "Show sidebar, you have things to do" : "Show sidebar"}
+          variant="neutral"
+          size="sm"
+          attention={sidebar.attention}
+          onClick={sidebar.reopen}
+        >
           <PanelLeftIcon width={15} height={15} />
         </IconButton>
       </Tooltip>

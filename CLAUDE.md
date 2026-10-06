@@ -36,6 +36,10 @@ recorded in this file with both the reason and the replacement rule.
   icon (hollow circle, progress ring, check, cross, exclamation) that
   draws the state, and that toned icon may stand alone only as internal
   anatomy of a component that also carries a label (toast, timeline rail).
+  The one dot that is not a status is `IconButton`'s `attention` mark
+  (the to-do bell, and the collapsed sidebar's way back while the bell
+  has items): it says something behind the control wants the person,
+  and the control's label says the same in words.
   Loading animations are separate: the review queue uses `LoadingDots` with
   an accessible reconnecting label instead of a disconnected banner, keeping
   the queue layout stable while live updates recover.
@@ -1218,7 +1222,10 @@ recorded in this file with both the reason and the replacement rule.
   both feeding the palette and gated by a permission and the edition's
   own runtime-config entries; permission labels; the `auditLink` slot the
   agents, members and request screens offer beside a record; the signup
-  door on the sign-in screen; banners above every workspace page; the
+  door on the sign-in screen; banners above every workspace page, kept
+  for notices that stop approvals working; `todoSources`, hooks that
+  list what the person should do under the bell in the sidebar header
+  (no source, no bell; an item stays until it is done); the
   hint under a refused invitation; the request page's `requestDetail`
   slots for the assessments, the cause row and the history an audit log
   can tell, filled from core's exported `requestMoments` and

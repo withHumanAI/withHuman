@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/ds/components/avatar";
 import { Button } from "@/ds/components/button";
+import { IconButton } from "@/ds/components/icon-button";
 import {
   Dropdown,
   DropdownContent,
@@ -14,6 +15,7 @@ import {
 import { Menu, MenuContent, MenuTrigger, type MenuAction } from "@/ds/components/menu";
 import {
   ArrowUpRightIcon,
+  BellIcon,
   CheckIcon,
   CopyIcon,
   MonitorIcon,
@@ -170,6 +172,41 @@ export function MenusSection() {
           Arrows move through entries and theme segments alike, Enter or
           Space chooses, a chosen segment keeps the menu open, Esc closes
           and returns focus.
+        </KeyboardHint>
+      </Demo>
+
+      <Demo label="Described entries" hint="the to-do bell's list">
+        <DemoRow>
+          <Dropdown>
+            <DropdownTrigger
+              render={
+                <IconButton aria-label="To do, 2 things" attention>
+                  <BellIcon />
+                </IconButton>
+              }
+            />
+            <DropdownContent className="w-[300px]">
+              <DropdownGroup>
+                <DropdownGroupLabel>To do</DropdownGroupLabel>
+                <DropdownItem
+                  description="Claude Code uses it with your own account."
+                  onClick={() => setLastAction("Connect GitHub")}
+                >
+                  Connect GitHub · Write
+                </DropdownItem>
+                <DropdownItem
+                  description="Claude Code and Codex use it with your own account."
+                  onClick={() => setLastAction("Connect Linear")}
+                >
+                  Connect Linear · Write
+                </DropdownItem>
+              </DropdownGroup>
+            </DropdownContent>
+          </Dropdown>
+        </DemoRow>
+        <KeyboardHint>
+          A description wraps under the label instead of truncating, for an
+          entry that has to say why it is there.
         </KeyboardHint>
       </Demo>
     </Section>

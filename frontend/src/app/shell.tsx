@@ -41,11 +41,19 @@ import {
 import { api } from "../api";
 import { AccountMenu } from "./account-menu";
 import { docsForPath } from "./docs";
-import { ExtensionBanners, ExtensionNav, extensionLink, useExtensionCommands, useExtensionNav } from "./extensions";
+import {
+  ExtensionBanners,
+  ExtensionNav,
+  extensionLink,
+  useExtensionCommands,
+  useExtensionNav,
+  useTodos,
+} from "./extensions";
 import { NavGroupLabel, NavItem } from "./nav-item";
 import { useAccess } from "./authorization";
 import { useNotifiedPendingCount } from "./queue-store";
 import { SettingsNav } from "./settings-nav";
+import { TodoBell } from "./todo-bell";
 import { useRuntimeConfig } from "./use-runtime-config";
 
 const SIDEBAR_KEY = "wh-sidebar";
@@ -114,6 +122,10 @@ export function Shell({
     policy: useExtensionNav("policy"),
   };
   const extensionCommands = useExtensionCommands();
+  /* What the person should do, under the bell in the sidebar header;
+   * null when no edition can ever list anything, and then no bell. */
+  const todos = useTodos();
+  const attention = todos !== null && todos.length > 0;
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sidebar, setSidebar] = useState<SidebarState>(readSidebarState);
   const [dragging, setDragging] = useState(false);
@@ -164,8 +176,8 @@ export function Shell({
    * line; otherwise the shell floats it at the pane's corner. */
   const [controlClaimed, setControlClaimed] = useState(false);
   const sidebarHandle = useMemo(
-    () => ({ collapsed, reopen: showSidebar, hold: setHeld, claim: setControlClaimed }),
-    [collapsed, showSidebar],
+    () => ({ collapsed, reopen: showSidebar, hold: setHeld, claim: setControlClaimed, attention }),
+    [collapsed, showSidebar, attention],
   );
 
   useCommandK(useCallback(() => setPaletteOpen((open) => !open), []));
@@ -443,11 +455,14 @@ export function Shell({
                 <Logo className="text-[13px] text-ink" />
               </Link>
             )}
-            <Tooltip content="Hide sidebar" keys="[">
-              <IconButton aria-label="Hide sidebar" size="sm" onClick={toggleSidebar}>
-                <PanelLeftIcon width={15} height={15} />
-              </IconButton>
-            </Tooltip>
+            <div className="flex items-center gap-0.5">
+              {todos !== null ? <TodoBell items={todos} /> : null}
+              <Tooltip content="Hide sidebar" keys="[">
+                <IconButton aria-label="Hide sidebar" size="sm" onClick={toggleSidebar}>
+                  <PanelLeftIcon width={15} height={15} />
+                </IconButton>
+              </Tooltip>
+            </div>
           </div>
           <nav
             className="flex flex-col gap-0.5 px-2 pt-2"
@@ -552,9 +567,10 @@ export function Shell({
             <span className="absolute top-[11px] left-3 z-20">
               <Tooltip content="Show sidebar" keys="[">
                 <IconButton
-                  aria-label="Show sidebar"
+                  aria-label={attention ? "Show sidebar, you have things to do" : "Show sidebar"}
                   variant="neutral"
                   size="sm"
+                  attention={attention}
                   onClick={toggleSidebar}
                 >
                   <PanelLeftIcon width={15} height={15} />

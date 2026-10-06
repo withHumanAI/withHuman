@@ -465,3 +465,12 @@ export function LinkIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function BellIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 11.6h9l-1.1-1.7V7a3.4 3.4 0 0 0-6.8 0v2.9Z" />
+      <path d="M6.6 13.7a1.5 1.5 0 0 0 2.8 0" />
+    </svg>
+  );
+}

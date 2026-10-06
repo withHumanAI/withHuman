@@ -29,11 +29,17 @@ export interface IconButtonProps extends ComponentProps<"button"> {
   "aria-label": string;
   variant?: IconButtonVariant;
   size?: IconButtonSize;
+  /* A small mark at the top-right corner saying something behind the
+   * control wants the person (the to-do bell, the collapsed sidebar's
+   * way back). Never a status: the label says what it means, so the
+   * caller words aria-label to include it. */
+  attention?: boolean;
 }
 
 export function IconButton({
   variant = "ghost",
   size = "md",
+  attention = false,
   className,
   children,
   ...props
@@ -42,7 +48,7 @@ export function IconButton({
     <button
       type="button"
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center select-none",
+        "relative inline-flex cursor-pointer items-center justify-center select-none",
         "transition-[color,background-color,border-color,box-shadow,transform] duration-100 ease-standard",
         "active:translate-y-[0.5px]",
         "disabled:pointer-events-none disabled:opacity-50",
@@ -54,6 +60,12 @@ export function IconButton({
       {...props}
     >
       {children}
+      {attention ? (
+        <span
+          aria-hidden
+          className="absolute top-[3px] right-[3px] size-[7px] rounded-full bg-deny ring-2 ring-canvas"
+        />
+      ) : null}
     </button>
   );
 }

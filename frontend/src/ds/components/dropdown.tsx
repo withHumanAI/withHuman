@@ -82,9 +82,10 @@ export function DropdownGroupLabel({
   );
 }
 
-const itemClass = (danger: boolean | undefined) =>
+const itemClass = (danger: boolean | undefined, described: boolean) =>
   cn(
-    "flex h-7 cursor-pointer items-center gap-2 rounded-sm px-2",
+    "flex cursor-pointer gap-2 rounded-sm px-2",
+    described ? "items-start py-1.5" : "h-7 items-center",
     "text-body outline-none select-none",
     "transition-colors duration-100",
     danger
@@ -98,16 +99,28 @@ interface ItemContentProps {
   /* Shortcut hint, e.g. "mod+C". Display only. */
   keys?: string;
   danger?: boolean;
+  /* A muted line under the label that wraps rather than truncates, for
+   * an entry that has to say why it is there (the to-do bell). */
+  description?: ReactNode;
   children: ReactNode;
 }
 
-function ItemContent({ icon, keys, danger, children }: ItemContentProps) {
+function ItemContent({ icon, keys, danger, description, children }: ItemContentProps) {
   return (
     <>
       {icon ? (
-        <span className={danger ? "flex text-deny" : "flex text-ink-muted"}>{icon}</span>
+        <span className={cn("flex", danger ? "text-deny" : "text-ink-muted", description && "mt-0.5")}>
+          {icon}
+        </span>
       ) : null}
-      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {description ? (
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate">{children}</span>
+          <span className="text-label text-ink-muted">{description}</span>
+        </span>
+      ) : (
+        <span className="min-w-0 flex-1 truncate">{children}</span>
+      )}
       {keys ? <Kbd keys={keys} /> : null}
     </>
   );
@@ -120,13 +133,14 @@ export function DropdownItem({
   icon,
   keys,
   danger,
+  description,
   className,
   children,
   ...props
 }: DropdownItemProps) {
   return (
-    <BaseMenu.Item className={cn(itemClass(danger), className)} {...props}>
-      <ItemContent icon={icon} keys={keys} danger={danger}>
+    <BaseMenu.Item className={cn(itemClass(danger, description != null), className)} {...props}>
+      <ItemContent icon={icon} keys={keys} danger={danger} description={description}>
         {children}
       </ItemContent>
     </BaseMenu.Item>
@@ -147,6 +161,7 @@ export function DropdownLinkItem({
   icon,
   keys,
   danger,
+  description,
   className,
   closeOnClick = true,
   children,
@@ -155,10 +170,10 @@ export function DropdownLinkItem({
   return (
     <BaseMenu.LinkItem
       closeOnClick={closeOnClick}
-      className={cn(itemClass(danger), className)}
+      className={cn(itemClass(danger, description != null), className)}
       {...props}
     >
-      <ItemContent icon={icon} keys={keys} danger={danger}>
+      <ItemContent icon={icon} keys={keys} danger={danger} description={description}>
         {children}
       </ItemContent>
     </BaseMenu.LinkItem>

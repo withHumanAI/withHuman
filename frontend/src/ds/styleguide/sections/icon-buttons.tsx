@@ -1,6 +1,8 @@
 import { IconButton } from "@/ds/components/icon-button";
 import {
+  BellIcon,
   CopyIcon,
+  PanelLeftIcon,
   EllipsisIcon,
   PlusIcon,
   TrashIcon,
@@ -39,6 +41,23 @@ export function IconButtonsSection() {
         <KeyboardHint>
           Tab focuses, Enter or Space activates. Labels surface through
           tooltips once wired.
+        </KeyboardHint>
+      </Demo>
+      <Demo label="Attention">
+        <DemoRow className="gap-4">
+          <IconButton aria-label="To do" size="sm">
+            <BellIcon width={15} height={15} />
+          </IconButton>
+          <IconButton aria-label="To do, 1 thing" size="sm" attention>
+            <BellIcon width={15} height={15} />
+          </IconButton>
+          <IconButton aria-label="Show sidebar, you have things to do" variant="neutral" size="sm" attention>
+            <PanelLeftIcon width={15} height={15} />
+          </IconButton>
+        </DemoRow>
+        <KeyboardHint>
+          The mark says something behind the control wants you, never a
+          status. The label says it too, for assistive tech.
         </KeyboardHint>
       </Demo>
     </Section>

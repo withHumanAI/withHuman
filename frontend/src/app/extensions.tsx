@@ -425,6 +425,24 @@ export interface LoginMethodDoors {
   sso: SSODoor | null;
 }
 
+/* One thing the person should do, listed under the sidebar's bell: a
+ * short title, a line saying why, and where it gets done. It stays
+ * listed until it is done; there is no dismissing it. */
+export interface TodoItem {
+  /* Stable across reads, so the list keys and tests can find it. */
+  key: string;
+  title: string;
+  description: string;
+  /* The route where it gets done. Usually an edition route, so a
+   * string cast at one render site like a nav entry's. */
+  to: string;
+}
+
+/* A hook the bell calls on every render of the shell, answering the
+ * items it knows about right now (empty while it has not looked yet or
+ * could not). It owns its own reads and when to refresh them. */
+export type TodoSource = () => TodoItem[];
+
 export interface Extensions {
   nav: NavEntry[];
   settingsNav: SettingsEntry[];
@@ -437,9 +455,15 @@ export interface Extensions {
    * screen when the deployment has it; the open edition's only door is
    * the first-owner ceremony. */
   signup: { href: string; enabled: (config: RuntimeConfig) => boolean } | null;
-  /* Rendered above every workspace page, for notices such as the hosted
-   * edition's over-quota warning. Each decides for itself whether to show. */
+  /* Rendered above every workspace page, for a notice that stops
+   * approvals working, such as the hosted edition's over-quota warning.
+   * Each decides for itself whether to show. Anything less pressing is
+   * a to-do item instead. */
   shellBanners: ComponentType[];
+  /* What the person should do, listed under the bell in the sidebar
+   * header (a personal agent waiting on a gateway connection). Without
+   * a source the bell does not render. */
+  todoSources: TodoSource[];
   /* Rendered under a refused invitation when the organization is at its
    * seat quota, for the edition's way of adding seats. */
   invitationQuotaHint: ComponentType | null;
@@ -483,6 +507,7 @@ export const extensions: Extensions = {
   auditLink: null,
   signup: null,
   shellBanners: [],
+  todoSources: [],
   invitationQuotaHint: null,
   requestDetail: { assessments: null, cause: null, history: null },
   blockKinds: [],
@@ -502,6 +527,7 @@ export function registerExtensions(partial: Partial<Extensions>): void {
   if (partial.auditLink) extensions.auditLink = partial.auditLink;
   if (partial.signup) extensions.signup = partial.signup;
   if (partial.shellBanners) extensions.shellBanners.push(...partial.shellBanners);
+  if (partial.todoSources) extensions.todoSources.push(...partial.todoSources);
   if (partial.invitationQuotaHint) extensions.invitationQuotaHint = partial.invitationQuotaHint;
   if (partial.requestDetail) Object.assign(extensions.requestDetail, partial.requestDetail);
   if (partial.blockKinds) extensions.blockKinds.push(...partial.blockKinds);
@@ -608,6 +634,15 @@ export function ExtensionSettingsNav({ entries }: { entries: SettingsEntry[] }) 
       ))}
     </>
   );
+}
+
+/* Every registered source's items, or null when no edition registered
+ * a source and the bell has nothing it could ever say. The sources are
+ * fixed before the router renders, so calling each hook in a loop keeps
+ * the call order stable. */
+export function useTodos(): TodoItem[] | null {
+  const items = extensions.todoSources.flatMap((source) => source());
+  return extensions.todoSources.length === 0 ? null : items;
 }
 
 export function ExtensionBanners() {
