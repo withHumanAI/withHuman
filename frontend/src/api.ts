@@ -113,6 +113,14 @@ export class RequestError extends Error {
   }
 }
 
+/* Told when a request is refused for want of a session, so the session
+ * store can find out whether this tab has been signed out. */
+let unauthenticatedListener: (() => void) | null = null;
+
+export function onUnauthenticated(listener: () => void) {
+  unauthenticatedListener = listener;
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body) headers.set("Content-Type", "application/json");
@@ -121,6 +129,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = (await response.json().catch(() => ({
       error: { code: "unknown", message: response.statusText },
     }))) as APIError;
+    if (response.status === 401 && body.error.code === "unauthenticated") unauthenticatedListener?.();
     throw new RequestError(body.error.message, response.status, body.error.code, body.error.details);
   }
   /* 204 never carries a body, and some 202s (password reset) say nothing

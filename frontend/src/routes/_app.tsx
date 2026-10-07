@@ -18,7 +18,7 @@ import { commitStagedLoginMethod } from "../app/login-method";
 import { consumeLoginSplash } from "../app/login-splash";
 import { SessionContext } from "../app/principal";
 import { ReferenceCards } from "../app/reference-cards";
-import { ensureSession, refreshSession, setSession, useSessionState } from "../app/session-store";
+import { checkSession, ensureSession, refreshSession, setSession, useSessionState } from "../app/session-store";
 import { readPendingOAuth } from "../app/oauth-consent";
 import { ensureQueue } from "../app/queue-store";
 import { Shell } from "../app/shell";
@@ -84,6 +84,21 @@ function SessionGate() {
   const signedIn = session !== null;
   useEffect(() => {
     if (signedIn) commitStagedLoginMethod();
+  }, [signedIn]);
+
+  /* A tab left open past its session goes to sign-in when the person
+   * comes back to it, before they act on a page that can no longer load. */
+  useEffect(() => {
+    if (!signedIn) return;
+    const check = () => {
+      if (document.visibilityState === "visible") void checkSession();
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
   }, [signedIn]);
 
   /* A person who can run the guided setup lands on it while the

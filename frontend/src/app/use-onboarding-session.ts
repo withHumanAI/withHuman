@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, APP_API_BASE, RequestError } from "../api";
 import type { OnboardingSession } from "../types";
+import { checkSession } from "./session-store";
 
 /* The member's guided-setup session: fetched once on mount (404 means
  * there is none, not a failure) and then followed over the session
@@ -63,7 +64,11 @@ export function useOnboardingSession() {
       );
     });
     /* EventSource reconnects on its own; the session is also refetched
-     * on every screen action, so a dropped stream is not surfaced. */
+     * on every screen action, so a dropped stream is not surfaced. One
+     * the server refused may mean the sign-in session has ended. */
+    source.onerror = () => {
+      if (source.readyState === EventSource.CLOSED) void checkSession();
+    };
     return () => source.close();
   }, [loading, sessionId, setSession]);
 

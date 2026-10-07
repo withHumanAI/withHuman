@@ -5,6 +5,8 @@ import type { ApprovalRequest } from "../types";
 
 const approvals = vi.fn();
 vi.mock("../api", () => ({ api: { approvals: () => approvals() }, APP_API_BASE: "/api/v1" }));
+const checkSession = vi.fn();
+vi.mock("./session-store", () => ({ checkSession: () => checkSession() }));
 
 class FakeEventSource {
   static readonly CONNECTING = 0;
@@ -57,6 +59,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   approvals.mockReset();
+  checkSession.mockReset();
 });
 
 describe("queue store", () => {
@@ -69,6 +72,7 @@ describe("queue store", () => {
     act(() => FakeEventSource.opened[0].fail(FakeEventSource.CONNECTING));
 
     expect(result.current).toEqual({ requests: [request], loaded: true, loadFailed: false });
+    expect(checkSession).not.toHaveBeenCalled();
   });
 
   it("reports a queue that never loaded until a snapshot arrives", async () => {
@@ -90,6 +94,8 @@ describe("queue store", () => {
     expect(FakeEventSource.opened).toHaveLength(1);
 
     act(() => FakeEventSource.opened[0].fail(FakeEventSource.CLOSED));
+    // The refusal may be the session ending, which signs the tab out.
+    expect(checkSession).toHaveBeenCalledTimes(1);
     await act(async () => { await vi.advanceTimersByTimeAsync(4_999); });
     expect(FakeEventSource.opened).toHaveLength(1);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });

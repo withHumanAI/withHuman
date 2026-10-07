@@ -820,6 +820,13 @@ func (a *API) events(c *gin.Context) {
 			fmt.Fprint(c.Writer, ": keepalive\n\n")
 			c.Writer.Flush()
 		}
+		// A session that expired or was revoked since the last tick ends
+		// the stream; the browser's reconnect then meets the 401.
+		resolved, err := resolvePrincipal(c, a.auth)
+		if err != nil || !authorization.HoldsAnywhere(resolved, domain.PermissionRequestRead) {
+			return
+		}
+		principal = resolved
 	}
 }
 
@@ -1322,24 +1329,12 @@ func PrincipalAuthAdmittingOrganizationKeys(auth *authn.Service, logger *slog.Lo
 
 func principalAuth(auth *authn.Service, logger *slog.Logger, allowOrganizationKeys bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// The setup assistant's in-process calls arrive with the person's
-		// principal already resolved from their browser session.
-		if principal, ok := loopbackPrincipal(c.Request.Context()); ok {
-			setPrincipal(c, principal)
-			c.Next()
+		principal, err := resolvePrincipal(c, auth)
+		if err != nil {
+			WriteError(c, logger, err)
 			return
 		}
-		if bearer := c.GetHeader("Authorization"); bearer != "" {
-			token := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
-			if !strings.HasPrefix(bearer, "Bearer ") || !authn.IsAPIKeyToken(token) {
-				WriteError(c, logger, domain.ErrUnauthenticated)
-				return
-			}
-			principal, err := auth.ResolveAPIKey(c.Request.Context(), token)
-			if err != nil {
-				WriteError(c, logger, err)
-				return
-			}
+		if _, loopback := loopbackPrincipal(c.Request.Context()); !loopback && c.GetHeader("Authorization") != "" {
 			if principal.ActorType == domain.ActorAPIKey && !allowOrganizationKeys {
 				WriteError(c, logger, domain.ErrAPIKeyNotAllowed)
 				return
@@ -1352,12 +1347,38 @@ func principalAuth(auth *authn.Service, logger *slog.Logger, allowOrganizationKe
 				WriteError(c, logger, err)
 				return
 			}
-			setPrincipal(c, principal)
-			c.Next()
-			return
 		}
-		sessionAuth(auth, logger)(c)
+		setPrincipal(c, principal)
+		c.Next()
 	}
+}
+
+// resolvePrincipal resolves the credential a request carries: the setup
+// assistant's in-process principal, an API key bearer, or the session
+// cookie. Event streams call it again on every tick, so a stream ends
+// once its session expires or is revoked and reads with live grants.
+func resolvePrincipal(c *gin.Context, auth *authn.Service) (domain.Principal, error) {
+	// The setup assistant's in-process calls arrive with the person's
+	// principal already resolved from their browser session.
+	if principal, ok := loopbackPrincipal(c.Request.Context()); ok {
+		return principal, nil
+	}
+	if bearer := c.GetHeader("Authorization"); bearer != "" {
+		token := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
+		if !strings.HasPrefix(bearer, "Bearer ") || !authn.IsAPIKeyToken(token) {
+			return domain.Principal{}, domain.ErrUnauthenticated
+		}
+		return auth.ResolveAPIKey(c.Request.Context(), token)
+	}
+	return resolveSessionCookie(c, auth)
+}
+
+func resolveSessionCookie(c *gin.Context, auth *authn.Service) (domain.Principal, error) {
+	token, err := c.Cookie(authn.SessionCookieName)
+	if err != nil {
+		return domain.Principal{}, domain.ErrUnauthenticated
+	}
+	return auth.ResolveSession(c.Request.Context(), token)
 }
 
 func (a *API) sessionAuth() gin.HandlerFunc { return sessionAuth(a.auth, a.logger) }
@@ -1366,12 +1387,7 @@ func (a *API) sessionAuth() gin.HandlerFunc { return sessionAuth(a.auth, a.logge
 // acts on the session itself, and the cookie half of PrincipalAuth.
 func sessionAuth(auth *authn.Service, logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie(authn.SessionCookieName)
-		if err != nil {
-			WriteError(c, logger, domain.ErrUnauthenticated)
-			return
-		}
-		principal, err := auth.ResolveSession(c.Request.Context(), token)
+		principal, err := resolveSessionCookie(c, auth)
 		if err != nil {
 			WriteError(c, logger, err)
 			return

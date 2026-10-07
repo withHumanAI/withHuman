@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,10 +33,13 @@ const onboardingCookieToken = "session-token"
 type onboardingIdentityStub struct {
 	application.IdentityRepository
 	principal domain.Principal
+	// revoked makes the session cookie stop resolving, as an expired or
+	// signed-out session does.
+	revoked atomic.Bool
 }
 
 func (s *onboardingIdentityStub) ResolveSession(_ context.Context, input application.ResolveSessionInput) (domain.Principal, error) {
-	if string(input.SecretHash) == string(authn.HashToken(onboardingCookieToken)) {
+	if string(input.SecretHash) == string(authn.HashToken(onboardingCookieToken)) && !s.revoked.Load() {
 		return s.principal, nil
 	}
 	return domain.Principal{}, domain.ErrUnauthenticated
@@ -169,13 +173,20 @@ func newOnboardingRouter(t *testing.T) (*gin.Engine, *onboardingSessionsStub) {
 
 func newDrainingOnboardingRouter(t *testing.T, drain *Drain) (*gin.Engine, *onboardingSessionsStub) {
 	t.Helper()
-	gin.SetMode(gin.TestMode)
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	principal := domain.Principal{
+	return newOnboardingRouterFor(t, drain, newOnboardingIdentities())
+}
+
+func newOnboardingIdentities() *onboardingIdentityStub {
+	return &onboardingIdentityStub{principal: domain.Principal{
 		ActorType: domain.ActorHuman, ActorID: domain.ID(uuid.NewString()), OrganizationID: domain.ID(uuid.NewString()),
 		MembershipID: domain.ID(uuid.NewString()),
-	}.WithGrants(domain.GrantsForRoles([]domain.Role{domain.RoleOwner}))
-	identities := &onboardingIdentityStub{principal: principal}
+	}.WithGrants(domain.GrantsForRoles([]domain.Role{domain.RoleOwner}))}
+}
+
+func newOnboardingRouterFor(t *testing.T, drain *Drain, identities *onboardingIdentityStub) (*gin.Engine, *onboardingSessionsStub) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	sessions := &onboardingSessionsStub{}
 	auth := authn.NewService(identities, nil, nil, nil, entitlements.NewUnlimited(), nil, onboardingClock{}, authn.ServiceConfig{SessionTTL: time.Hour})
 	auth.RegisterOnboarding(sessions)
@@ -387,6 +398,31 @@ func TestOnboardingSessionEventsEndWhenTheDrainEndsStreams(t *testing.T) {
 	}
 	if body := response.Body.String(); !strings.HasPrefix(body, "event: session\ndata: {") {
 		t.Fatalf("stream body: %q", body)
+	}
+}
+
+// A stream checks the session on every tick, so one that expires or is
+// signed out elsewhere ends the stream and the browser's reconnect meets
+// the 401 that sends it to sign-in.
+func TestOnboardingSessionEventsEndWhenTheSessionEnds(t *testing.T) {
+	identities := newOnboardingIdentities()
+	router, _ := newOnboardingRouterFor(t, nil, identities)
+	serve(router, onboardingRequest(http.MethodPost, "/api/v1/onboarding/sessions", map[string]any{}, true, ""))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	request := onboardingRequest(http.MethodGet, "/api/v1/onboarding/session/events", nil, true, "").WithContext(ctx)
+	revoke := time.AfterFunc(100*time.Millisecond, func() { identities.revoked.Store(true) })
+	defer revoke.Stop()
+	started := time.Now()
+	response := serve(router, request)
+	if elapsed := time.Since(started); elapsed > 3*time.Second {
+		t.Fatalf("the stream outlived the session: %s", elapsed)
+	}
+	if body := response.Body.String(); !strings.HasPrefix(body, "event: session\ndata: {") {
+		t.Fatalf("stream body: %q", body)
+	}
+	if response := serve(router, request.Clone(context.Background())); response.Code != http.StatusUnauthorized || errorCode(t, response) != "unauthenticated" {
+		t.Fatalf("reconnect: %d %s", response.Code, response.Body.String())
 	}
 }
 

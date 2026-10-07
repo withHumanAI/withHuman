@@ -2,6 +2,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { api, APP_API_BASE } from "../api";
 import type { ApprovalRequest, ApprovalReview } from "../types";
 import { DEFAULT_QUEUE_SCOPE, type QueueScope } from "./queue-search";
+import { checkSession } from "./session-store";
 
 /* The live review queue, shared by every screen that shows it.
  *
@@ -108,8 +109,10 @@ function connect(target: Layer) {
     if (!target.state.loaded) set(target, { loadFailed: true });
     /* The browser retries a dropped connection itself but gives up for
      * good when the server answers with an error (a proxy's 502 during a
-     * deploy), so a closed stream is reopened here while anyone watches. */
+     * deploy, or a 401 once the session has ended), so a closed stream
+     * checks the session and is reopened here while anyone watches. */
     if (source.readyState !== EventSource.CLOSED || target.source !== source) return;
+    void checkSession();
     target.source = null;
     target.reconnect ??= setTimeout(() => {
       target.reconnect = null;
