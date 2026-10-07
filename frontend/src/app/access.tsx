@@ -13,9 +13,10 @@ import { Callout } from "@/ds/components/callout";
 import { Logo } from "@/ds/components/logo";
 import { Spinner } from "@/ds/components/spinner";
 import { TextField } from "@/ds/components/text-field";
-import { AlertIcon, CheckIcon } from "@/ds/icons";
+import { AlertIcon, ArrowUpRightIcon, CheckIcon } from "@/ds/icons";
 import { GitHubIcon, GoogleIcon } from "@/ds/icons/brands";
 import { cn } from "@/ds/lib/cn";
+import { focusRing } from "@/ds/lib/focus";
 import { api, RequestError } from "../api";
 import type { LoginOrganization, LoginResponse, Principal, SocialProvider } from "../types";
 import { lastLoginMethod, stageLoginMethod, type LoginMethod } from "./login-method";
@@ -377,7 +378,7 @@ export function AccessScreen({
     lastUsed?.kind === "password" || (lastUsed?.kind === "sso" && login.step === "email");
 
   return (
-    <div className="ds-root flex min-h-screen flex-col items-center justify-center bg-canvas px-6 py-12">
+    <div className="ds-root relative flex min-h-screen flex-col items-center justify-center bg-canvas px-6 py-12">
       <a
         href="https://withhuman.ai/"
         target="_blank"
@@ -594,6 +595,21 @@ export function AccessScreen({
           </p>
         </>
       )}
+
+      <a
+        href="https://withhuman.ai/"
+        target="_blank"
+        rel="noopener"
+        referrerPolicy="strict-origin-when-cross-origin"
+        aria-label="withhuman.ai (opens in a new tab)"
+        className={cn(
+          "absolute right-6 bottom-4 inline-flex items-center gap-1 rounded-sm text-label font-normal text-ink-muted hover:text-ink",
+          focusRing,
+        )}
+      >
+        withhuman.ai
+        <ArrowUpRightIcon width={13} height={13} aria-hidden="true" />
+      </a>
     </div>
   );
 }
