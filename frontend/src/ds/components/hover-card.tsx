@@ -76,13 +76,16 @@ export function HoverCard({
   );
 }
 
-/* Shared by reference previews and interactive info cards. */
+/* Shared by reference previews and interactive info cards. A card taller
+ * than the room the positioner leaves on screen stops at that height and
+ * scrolls, so a long pipeline preview never runs off the page. */
 export function HoverCardSurface({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
         /* ds-root re-establishes the baseline inside the portal. */
         "ds-root w-[320px] max-w-[calc(100vw-24px)] rounded-md bg-surface-raised p-3.5 outline-none",
+        "max-h-(--available-height) overflow-y-auto overscroll-contain",
         "text-body text-ink shadow-overlay ring-hairline",
         "transition-[opacity,translate] duration-100 ease-standard",
         "data-starting-style:opacity-0 data-starting-style:translate-y-[2px]",
