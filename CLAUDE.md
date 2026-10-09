@@ -3,8 +3,7 @@
 This repository (`github.com/withHumanAI/withHuman`) is the self-contained
 implementation of withHuman: the single binary, its protocol adapters, the
 web frontend and the command-line tool. The hosted edition at withhuman.ai
-builds on it from a separate, private repository (`withHumanAI/withHumanSaaS`)
-that imports this module and never the reverse. Run every command in this
+builds on it from a separate, private repository that imports this module and never the reverse. Run every command in this
 file from the repository root.
 
 `AGENTS.md` must remain a relative symlink to this file.
@@ -20,10 +19,8 @@ recorded in this file with both the reason and the replacement rule.
 - This repository must build, test, document, and run on its own. Nothing
   here may depend on the hosted edition; the hosted edition composes this
   module through the exported seams (`runtime`, the registries, the ports)
-  and is free to change without a change here. Design documents live in
-  `docs/design/` as a snapshot; where a document and the code disagree,
-  the code has moved on and the document records the reasoning at the
-  time.
+  and is free to change without a change here. Design documents are kept
+  in the hosted edition's repository, not here.
 - The Go module path is `github.com/withHumanAI/withHuman`.
 - Do not copy privately licensed marketing fonts or assets into core. Product
   assets must be independently distributable.
@@ -131,21 +128,18 @@ Examples:
 - `runtime.NewServer` composes the public, stateless HTTP boundary with the
   built product frontend embedded, and `runtime.RunWorker` the Temporal
   workflows and activities. Core ships both in one process as `withhuman`;
-  the hosted edition runs them as its own split processes (`saas-server`,
-  `saas-worker`, `saas-migrate` in the hosted edition), and the Compose
-  stack and Kubernetes chart for that topology live with it. Application
+  the hosted edition runs them as its own split processes, and the
+  deployment files for that topology live with it. Application
   database migrations are embedded from `db/migrations` via the `db`
   package; `db.Apply` is the one runner, and an edition's own chain uses
   it with `db.WithTable` to keep its record apart.
 - A migration file that has shipped in a tagged release is frozen: the
   runner applies each file once by name, so an in-place edit silently never
-  reaches any database that already ran it (this once broke the dev
-  deployment). Schema changes always go in a new numbered file. Prototype
+  reaches any database that already ran it. Schema changes always go in a new numbered file. Prototype
   mode's no-backwards-compatibility rule is about interfaces and designs;
   it does not extend to editing applied migrations. The chain restarted as
   one `0001_initial.sql` at the repository split (2026-09-24), generated
-  from a dump of the schema the old files built; the hosted edition's
-  chain restarted the same way, and every deployment was recreated.
+  from a dump of the schema the old files built.
   Because the squashed file reuses the old first file's name, `db.Apply`
   refuses a database whose record table names a file the chain does not
   ship (`*db.ForeignChainError`) instead of skipping the schema, and the
@@ -362,7 +356,7 @@ Examples:
 - Runtime authentication uses global email and password behind a real
   `Authenticator` adapter (`authn.LocalAuthenticator`). Argon2id hashes
   live in `local_credentials`, separately from canonical users. Login is
-  email-first (`docs/design/06-invitations-and-membership.md` amendment): `/auth/login/methods` discovers
+  email-first: `/auth/login/methods` discovers
   the methods for an email, `/auth/login` verifies the password globally
   and either completes (one organization) or returns a single-use `whl_`
   login ticket plus the organization list, and `/auth/login/select`
@@ -442,8 +436,7 @@ Examples:
   an invitation (`AcceptInvitationByAssertion`) attaches an existing
   global account by email only when the edition's login policy vouches
   for the address (`VouchesForEmail`; otherwise 409 `ErrUserExists`).
-- The tenant lifecycle lives in the exported `tenants` package per
-  `docs/design/07-tenant-lifecycle.md`: one activation transaction shared
+- The tenant lifecycle lives in the exported `tenants` package: one activation transaction shared
   by bootstrap and hosted signup, an `organizations.status` state machine
   (`active`, `suspended`, `pending_deletion`) enforced by the
   `status = 'active'` join in session, agent, SSO, and invitation
@@ -647,7 +640,7 @@ Examples:
   (the `claim` field exists only on the product representation), and are
   audited as `routing.claimed` / `routing.claim_released` /
   `routing.claim_lapsed`.
-- Pipelines are keyed objects (`docs/design/16-pipeline-delegation.md`):
+- Pipelines are keyed objects:
   `request_approval_pipelines.pipeline_key` (the agent slug pattern,
   chosen once, never reused) with a `name` on every revision (renaming is
   a revision), append-only numbered revisions, `default_escalation_path`,
@@ -720,10 +713,8 @@ Examples:
   or the `Config` of a registered edition kind), each type owns its
   envelope limits (`approvalblock.LimitsFor`), and the runtime
   fingerprint is the composition of every registered runtime's
-  fingerprint. Core has four types: `outcome`, `webhook`
-  (`docs/design/08-webhook-block.md`), `branch`
-  (`docs/design/15-branch-blocks.md`), and `delegate`
-  (`docs/design/16-pipeline-delegation.md`). There is no standalone
+  fingerprint. Core has four types: `outcome`, `webhook`,
+  `branch`, and `delegate`. There is no standalone
   condition block: "if this, then that" is a branch whose blocks end in
   an outcome block (the `cel` type was removed on 2026-09-29, and
   migration `0006_outcome_blocks.sql` wiped stored pipelines). The
@@ -767,7 +758,7 @@ Examples:
   only that branch's later blocks. A branch end nothing can reach is not
   drawn at all, since a branch holding an outcome block is the normal
   "if this, then that". These warnings do not block activation.
-- Branch blocks (`docs/design/15-branch-blocks.md`) hold their own ordered
+- Branch blocks hold their own ordered
   blocks (any type, nested without a depth cap, every one counted toward
   the 1,000-block document limit) and run them only for requests their
   `when` matches. The condition is the condition envelope, evaluated
@@ -864,7 +855,7 @@ Examples:
   every timestamp as an exact local time with the relative age beside
   it, titles and renders the request through its tool presentation
   (below), and requires a note to deny.
-- Tool presentations (`docs/design/13-tool-presentations.md`) say how a
+- Tool presentations say how a
   tool's arguments are shown: `toolpresentation` is the exported leaf
   package (the closed `Kind` vocabulary, `Spec` validation, `Entry`
   bindings, `Resolve`, and the shipped catalog in `builtin.go`, which
@@ -882,8 +873,7 @@ Examples:
   planner is `frontend/src/app/tool-presentation.ts`; rendered HTML goes
   through `ds/components/html-preview.tsx`, a fully sandboxed frame that
   runs no script and loads nothing.
-- The chokepoint MCP gateway is the hosted edition's
-  (the hosted edition's `gateway` packages and `saas-gateway`): core has
+- The chokepoint MCP gateway is the hosted edition's: core has
   no gateway process, no
   gateway routes, no `WITHHUMAN_GATEWAY_*` settings and no
   `gateway_enabled` runtime-config entry, and the single binary embeds
@@ -986,7 +976,7 @@ Examples:
   approved decision expiry once at insertion as decided_at plus five minutes.
   Reads never extend it. Duration text in approval_requests.timeout is an
   exception to numeric duration columns: its exact wire spelling is immutable.
-- Guided onboarding (`docs/design/09-onboarding.md`) takes a new
+- Guided onboarding takes a new
   organization from first sign-in to a decided request. One
   `onboarding_sessions` row is the shared state between the browser and
   the CLI: the page mints a single-use setup code shown inside the
@@ -1227,8 +1217,7 @@ Examples:
   runs with a single attempt, because a retry re-sends through every
   channel that already succeeded (a refused APNs key once emailed and
   texted the whole organization on every backoff). Underneath the ladder,
-  notification windows (`docs/design/17-notification-digests.md`,
-  `notification_windows` and `notification_holds`) throttle prompts per
+  notification windows (`notification_windows` and `notification_holds`) throttle prompts per
   person, organization and contact kind: the first prompt in a quiet
   period sends at once, prompts due while a window is open are held, and
   the workflow that held one closes the window at its instant
@@ -1377,8 +1366,7 @@ Examples:
   rather than deleting `~/.withhuman`.
 - `skills/<name>/SKILL.md` are the published agent skills (`npx skills
   add https://withhuman.ai`, served from the site's
-  `/.well-known/agent-skills/` at the hosted edition's pinned core
-  commit): user-facing, so they follow the user guide
+  `/.well-known/agent-skills/`): user-facing, so they follow the user guide
   writing rules and never use em dashes. A change to a CLI command, a
   management MCP tool, or behaviour a skill describes updates the skill
   in the same change. The skills name hosted-only features as such and

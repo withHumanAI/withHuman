@@ -49,8 +49,7 @@ const (
 	// Provider is an external model or service failure the attempt
 	// budget did not absorb.
 	Provider ErrorCode = "provider_error"
-	// Webhook delivery failures, per the status and error mapping in
-	// design_doc/08-webhook-block.md.
+	// Webhook delivery failures, by the endpoint's status or transport error.
 	EndpointUnreachable ErrorCode = "endpoint_unreachable"
 	EndpointError       ErrorCode = "endpoint_error"
 	EndpointRejected    ErrorCode = "endpoint_rejected"

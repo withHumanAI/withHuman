@@ -4393,7 +4393,7 @@ paths:
       x-withhuman-permission: agent.write
       x-withhuman-credential-kinds: [session, personal_api_key]
       security: [{ cookieAuth: [] }, { apiKeyAuth: [] }]
-      description: Opens the caller's setup session (design_doc/09-onboarding.md), superseding any open one. Requires every onboarding permission (agent.write, agent.credential.issue, pipeline.write, pipeline.activate, escalation_path.write, escalation_path.activate, organization.settings.write, request.read, request.decide). The setup code is returned exactly once, inside the command to paste.
+      description: Opens the caller's setup session, superseding any open one. Requires every onboarding permission (agent.write, agent.credential.issue, pipeline.write, pipeline.activate, escalation_path.write, escalation_path.activate, organization.settings.write, request.read, request.decide). The setup code is returned exactly once, inside the command to paste.
       responses:
         "201":
           description: The session and the commands to run
@@ -6038,7 +6038,7 @@ components:
         message: { type: string }
     OnboardingSession:
       type: object
-      description: The shared setup session (design_doc/09-onboarding.md). Never carries the setup code, the CLI bearer, or an agent credential.
+      description: The shared setup session. Never carries the setup code, the CLI bearer, or an agent credential.
       required: [id, organization_id, membership_id, status, version, machine, detections, selected_runtimes, tools, discovery_errors, generated, enrollments, install_results, test_commands, test_request_id, tested_at, channels_set_at, rules_set_at, last_error, created_at, updated_at, expires_at, completed_at]
       properties:
         id: { type: string, format: uuid }

@@ -8,7 +8,7 @@ import { humanizeKey } from "./format";
 
 /*
  * Turning a request's arguments into something a reviewer reads. The
- * arguments are the action (design_doc/00): a presentation only says
+ * arguments are the action: a presentation only says
  * which of them is an email body, a shell command, or a pair of strings
  * that is really a diff, and what to call the request. Two rules hold
  * whatever the presentation says: nothing is hidden (an argument no

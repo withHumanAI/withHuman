@@ -37,7 +37,7 @@ func TestAgentInventoryAgainstRealPostgres(t *testing.T) {
 	orgID, userID, membershipID := domain.ID(uuid.NewString()), domain.ID(uuid.NewString()), domain.ID(uuid.NewString())
 	if _, err := store.ActivateOrganization(ctx, application.ActivateOrganizationInput{
 		OrganizationID: orgID, OrganizationSlug: "acme", OrganizationName: "Acme",
-		UserID: userID, MembershipID: membershipID, DisplayName: "Ece Kayan",
+		UserID: userID, MembershipID: membershipID, DisplayName: "Jordan Lee",
 		Email: "owner@example.com", PasswordHash: "argon2id$test",
 		AdmissionSource: domain.AdmissionManual, Now: now,
 	}); err != nil {
@@ -166,7 +166,7 @@ func TestAgentInventoryAgainstRealPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAgentDetail: %v", err)
 	}
-	if detail.Name != "release automation" || detail.CreatedByDisplayName != "Ece Kayan" {
+	if detail.Name != "release automation" || detail.CreatedByDisplayName != "Jordan Lee" {
 		t.Fatalf("detail identity = %q by %q", detail.Name, detail.CreatedByDisplayName)
 	}
 	if detail.RecentRequestCount != 2 || detail.PendingRequestCount != 1 {
@@ -554,7 +554,7 @@ func TestArchiveAgentAgainstRealPostgres(t *testing.T) {
 	orgID, userID, membershipID := domain.ID(uuid.NewString()), domain.ID(uuid.NewString()), domain.ID(uuid.NewString())
 	if _, err := store.ActivateOrganization(ctx, application.ActivateOrganizationInput{
 		OrganizationID: orgID, OrganizationSlug: "acme", OrganizationName: "Acme",
-		UserID: userID, MembershipID: membershipID, DisplayName: "Ece Kayan",
+		UserID: userID, MembershipID: membershipID, DisplayName: "Jordan Lee",
 		Email: "owner@example.com", PasswordHash: "argon2id$test",
 		AdmissionSource: domain.AdmissionManual, Now: now,
 	}); err != nil {

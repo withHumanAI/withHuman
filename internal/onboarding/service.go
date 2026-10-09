@@ -1,4 +1,4 @@
-// Package onboarding runs the guided setup (design_doc/09-onboarding.md):
+// Package onboarding runs the guided setup:
 // the session both the browser and the CLI advance, the objects
 // provisioning writes, and the agent enrollment the CLI collects. Human
 // writes carry the person's own principal. CLI writes carry the session

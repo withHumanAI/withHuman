@@ -1,7 +1,6 @@
-// Package routing defines the serializable escalation path document from
-// design_doc/06-routing-and-escalation.md, with the validation rules
-// revision creation enforces. A pipeline's human exit names a path by its
-// key; the path decides who is asked and when.
+// Package routing defines the serializable escalation path document, with
+// the validation rules revision creation enforces. A pipeline's human exit
+// names a path by its key; the path decides who is asked and when.
 package routing
 
 import (

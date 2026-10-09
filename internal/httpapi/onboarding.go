@@ -1,6 +1,6 @@
 package httpapi
 
-// Guided onboarding surfaces (design_doc/09-onboarding.md). Two trust
+// Guided onboarding surfaces. Two trust
 // boundaries share this file: the human routes under /api/v1/onboarding
 // (session cookie, the onboarding permission set), and the machine
 // surface under /api/onboarding/v1 that the withhuman CLI drives with the

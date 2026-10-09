@@ -37,7 +37,7 @@ func TestAgentOwnerRoutingAgainstRealPostgres(t *testing.T) {
 	orgID, ownerUserID, ownerMembershipID := domain.ID(uuid.NewString()), domain.ID(uuid.NewString()), domain.ID(uuid.NewString())
 	if _, err := store.ActivateOrganization(ctx, application.ActivateOrganizationInput{
 		OrganizationID: orgID, OrganizationSlug: "acme", OrganizationName: "Acme",
-		UserID: ownerUserID, MembershipID: ownerMembershipID, DisplayName: "Ece Kayan",
+		UserID: ownerUserID, MembershipID: ownerMembershipID, DisplayName: "Jordan Lee",
 		Email: "owner@example.com", PasswordHash: "argon2id$test",
 		AdmissionSource: domain.AdmissionManual, Now: now,
 	}); err != nil {

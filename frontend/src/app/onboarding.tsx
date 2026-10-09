@@ -74,12 +74,13 @@ export function runtimeName(key: string): string {
   return RUNTIME_NAMES[key] ?? key;
 }
 
-/* A dev server has no release to download, so the one command builds
- * the CLI from the checkout and runs its setup instead. */
+/* A dev server has no release to download, so the one command, run from
+ * the repository root, builds the CLI from the checkout and runs its setup
+ * instead. */
 function devSetupCommand(origin: string, code: string): string {
   /* ~/.local/bin needs no sudo, and the hooks the CLI installs carry its
    * absolute path, so it does not need to be on PATH. */
-  return `cd withhuman_core && mkdir -p ~/.local/bin && sh scripts/private-go-modules.sh go build -o ~/.local/bin/withhuman ./cmd/withhuman-cli && ~/.local/bin/withhuman onboard --url ${origin} --code ${code}`;
+  return `mkdir -p ~/.local/bin && sh scripts/private-go-modules.sh go build -o ~/.local/bin/withhuman ./cmd/withhuman-cli && ~/.local/bin/withhuman onboard --url ${origin} --code ${code}`;
 }
 
 const STEPS: Array<Pick<Step, "title" | "description">> = [

@@ -2,7 +2,7 @@
 // transaction shared by the bootstrap ceremony and hosted signup, the
 // suspension state machine, and deletion with a grace period. Editions
 // differ only in which entry surfaces their composition root wires and in
-// the TenantHooks adapter; see design_doc/07-tenant-lifecycle.md.
+// the TenantHooks adapter.
 package tenants
 
 import (

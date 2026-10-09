@@ -1,7 +1,6 @@
 // withhuman runs the entire provider in one process: embedded PostgreSQL,
 // embedded Temporal, the approval worker, and the HTTP server with the
-// bundled frontend. See design_doc/04-single-binary.md in the platform
-// repository for the topology.
+// bundled frontend.
 package main
 
 import (

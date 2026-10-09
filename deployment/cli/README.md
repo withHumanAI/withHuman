@@ -38,10 +38,10 @@ sudo when it is not writable) or else `~/.local/bin` with a PATH hint. It
 refuses to overwrite a `withhuman` binary that answers `--help` with
 `--data-dir`, which is the server's single binary, not the CLI.
 
-`WITHHUMAN_CLI_VERSION=0.0.80` pins a version; `WITHHUMAN_CLI_BASE` points
+`WITHHUMAN_CLI_VERSION=0.1.52` pins a version; `WITHHUMAN_CLI_BASE` points
 at a mirror. `WITHHUMAN_CLI_INSTALL_DIR` chooses an installation directory.
-Until a release exists, `go build -o withhuman
-./cmd/withhuman-cli` from `withhuman_core` builds the same binary.
+`go build -o withhuman ./cmd/withhuman-cli` builds the same binary from
+source.
 
 Arguments after `sh -s --` run an explicit CLI command after installation:
 
@@ -182,64 +182,25 @@ repair or `agent eject`. Eject removes only recorded local integration and
 credentials, preserving unrelated settings and later user edits. Revoke
 remote instance credentials from the website.
 
-The old `setup`, `init`, `status`, top-level `eject` and `mcp wrap` commands
-are removed. Existing local installations are not migrated automatically.
-Remove their integration using the version that installed it before installing
-with the new CLI. The separate MCP gateway remains a server deployment.
+## Building and releasing
 
-## Building and rollout
-
-The public Go adapter package is pinned to
-`github.com/agentapprovalprotocol/agentapprovalprotocol`
-`v0.0.0-20260917124045-380732b9b7b7`. It provides installation and hook
-execution in-process; no separate `aap` executable or local module replacement
-is needed. Onboarding tool discovery remains in withHuman.
-
-The module repository currently requires authenticated Git access. Set
-`GOPRIVATE=github.com/agentapprovalprotocol/agentapprovalprotocol` and use
-your existing Git credentials, or provide `AAP_MODULE_TOKEN` with repository
-read access and run:
+The CLI embeds the Agent Approval Protocol adapter library
+(`github.com/agentapprovalprotocol/agentapprovalprotocol`), pinned in
+`go.mod`. Build it with:
 
 ```sh
-sh scripts/private-go-modules.sh go build -o /tmp/withhuman ./cmd/withhuman-cli
-sh scripts/private-go-modules.sh sh scripts/check-cli-builds.sh
+go build -o /tmp/withhuman ./cmd/withhuman-cli
+sh scripts/check-cli-builds.sh
 ```
 
-CI and release workflows use the `AAP_MODULE_TOKEN` repository secret.
-Container builds receive it only as the BuildKit `github_token` secret;
-Compose reads the same environment variable. Do not pass it as a build argument.
-The helper scopes Git authentication to the build process and the AAP owner.
+Until that module is public, builds need read access to it: run them
+through `sh scripts/private-go-modules.sh` with `AAP_MODULE_TOKEN` set.
 
-Deploy the compatible provider and migration 0041 before distributing the
-new CLI. AAP responses preserve the submitted timeout and omit product
-metadata. Approved decisions have a fixed five-minute execution window from
-their stored decision time, including automatic and resumed pipeline decisions.
-The migration derives historical expiry from that decision time. Reads and
-retries cannot extend it. This change performs no deployment or publishing.
-
-## Bucket setup (once)
-
-1. In the Cloudflare dashboard create an R2 bucket, for example
-   `withhuman-downloads`.
-2. Under the bucket's settings add the custom domain
-   `downloads.withhuman.ai`. Cloudflare provisions the certificate and the
-   DNS record; the bucket stays private to the API and public through the
-   domain only.
-3. Create an R2 API token with object read and write on that bucket.
-4. Add these repository secrets to GitHub:
-
-   | Secret | Value |
-   |---|---|
-   | `R2_ACCOUNT_ID` | the Cloudflare account id (the S3 endpoint is `https://<id>.r2.cloudflarestorage.com`) |
-   | `R2_ACCESS_KEY_ID` | the API token's access key id |
-   | `R2_SECRET_ACCESS_KEY` | the API token's secret |
-   | `R2_CLI_BUCKET` | the bucket name |
-
-The `cli` job in `.github/workflows/release.yml` builds
-`GOOS`/`GOARCH` for darwin and linux on amd64 and arm64 with
+The `cli` job in `.github/workflows/release.yml` builds darwin and linux on
+amd64 and arm64 with
 `CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=<version>"`,
 writes `SHA256SUMS`, mirrors the version directory to `cli/latest/`, and
-uploads everything with the AWS CLI against the R2 S3 endpoint.
+uploads everything to `downloads.withhuman.ai`.
 
 ## Pointing a self-hosted server at a mirror
 

@@ -88,7 +88,7 @@ type mcpCredentialInput struct {
 type mcpToolCatalogInput struct {
 	AgentSlug string `json:"agent_slug,omitempty" jsonschema:"Only tools this agent's instances or sources offer."`
 	Q         string `json:"q,omitempty" jsonschema:"Only tools whose name or description contains this text."`
-	Source    string `json:"source,omitempty" jsonschema:"Only tools from this source: builtin, mcp, or a source the deployment adds (the hosted gateway's gateway)."`
+	Source    string `json:"source,omitempty" jsonschema:"Only tools from this source: builtin, mcp, or a source the deployment adds, such as gateway."`
 	Status    string `json:"status,omitempty" jsonschema:"Only tools that are available, unavailable or stale."`
 	Offset    int64  `json:"offset,omitempty" jsonschema:"How many matching tools to skip; tools come 50 to a page."`
 	Refresh   bool   `json:"refresh,omitempty" jsonschema:"Bypass the deployment's five-minute discovery cache for its own tool source. Tools a runtime reports locally refresh only through the CLI."`
@@ -397,7 +397,7 @@ func registerMCPMemberTools(catalog *mcptools.Catalog) {
 	})
 	mcptools.Add(catalog, &mcp.Tool{
 		Name:        "remove_member",
-		Description: "Remove a member from the organization for good: their sessions, API keys and agent instances stop working and their seat is freed. Refused for your own membership, the last active owner, and members your directory manages. Requires a personal API key.",
+		Description: "Remove a member from the organization for good: their sessions, API keys and agent instances stop working. Refused for your own membership, the last active owner, and members your directory manages. Requires a personal API key.",
 		Annotations: mcptools.Destructive,
 	}, func(call *mcptools.Call, input mcpRemoveMemberInput) (*mcp.CallToolResult, any, error) {
 		return mcptools.Answer(call.Delete(mcpMembersPath+"/"+mcptools.Segment(input.MembershipID), mcptools.Query("force", flag(input.Force)), nil))

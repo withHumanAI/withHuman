@@ -122,8 +122,8 @@ type AgentRepository interface {
 	Health(ctx context.Context) error
 }
 
-// OnboardingRepository owns the guided setup's shared session record
-// (design_doc/09-onboarding.md): the single-use setup code, the who_
+// OnboardingRepository owns the guided setup's shared session record:
+// the single-use setup code, the who_
 // bearer, the versioned state both the browser and the CLI advance, and
 // the organization's completion mark. Implementations must enforce tenant
 // scoping in every query.

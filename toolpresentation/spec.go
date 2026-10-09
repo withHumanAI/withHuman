@@ -1,6 +1,6 @@
 // Package toolpresentation is the catalog of how a tool call's arguments
 // are shown to a reviewer. A request's arguments are the ground truth of
-// the action (design_doc/00); a presentation never adds to them and never
+// the action; a presentation never adds to them and never
 // hides any of them. It only says which argument is an email body to
 // render, which is a shell command, which pair of strings is a diff, and
 // what the request is called. Every client (the product frontend, the

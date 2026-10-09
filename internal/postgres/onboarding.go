@@ -14,7 +14,7 @@ import (
 	"github.com/withHumanAI/withHuman/domain"
 )
 
-// Onboarding sessions (design_doc/09-onboarding.md). One row is the shared
+// Onboarding sessions. One row is the shared
 // state between a person's browser and the CLI on their machine. Every
 // write goes through updateOnboardingSession, which checks the status
 // precondition, applies the patch, and bumps the version inside one
