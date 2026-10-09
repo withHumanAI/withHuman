@@ -68,6 +68,9 @@ jobs:
       # release caches.
       - name: Build bundle image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        env:
+          # The build record artifact would be public on a public repository.
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           secrets: |
             github_token=${{ secrets.AAP_MODULE_TOKEN }}
