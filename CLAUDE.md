@@ -1387,6 +1387,13 @@ Examples:
   `TestMCPListsTheManagementCatalog` checks the MCP tools they name.
   Contributor-only skills go in `.agents/skills/` with
   `metadata: internal: true`.
+- Workflows under `.github/workflows/` pin every action to a full commit
+  SHA with the version in a trailing comment; Dependabot bumps the pins.
+  Pull requests from forks run on GitHub-hosted runners, never Ubicloud.
+  Only `tag.yml` pushes, with `RELEASE_CREATION_TOKEN`; every other
+  checkout sets `persist-credentials: false`. Every merge to `main` is
+  tagged as the next patch version and released; run `tag.yml` by hand
+  for a minor or major bump.
 
 - The single-agent page has Provisioner tokens, Instances, Approval
   requests, and Tool Catalogue tabs, plus the tabs an edition registers

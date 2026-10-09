@@ -2,21 +2,57 @@ name: Tag release on main commit
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to increment
+        type: choice
+        options: [patch, minor, major]
+        default: patch
   push:
     branches: [main]
+
+permissions:
+  contents: read
+
+# Runs one at a time, so two merges in quick succession never compute the
+# same next version.
+concurrency:
+  group: tag
+  cancel-in-progress: false
 
 jobs:
   tag:
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          # A tag pushed with the job's own token never starts another
+          # workflow, so the release workflow would not run.
+          token: ${{ secrets.RELEASE_CREATION_TOKEN }}
 
       - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.61.0
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_CREATION_TOKEN }}
-          WITH_V: true
-          DEFAULT_BUMP: patch
-          RELEASE_BRANCHES: main
+          BUMP: ${{ inputs.bump || 'patch' }}
+        run: |
+          set -eu
+          if git tag --points-at HEAD | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "HEAD is already tagged"
+            exit 0
+          fi
+          latest=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          version=${latest:-v0.0.0}
+          version=${version#v}
+          major=${version%%.*}
+          rest=${version#*.}
+          minor=${rest%%.*}
+          patch=${rest#*.}
+          case "$BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            *) patch=$((patch + 1)) ;;
+          esac
+          next="v$major.$minor.$patch"
+          echo "Tagging $(git rev-parse HEAD) as $next (previous: ${latest:-none})"
+          git tag "$next"
+          git push origin "refs/tags/$next"
