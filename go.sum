@@ -46,12 +46,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20260922140551-ba3bc5cc14cb h1:kEB/FL4lAHpPds8hQ2YbRJ/YWwqNpT7PiGAj16PQZVw=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20260922140551-ba3bc5cc14cb/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140105-940c5234e8f6 h1:Pb7qmu8YLOYzysiunzun4Cmc4AoWB6KlIZh6Fp06wKE=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140105-940c5234e8f6/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140724-52ecbfb78599 h1:+3km0U+nDbsA/WBGAzyMtfgusrj2XX1cZML/RtCUOOM=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140724-52ecbfb78599/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.2.0 h1:BHJ4seq2nevHEDEqOKx9kr/cdEvqfWiWo75dDMVPbpI=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.2.0/go.mod h1:HQV7QhrxWHKZmqXo+kLnI0NzGujf1aWPovHUbqyqw54=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
@@ -362,8 +358,6 @@ github.com/nexus-rpc/nexus-proto-annotations v0.1.0/go.mod h1:n3UjF1bPCW8llR8tHv
 github.com/nexus-rpc/sdk-go v0.6.0 h1:QRgnP2zTbxEbiyWG/aXH8uSC5LV/Mg1fqb19jb4DBlo=
 github.com/nexus-rpc/sdk-go v0.6.0/go.mod h1:FHdPfVQwRuJFZFTF0Y2GOAxCrbIBNrcPna9slkGKPYk=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
-github.com/nyaruka/phonenumbers v1.8.1 h1:2K9YMQuv1dCGqjjzB1DwmdCe89khT4KPBQb2CxAMMlU=
-github.com/nyaruka/phonenumbers v1.8.1/go.mod h1:fsKPJ70O9JetEA4ggnJadYTFWwtGPvu/lETTXNXq6Cs=
 github.com/olivere/elastic/v7 v7.0.32 h1:R7CXvbu8Eq+WlsLgxmKVKPox0oOwAE/2T9Si5BnvK6E=
 github.com/olivere/elastic/v7 v7.0.32/go.mod h1:c7PVmLe3Fxq77PIfY/bZmxY/TAamBhCzZ8xDOE09a9k=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -418,8 +412,6 @@ github.com/sirupsen/logrus v1.0.2-0.20170726183946-abee6f9b0679/go.mod h1:pMByvH
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.9.4 h1:TsZE7l11zFCLZnZ+teH4Umoq5BhEIfIzfRDZ1Uzql2w=
 github.com/sirupsen/logrus v1.9.4/go.mod h1:ftWc9WdOfJ0a92nsE2jF5u5ZwH8Bv2zdeOC42RjbV2g=
-github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e h1:MRM5ITcdelLK2j1vwZ3Je0FKVCfqOLp5zO6trqMLYs0=
-github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e/go.mod h1:XV66xRDqSt+GTGFMVlhk3ULuV0y9ZmzeVGR4mloJI3M=
 github.com/sony/gobreaker v1.0.0 h1:feX5fGGXSl3dYd4aHZItw+FpHLvvoaqkawKjVNiFMNQ=
 github.com/sony/gobreaker v1.0.0/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
 github.com/spf13/cast v1.10.0 h1:h2x0u2shc1QuLHfxi+cTJvs30+ZAHOGRic8uyGTDWxY=

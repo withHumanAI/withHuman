@@ -3,17 +3,14 @@ module github.com/withHumanAI/withHuman
 go 1.26.4
 
 require (
-	github.com/agentapprovalprotocol/agentapprovalprotocol v0.1.1-0.20261006140724-52ecbfb78599
+	github.com/agentapprovalprotocol/agentapprovalprotocol v0.2.0
 	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/cel-go v0.25.0
-	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
-	github.com/nyaruka/phonenumbers v1.8.1
 	github.com/pelletier/go-toml/v2 v2.2.4
-	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/stretchr/testify v1.11.1
 	go.temporal.io/api v1.63.5
 	go.temporal.io/sdk v1.46.0
@@ -120,6 +117,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
+	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
