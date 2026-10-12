@@ -17,6 +17,8 @@ cli/<version>/withhuman-darwin-arm64
 cli/<version>/withhuman-linux-amd64
 cli/<version>/withhuman-linux-arm64
 cli/<version>/SHA256SUMS                    checksums for the four binaries
+cli/<version>/LICENSE                       withHuman's licence
+cli/<version>/THIRD_PARTY_NOTICES           licences of the code the binaries compile in
 cli/latest/...                              a copy of the newest version dir (max-age 300)
 cli/latest/version                          the version string the copy came from
 ```

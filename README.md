@@ -156,6 +156,12 @@ The server and worker log structured JSON through `slog`. Every HTTP
 response carries `X-Request-ID`, recorded as `request_id` and `trace_id`,
 and Temporal carries those fields into workflows and activities.
 
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Report security vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md).
+
 ## License
 
 withHuman core is licensed under the [Elastic License 2.0](LICENSE). In
@@ -164,3 +170,7 @@ others as a hosted or managed service or remove its licensing notices. The
 license text has the exact terms. The Agent Approval Protocol
 specification and its Go library are licensed separately under the Apache
 License 2.0.
+
+withHuman and the withHuman logo are trademarks of Metoro, Inc. The
+license covers the code, not the name or logo. Don't use them in a way
+that suggests your product or service is withHuman or is endorsed by us.

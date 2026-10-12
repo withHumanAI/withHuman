@@ -87,6 +87,10 @@ jobs:
               -o "dist/cli/$VERSION/withhuman-$os-$arch" ./cmd/withhuman-cli
           done
           (cd "dist/cli/$VERSION" && sha256sum withhuman-* > SHA256SUMS && cat SHA256SUMS)
+          # Every target compiles the same modules, so one notices file
+          # covers all four binaries.
+          cp LICENSE "dist/cli/$VERSION/LICENSE"
+          sh scripts/private-go-modules.sh sh scripts/third-party-notices.sh go ./cmd/withhuman-cli > "dist/cli/$VERSION/THIRD_PARTY_NOTICES"
           cp -r "dist/cli/$VERSION" dist/cli/latest
           printf '%s\n' "$VERSION" > dist/cli/latest/version
           cp deployment/cli/install.sh dist/install.sh

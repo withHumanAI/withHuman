@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/withHumanAI/withHuman/security/advisories/new
+    about: Report vulnerabilities privately, never in a public issue.
+  - name: Documentation
+    url: https://withhuman.ai/docs
+    about: Guides for setting up and using withHuman.
+  - name: Hosted withHuman support
+    url: https://withhuman.ai/support
+    about: Questions about the hosted edition at withhuman.ai.

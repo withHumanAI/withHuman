@@ -13,3 +13,4 @@ Makefile
 deployment/
 scripts/*
 !scripts/private-go-modules.sh
+!scripts/third-party-notices.sh

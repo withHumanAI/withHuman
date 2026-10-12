@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something withHuman should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The task or problem, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: How you'd like withHuman to handle it.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today
+      description: Workarounds or other tools you use instead.
