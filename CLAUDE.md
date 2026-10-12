@@ -3,8 +3,9 @@
 This repository (`github.com/withHumanAI/withHuman`) is the self-contained
 implementation of withHuman: the single binary, its protocol adapters, the
 web frontend and the command-line tool. The hosted edition at withhuman.ai
-builds on it from a separate, private repository that imports this module and never the reverse. Run every command in this
-file from the repository root.
+builds on it from a separate, private repository that imports this module
+and never the reverse. Run every command in this file from the repository
+root.
 
 `AGENTS.md` must remain a relative symlink to this file.
 
@@ -13,6 +14,13 @@ file from the repository root.
 All new and changed code must follow
 [`CODING_CONVENTIONS.md`](CODING_CONVENTIONS.md). Any exception must be
 recorded in this file with both the reason and the replacement rule.
+
+## Commits and pull requests
+
+Never credit AI agents in commit messages or pull requests. Leave out
+co-author trailers, "generated with" lines and agent signatures.
+Contributors must be able to stand behind every change they submit as their
+own.
 
 ## Repository boundary
 
