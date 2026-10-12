@@ -13,11 +13,8 @@ RUN cd frontend && npm run build
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS go-src
 WORKDIR /src
 RUN apk add --no-cache git ca-certificates
-ENV GOPRIVATE=github.com/agentapprovalprotocol/agentapprovalprotocol
-COPY scripts/private-go-modules.sh ./scripts/private-go-modules.sh
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=secret,id=github_token \
-    sh scripts/private-go-modules.sh go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 # The whole module, not an enumerated list of package directories: a top-level
 # package that is missing from the image build fails only at release time.
 # .dockerignore keeps non-build files out of the context to limit cache

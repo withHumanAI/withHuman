@@ -975,9 +975,6 @@ Examples:
   (including `onboard`), and reconnects terminal input when available.
   No arguments means install only. `WITHHUMAN_CLI_INSTALL_DIR` overrides
   the target directory. Release installer and command producers together.
-  The AAP repository is currently private. Clean builds use GOPRIVATE and
-  an authenticated Git credential; CI and container builds use the
-  `AAP_MODULE_TOKEN` repository secret with read access to that repository.
 - AAP request representations are separate from product views. Preserve the
   exact submitted timeout. Approval idempotency is instance scoped, and
   an instance reads and cancels only its own requests. The database records

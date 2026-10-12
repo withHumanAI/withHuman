@@ -80,7 +80,7 @@ export function runtimeName(key: string): string {
 function devSetupCommand(origin: string, code: string): string {
   /* ~/.local/bin needs no sudo, and the hooks the CLI installs carry its
    * absolute path, so it does not need to be on PATH. */
-  return `mkdir -p ~/.local/bin && sh scripts/private-go-modules.sh go build -o ~/.local/bin/withhuman ./cmd/withhuman-cli && ~/.local/bin/withhuman onboard --url ${origin} --code ${code}`;
+  return `mkdir -p ~/.local/bin && go build -o ~/.local/bin/withhuman ./cmd/withhuman-cli && ~/.local/bin/withhuman onboard --url ${origin} --code ${code}`;
 }
 
 const STEPS: Array<Pick<Step, "title" | "description">> = [

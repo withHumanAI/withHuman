@@ -120,9 +120,6 @@ test bootstraps or signs in as `owner@example.com` with
 The HTTP API contract is served at `/api/openapi.yaml` and lives in
 [`internal/httpapi/openapi.yaml`](internal/httpapi/openapi.yaml).
 
-Until the Agent Approval Protocol module is public, building the CLI needs
-read access to it; see `scripts/private-go-modules.sh`.
-
 ## Code boundaries
 
 ```text

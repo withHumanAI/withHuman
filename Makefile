@@ -22,7 +22,7 @@ openapi-permissions:
 	go run ./cmd/withhuman-openapi-permissions
 
 deployment-check:
-	sh -n scripts/private-go-modules.sh scripts/third-party-notices.sh scripts/check-cli-builds.sh deployment/cli/install.sh scripts/smoke.sh scripts/smoke-onboarding.sh scripts/smoke-rbac.sh
+	sh -n scripts/third-party-notices.sh scripts/check-cli-builds.sh deployment/cli/install.sh scripts/smoke.sh scripts/smoke-onboarding.sh scripts/smoke-rbac.sh
 
 build: frontend
 	go build ./cmd/withhuman ./cmd/withhuman-cli

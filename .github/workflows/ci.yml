@@ -36,22 +36,16 @@ jobs:
         # -short skips the integration tests that boot embedded PostgreSQL
         # and Temporal; the archives they download make them too slow for
         # every pull request.
-        env:
-          AAP_MODULE_TOKEN: ${{ secrets.AAP_MODULE_TOKEN }}
-        run: sh scripts/private-go-modules.sh make verify GOTESTFLAGS=-short
+        run: make verify GOTESTFLAGS=-short
 
       - name: CLI race and real provider integration
-        env:
-          AAP_MODULE_TOKEN: ${{ secrets.AAP_MODULE_TOKEN }}
         run: |
-          sh scripts/private-go-modules.sh go test -race ./internal/cli/...
-          sh scripts/private-go-modules.sh go test -race ./internal/httpapi -run TestAAPLibraryAgainstProvider
-          sh scripts/private-go-modules.sh go test ./internal/postgres -run 'TestStoreAgainstRealPostgres|TestPipelineSuspensions'
+          go test -race ./internal/cli/...
+          go test -race ./internal/httpapi -run TestAAPLibraryAgainstProvider
+          go test ./internal/postgres -run 'TestStoreAgainstRealPostgres|TestPipelineSuspensions'
 
       - name: Cross-build embedded CLI
-        env:
-          AAP_MODULE_TOKEN: ${{ secrets.AAP_MODULE_TOKEN }}
-        run: sh scripts/private-go-modules.sh sh scripts/check-cli-builds.sh
+        run: sh scripts/check-cli-builds.sh
 
   image-build:
     runs-on: ${{ github.event.pull_request.head.repo.full_name == github.repository && 'ubicloud-standard-4' || 'ubuntu-latest' }}
@@ -72,8 +66,6 @@ jobs:
           # The build record artifact would be public on a public repository.
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          secrets: |
-            github_token=${{ secrets.AAP_MODULE_TOKEN }}
           context: .
           target: bundle
           platforms: linux/amd64

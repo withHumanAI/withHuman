@@ -195,9 +195,6 @@ go build -o /tmp/withhuman ./cmd/withhuman-cli
 sh scripts/check-cli-builds.sh
 ```
 
-Until that module is public, builds need read access to it: run them
-through `sh scripts/private-go-modules.sh` with `AAP_MODULE_TOKEN` set.
-
 The `cli` job in `.github/workflows/release.yml` builds darwin and linux on
 amd64 and arm64 with
 `CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=<version>"`,
