@@ -6,7 +6,8 @@
 </p>
 
 <p align="center"><strong>The approval layer for AI agents.</strong><br>
-Let your agents work on their own, and have them ask you before anything risky.</p>
+Put your most consequential agent actions behind human approvals, so your
+agents can do real work.</p>
 
 <p align="center">
   <a href="https://github.com/withHumanAI/withHuman/tags"><img src="https://img.shields.io/github/v/tag/withHumanAI/withHuman?sort=semver&label=release" alt="Latest release"></a>
@@ -28,11 +29,14 @@ Let your agents work on their own, and have them ask you before anything risky.<
 
 ---
 
-AI agents are good at getting work done, until one issues a refund, merges
-a pull request or deletes a database you didn't expect. withHuman checks
-every tool call your agents make. Your rules approve the safe ones, block
-the dangerous ones, and send the rest to a person. The agent waits for the
-answer, then carries on.
+**For the actions you can't take back.** Let agents draft everything and
+ship nothing until someone accountable has looked.
+
+withHuman gives your whole organization one place to oversee what its AI
+agents do. Every agent's tool calls come to withHuman before they run.
+Automated policies approve or deny the routine ones. Escalation policies
+send the rest to the right team or person, who decides in a review queue
+the whole team shares.
 
 <p align="center">
   <picture>
@@ -41,49 +45,92 @@ answer, then carries on.
   </picture>
 </p>
 
-## What you can do
+## Everything you need to let agents do real work
 
-- **Keep the agents you already use.** Connect Claude Code, Codex,
-  OpenClaw, Pi, Hermes or DeepSeek with
-  [one command](https://withhuman.ai/docs/web-app/agents). Their tools don't change: withHuman
-  sees each call before it runs.
-- **Decide what needs a person.**
-  [Approval pipelines](https://withhuman.ai/docs/concepts/approval-pipelines) approve, deny or ask
-  someone based on the tool and its arguments, such as "approve refunds up
-  to $20, ask payments above that".
-- **Reach the right people.**
-  [Escalation paths](https://withhuman.ai/docs/concepts/escalation-paths) choose who is asked and
-  when, by team, level and working hours. People are notified by
-  [email](https://withhuman.ai/docs/web-app/email-notifications),
-  [Slack](https://withhuman.ai/docs/web-app/slack-notifications) or
-  [Discord](https://withhuman.ai/docs/web-app/discord-notifications).
-- **Decide with the full picture.** In the
-  [review queue](https://withhuman.ai/docs/web-app/review-queue), reviewers see the exact
-  arguments, the agent's explanation and why the request needs them, then
-  approve or deny with a note the agent reads.
-- **Run it yourself.** One binary with its database and workflow engine
-  built in. Start it with Docker or from source, with no other services.
-- **Build on an open protocol.** Agents talk to withHuman through the
-  [Agent Approval Protocol](https://agentapprovalprotocol.io), an open
-  specification.
+### Every tool call, whatever the agent
+
+Each tool call is intercepted through the
+[Agent Approval Protocol](https://agentapprovalprotocol.io) and sent to
+withHuman for approval. If the agent supports AAP, withHuman just works.
+
+- Hooks for Claude Code, Codex, OpenClaw, Pi, Hermes and DeepSeek,
+  [connected with one command](https://withhuman.ai/docs/web-app/agents)
+- The open Agent Approval Protocol for your own agents
+
+### No approval fatigue
+
+Write policy rules that approve or deny routine requests automatically.
+Only send the tough stuff to humans. Read more about
+[approval pipelines](https://withhuman.ai/docs/concepts/approval-pipelines).
+
+- Conditions on agent, tool, arguments and agent context
+- Webhooks to your own policy service
+
+### The right human, every time
+
+Write rules to decide which requests go to which team or person. Read
+more about [escalation paths](https://withhuman.ai/docs/concepts/escalation-paths).
+
+- Route by agent, tool, arguments or team
+- Teams set their own escalation order and on-call flows
+- Escalate when nobody answers in time
+
+### Meet reviewers where they are
+
+Reviewers get requests where they already work, so it fits into their
+workflow.
+
+- [Email](https://withhuman.ai/docs/web-app/email-notifications),
+  [Slack](https://withhuman.ai/docs/web-app/slack-notifications) and
+  [Discord](https://withhuman.ai/docs/web-app/discord-notifications)
+- [Notification rules](https://withhuman.ai/docs/web-app/notifications) for standard and urgent
+  requests
+
+### One queue for your whole team
+
+Everyone in your organization reviews requests in one shared
+[review queue](https://withhuman.ai/docs/web-app/review-queue).
+
+- Reviewers see the tool call and request context to decide
+- Claim a request so other reviewers stand down, or add a reviewer
+- [Teams](https://withhuman.ai/docs/web-app/team-administration) and
+  [permissions](https://withhuman.ai/docs/web-app/permissions) decide who can review what
+
+### Run it yourself
+
+One binary with its database and workflow engine built in. Start it with
+Docker or from source, with no other services.
 
 ## How it works
 
+Follow a consequential action. A support agent refunds a $75 duplicate
+charge. Refunds over $20 need a human.
+
 ```mermaid
 sequenceDiagram
-    participant Agent as Your agent
+    participant Agent as Support agent
     participant WH as withHuman
-    participant You as You
-    Agent->>WH: Wants to call issue_refund(amount: 75)
-    WH->>WH: Checks your approval pipeline
-    WH->>You: Asks for approval by email, Slack or Discord
-    You->>WH: Approve
-    WH->>Agent: Go ahead
-    Agent->>Agent: Runs issue_refund
+    participant Team as Payments team
+    Agent->>WH: issue_refund(amount: 75)
+    Note over WH: Your approval pipeline checks it
+    WH->>Team: Notifies whoever is on call
+    Team->>WH: Approve
+    WH->>Agent: The call runs
 ```
 
-Calls your rules approve go straight through, and calls they deny never
-run. Learn the concepts behind it:
+1. **Your agent's tool call is intercepted.** The refund is held by
+   withHuman before it reaches Stripe.
+2. **Your rules check it.** Your approval pipeline approves or denies the
+   call automatically or asks a human to take a look.
+3. **The request gets sent to a human.** Refunds go to the Payments team,
+   to whoever is on call.
+4. **The human gets notified** on their preferred platform.
+5. **The human decides.** Reviewers see the tool call and request context
+   to decide.
+6. **The call runs.** The approved refund reaches Stripe and the agent
+   carries on.
+
+Learn the concepts behind it:
 
 - [How withHuman works](https://withhuman.ai/docs/concepts/how-withhuman-works): the three core
   concepts and how they fit together.
@@ -210,9 +257,15 @@ once a day. Set `WITHHUMAN_NO_UPDATE_CHECK=1` to turn that off.
 ## Hosted edition
 
 Don't want to run it yourself? [withhuman.ai](https://withhuman.ai) runs
-it for you, and adds the audit log, the AI judge block, the MCP gateway,
-text message, WhatsApp and phone app notifications, organization API keys,
-and single sign-on with directory sync.
+it for you, and adds:
+
+- **Every decision on the record:** an append-only audit log with the
+  reviewer and the full request kept with each decision
+- **An AI judge** for calls rules can't describe
+- **More places to reach reviewers:** text message, WhatsApp, and iPhone
+  and Android apps with push
+- The MCP gateway, organization API keys, and single sign-on with
+  directory sync
 
 ## Contributing
 
