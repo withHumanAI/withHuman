@@ -44,17 +44,23 @@ answer, then carries on.
 ## What you can do
 
 - **Keep the agents you already use.** Connect Claude Code, Codex,
-  OpenClaw, Pi, Hermes or DeepSeek with one command. Their tools don't
-  change: withHuman sees each call before it runs.
-- **Decide what needs a person.** Approval pipelines approve, deny or ask
+  OpenClaw, Pi, Hermes or DeepSeek with
+  [one command](https://withhuman.ai/docs/web-app/agents). Their tools don't change: withHuman
+  sees each call before it runs.
+- **Decide what needs a person.**
+  [Approval pipelines](https://withhuman.ai/docs/concepts/approval-pipelines) approve, deny or ask
   someone based on the tool and its arguments, such as "approve refunds up
   to $20, ask payments above that".
-- **Reach the right people.** Escalation paths choose who is asked and
-  when, by team, level and working hours. People are notified by email,
-  Slack or Discord.
-- **Decide with the full picture.** Reviewers see the exact arguments, the
-  agent's explanation and why the request needs them, then approve or deny
-  with a note the agent reads.
+- **Reach the right people.**
+  [Escalation paths](https://withhuman.ai/docs/concepts/escalation-paths) choose who is asked and
+  when, by team, level and working hours. People are notified by
+  [email](https://withhuman.ai/docs/web-app/email-notifications),
+  [Slack](https://withhuman.ai/docs/web-app/slack-notifications) or
+  [Discord](https://withhuman.ai/docs/web-app/discord-notifications).
+- **Decide with the full picture.** In the
+  [review queue](https://withhuman.ai/docs/web-app/review-queue), reviewers see the exact
+  arguments, the agent's explanation and why the request needs them, then
+  approve or deny with a note the agent reads.
 - **Run it yourself.** One binary with its database and workflow engine
   built in. Start it with Docker or from source, with no other services.
 - **Build on an open protocol.** Agents talk to withHuman through the
@@ -77,8 +83,17 @@ sequenceDiagram
 ```
 
 Calls your rules approve go straight through, and calls they deny never
-run. Read [how withHuman works](https://withhuman.ai/docs/concepts/how-withhuman-works)
-for agents, approval pipelines and escalation paths.
+run. Learn the concepts behind it:
+
+- [How withHuman works](https://withhuman.ai/docs/concepts/how-withhuman-works): the three core
+  concepts and how they fit together.
+- [Agents](https://withhuman.ai/docs/concepts/agents): what agents and instances are.
+- [Approval pipelines](https://withhuman.ai/docs/concepts/approval-pipelines): how a request
+  gets its decision.
+- [Escalation paths](https://withhuman.ai/docs/concepts/escalation-paths): who reviews a request,
+  when they're contacted, and what happens if nobody decides.
+- [Requests and decisions](https://withhuman.ai/docs/concepts/requests-and-decisions): what
+  happens next for the agent.
 
 ## Quickstart
 
