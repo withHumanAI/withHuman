@@ -56,8 +56,8 @@ checkout: they build the frontend the binary embeds.
 
 ## Send a pull request
 
-- Keep each pull request to one change, and say what it does, why, and how
-  you tested it.
+- Keep each pull request to one change, and fill in the template: the
+  problem in one sentence, then the solution.
 - Write commit messages as a short sentence in the imperative, such as
   "Cap hover cards at the viewport height".
 - CI must pass before a pull request is merged.

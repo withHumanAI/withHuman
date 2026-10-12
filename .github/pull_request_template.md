@@ -1,13 +1,11 @@
-## What and why
+# Problem
 
-<!-- What this changes and the problem it solves. Link the issue if there is one. -->
+[1 sentence description of the problem being solved]
 
-## How you tested it
+[Necessary details only if required]
 
-<!-- Commands you ran and what you checked by hand. -->
+# Solution
 
-## Checklist
+[1-2 sentences describing the solution]
 
-- [ ] `make verify` passes
-- [ ] Tests cover the changed behaviour
-- [ ] The CLI guide or agent skills are updated if users see a difference
+[Any controversial ideas or background required]
