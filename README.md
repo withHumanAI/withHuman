@@ -29,9 +29,6 @@ agents can do real work.</p>
 
 ---
 
-**For the actions you can't take back.** Let agents draft everything and
-ship nothing until someone accountable has looked.
-
 withHuman gives your whole organization one place to oversee what its AI
 agents do. Every agent's tool calls come to withHuman before they run.
 Automated policies approve or deny the routine ones. Escalation policies
