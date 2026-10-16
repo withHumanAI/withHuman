@@ -617,6 +617,10 @@ export interface SlackConnection {
   linked_members: number;
 }
 
+/* Where the browser comes back to after a Slack or Discord round trip:
+ * the page the flow belongs to, or the guided setup. */
+export type OAuthReturn = "settings" | "onboarding";
+
 /* A Discord server connected to the organization by an admin's OAuth
  * install. The bot token is deployment configuration and never reaches
  * the browser. */

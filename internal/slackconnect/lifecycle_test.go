@@ -14,6 +14,7 @@ import (
 
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/domain"
+	"github.com/withHumanAI/withHuman/internal/oauthreturn"
 )
 
 func signedEvent(body string, at time.Time) (string, string) {
@@ -82,7 +83,7 @@ func TestConflictChecksOldGrantAndNeverRevokesOnFailure(t *testing.T) {
 			repo.ownerToken = "old-token"
 			connector := &fakeConnector{tokenErrors: map[string]error{"old-token": test.check}}
 			service := newTestService(t, connector, repo)
-			url, err := service.Begin(context.Background(), admin())
+			url, err := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -109,7 +110,7 @@ func TestIncomingGrantMustWorkBeforeReclaimingWorkspace(t *testing.T) {
 	repo.ownerToken = "old-token"
 	connector := &fakeConnector{tokenErrors: map[string]error{"old-token": application.ErrSlackRevoked, "xoxb-token": errors.New("invalid_auth")}}
 	service := newTestService(t, connector, repo)
-	url, err := service.Begin(context.Background(), admin())
+	url, err := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1106,6 +1106,12 @@ Examples:
   that runtime's branch alone), offered only for a quick try. There is
   no setup assistant: writing rules from a description is the coding
   agent's job, through the skills and the MCP server.
+  Nothing in the flow takes the person elsewhere in the product before
+  they finish or skip: the Slack and Discord installs and the Discord
+  link start in place with `return_to: onboarding`, which the OAuth
+  state carries as a prefix (`internal/oauthreturn`), so the callback
+  sends the browser back to `/welcome` even when the provider refuses,
+  and the shell's `useOAuthOutcome` reports the result there.
   `organizations.onboarding_completed_at` drives the `/welcome` redirect
   through `/me`'s `onboarding.required`; finishing or skipping sets it.
   Only finishing sets `onboarding_finished_at`: while an organization

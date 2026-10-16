@@ -9,7 +9,7 @@ import { useToast } from "@/ds/components/toast";
 import { CheckIcon, ClockIcon, MailIcon, MessageIcon, TrashIcon } from "@/ds/icons";
 import { DiscordIcon, SlackIcon } from "@/ds/icons/brands";
 import { api, RequestError } from "../api";
-import type { ContactMethod, NotificationRules } from "../types";
+import type { ContactMethod, NotificationRules, OAuthReturn } from "../types";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useAccess } from "./authorization";
 import {
@@ -144,8 +144,8 @@ export function useSlackLink(onLinked: () => void | Promise<void>) {
 
 /* Starting the Discord link: the link is completed by Discord, so
  * leaving the page is the success path; only a refusal to begin is
- * reported here. */
-export function useDiscordLink() {
+ * reported here. Discord sends the person back to returnTo. */
+export function useDiscordLink(returnTo: OAuthReturn = "settings") {
   const toast = useToast();
   const router = useRouter();
   const { can } = useAccess();
@@ -155,7 +155,7 @@ export function useDiscordLink() {
   async function link() {
     setLinking(true);
     try {
-      const result = await api.beginDiscordLink();
+      const result = await api.beginDiscordLink(returnTo);
       window.location.assign(result.authorize_url);
     } catch (reason: unknown) {
       setLinking(false);
@@ -593,14 +593,18 @@ export function EmailForm({
 }
 
 /* The chat kinds nobody types in. Guides explain whether the
- * organization needs setup before a person can link their account. */
+ * organization needs setup before a person can link their account. In
+ * the guided setup (returnTo "onboarding") an admin connects it in place
+ * rather than under Integrations. */
 export function channelGuideCopy(
   kind: GuidedKind,
   organization: string,
   workspace: SlackWorkspace | null,
   server: DiscordServer | null,
   canConnect: boolean,
+  returnTo: OAuthReturn = "settings",
 ) {
+  const inPlace = returnTo === "onboarding";
   return {
     slack: {
       title: "Add Slack",
@@ -608,7 +612,9 @@ export function channelGuideCopy(
       body: workspace
         ? `Link your Slack account in ${workspace.team_name}. It must use one of your confirmed email addresses.`
         : canConnect
-          ? "Install withHuman in your Slack workspace under Integrations first."
+          ? inPlace
+            ? "Connect your Slack workspace first."
+            : "Install withHuman in your Slack workspace under Integrations first."
           : `Ask an admin to install withHuman in ${organization}'s Slack workspace under Integrations first.`,
       done: "Linked",
     },
@@ -618,11 +624,40 @@ export function channelGuideCopy(
       body: server
         ? `Link your Discord account to get notified by direct message. You must be a member of ${server.guild_name} and allow direct messages from its members.`
         : canConnect
-          ? "Connect your Discord server under Integrations first."
+          ? inPlace
+            ? "Connect your Discord server first."
+            : "Connect your Discord server under Integrations first."
           : `Ask an admin to connect ${organization}'s Discord server under Integrations first.`,
       done: "Linked",
     },
   }[kind];
+}
+
+/* Starting the organization's Slack or Discord install from where the
+ * person is, for the guided setup, which must not send them to
+ * Integrations. The provider sends them back to returnTo. */
+function useChannelInstall(kind: GuidedKind, returnTo: OAuthReturn) {
+  const toast = useToast();
+  const [installing, setInstalling] = useState(false);
+  async function install() {
+    setInstalling(true);
+    try {
+      const result =
+        kind === "slack" ? await api.beginSlackInstall(returnTo) : await api.beginDiscordInstall(returnTo);
+      window.location.assign(result.authorize_url);
+    } catch (reason: unknown) {
+      setInstalling(false);
+      const label = kind === "slack" ? "Slack" : "Discord";
+      const description =
+        reason instanceof RequestError && reason.code === `${kind}_not_configured`
+          ? `This deployment has no ${label} application configured.`
+          : reason instanceof Error
+            ? reason.message
+            : undefined;
+      toast.add({ type: "deny", title: `Could not start the ${label} install`, description });
+    }
+  }
+  return { install, installing };
 }
 
 /* One guide's body and footer, framed by the caller: the explanation
@@ -636,6 +671,7 @@ export function ChannelGuide({
   onLinked,
   workspace,
   server,
+  returnTo = "settings",
 }: {
   kind: GuidedKind;
   methods: ContactMethod[];
@@ -649,18 +685,23 @@ export function ChannelGuide({
    * install withHuman there. */
   workspace: SlackWorkspace | null;
   server: DiscordServer | null;
+  /* Where a Slack or Discord round trip comes back to. The guided setup
+   * passes "onboarding" and connects the organization in place. */
+  returnTo?: OAuthReturn;
 }) {
   const session = useSession();
   const navigate = useNavigate();
   const { can } = useAccess();
-  const { link, linking } = useDiscordLink();
+  const { link, linking } = useDiscordLink(returnTo);
   const { link: linkSlack, linking: linkingSlack } = useSlackLink(onLinked);
+  const { install, installing } = useChannelInstall(kind, returnTo);
   const organization = session.organization?.name ?? "this organization";
   const linked = methods.some((method) => method.kind === kind && method.available);
   const canConnect = can("connection.write");
-  const copy = channelGuideCopy(kind, organization, workspace, server, canConnect);
+  const copy = channelGuideCopy(kind, organization, workspace, server, canConnect, returnTo);
   /* Chat linking needs an organization connection first. Members who
-   * can set one up go to Integrations; everyone else reads why. */
+   * can set one up connect it in place in the guided setup and go to
+   * Integrations elsewhere; everyone else reads why. */
   const slackReady = kind === "slack" && !linked && workspace !== null;
   const slackNeedsInstall = kind === "slack" && !linked && workspace === null;
   const discordReady = kind === "discord" && !linked && server !== null;
@@ -696,13 +737,19 @@ export function ChannelGuide({
           </>
         ) : null}
         {(slackNeedsInstall || discordNeedsInstall) && canConnect ? (
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => void navigate({ to: "/settings/integrations" })}
-          >
-            Go to Integrations
-          </Button>
+          returnTo === "onboarding" ? (
+            <Button type="button" variant="primary" loading={installing} onClick={() => void install()}>
+              {slackNeedsInstall ? "Connect Slack" : "Connect Discord"}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => void navigate({ to: "/settings/integrations" })}
+            >
+              Go to Integrations
+            </Button>
+          )
         ) : null}
         {discordReady ? (
           <Button type="button" variant="primary" loading={linking} onClick={() => void link()}>

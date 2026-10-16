@@ -221,8 +221,8 @@ func TestSlackConnectionRoutes(t *testing.T) {
 }
 
 // The callback is reached cross-site from slack.com without a session, so
-// it must be routable unauthenticated and must always land the admin back
-// on the Enterprise page with a stable outcome code.
+// it must be routable unauthenticated and must land the admin back where
+// the install began, as the state names, with a stable outcome code.
 func TestSlackCallbackRedirectsWithAnOutcome(t *testing.T) {
 	router := slackTestRouter()
 	for _, test := range []struct {
@@ -232,6 +232,9 @@ func TestSlackCallbackRedirectsWithAnOutcome(t *testing.T) {
 	}{
 		{"declined in Slack", "?error=access_denied&state=s", "/settings/integrations?slack_error=access_denied"},
 		{"deployment without Slack", "?state=s&code=c", "/settings/integrations?slack_error=slack_not_configured"},
+		{"declined during the guided setup", "?error=access_denied&state=onboarding.s", "/welcome?slack_error=access_denied"},
+		{"guided setup on a deployment without Slack", "?state=onboarding.s&code=c", "/welcome?slack_error=slack_not_configured"},
+		{"a state naming another page", "?error=access_denied&state=https:%2F%2Fevil.example.s", "/settings/integrations?slack_error=access_denied"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := httptest.NewRecorder()

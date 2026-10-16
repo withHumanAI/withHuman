@@ -49,8 +49,8 @@ func TestDiscordRoutes(t *testing.T) {
 }
 
 // Both callbacks are reached cross-site from discord.com without a
-// session, so they must be routable unauthenticated and always land the
-// browser on the right page with a stable outcome code.
+// session, so they must be routable unauthenticated and land the browser
+// where the flow began, as the state names, with a stable outcome code.
 func TestDiscordCallbacksRedirectWithAnOutcome(t *testing.T) {
 	router := discordTestRouter()
 	for _, test := range []struct {
@@ -60,8 +60,10 @@ func TestDiscordCallbacksRedirectWithAnOutcome(t *testing.T) {
 	}{
 		{"install declined", "/auth/discord/callback?error=access_denied&state=s", "/settings/integrations?discord_error=access_denied"},
 		{"install on a deployment without Discord", "/auth/discord/callback?state=s&code=c&guild_id=g", "/settings/integrations?discord_error=discord_not_configured"},
-		{"link declined", "/auth/discord/link/callback?error=access_denied&state=s", "/settings/notifications?discord_error=access_denied"},
-		{"link on a deployment without Discord", "/auth/discord/link/callback?state=s&code=c", "/settings/notifications?discord_error=discord_not_configured"},
+		{"link declined", "/auth/discord/link/callback?error=access_denied&state=s", "/settings/notifications?discord_link_error=access_denied"},
+		{"link on a deployment without Discord", "/auth/discord/link/callback?state=s&code=c", "/settings/notifications?discord_link_error=discord_not_configured"},
+		{"install declined during the guided setup", "/auth/discord/callback?error=access_denied&state=onboarding.s", "/welcome?discord_error=access_denied"},
+		{"link declined during the guided setup", "/auth/discord/link/callback?error=access_denied&state=onboarding.s", "/welcome?discord_link_error=access_denied"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := httptest.NewRecorder()

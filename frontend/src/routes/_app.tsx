@@ -12,7 +12,7 @@ import { ToastProvider } from "@/ds/components/toast";
 import { TooltipProvider } from "@/ds/components/tooltip";
 import { ThemeProvider } from "@/ds/theme/theme-provider";
 import { api } from "../api";
-import { useDiscordOutcome } from "../app/discord-outcome";
+import { useOAuthOutcome } from "../app/oauth-outcome";
 import { AccessScreen } from "../app/access";
 import { commitStagedLoginMethod } from "../app/login-method";
 import { consumeLoginSplash } from "../app/login-splash";
@@ -65,7 +65,7 @@ function AppLayout() {
 
 function SessionGate() {
   // Consume OAuth feedback before onboarding redirects away from the callback page.
-  useDiscordOutcome();
+  useOAuthOutcome();
   const { session, error } = useSessionState();
   /* The brand splash plays over the shell once per sign-in (the W
    * unfolding into the lockup: raised by the access screen here, or

@@ -3,7 +3,6 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -58,7 +57,11 @@ func (a *API) getDiscordConnection(c *gin.Context) {
 }
 
 func (a *API) beginDiscordInstall(c *gin.Context) {
-	authorizeURL, err := a.discord.Begin(c.Request.Context(), currentPrincipal(c))
+	returnTo, ok := bindReturnTo(c)
+	if !ok {
+		return
+	}
+	authorizeURL, err := a.discord.Begin(c.Request.Context(), currentPrincipal(c), returnTo)
 	if err != nil {
 		a.writeError(c, err)
 		return
@@ -75,7 +78,11 @@ func (a *API) disconnectDiscord(c *gin.Context) {
 }
 
 func (a *API) beginDiscordLink(c *gin.Context) {
-	authorizeURL, err := a.discord.BeginLink(c.Request.Context(), currentPrincipal(c))
+	returnTo, ok := bindReturnTo(c)
+	if !ok {
+		return
+	}
+	authorizeURL, err := a.discord.BeginLink(c.Request.Context(), currentPrincipal(c), returnTo)
 	if err != nil {
 		a.writeError(c, err)
 		return
@@ -91,12 +98,13 @@ func (a *API) unlinkDiscord(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// discordCallback always lands the admin back on the Enterprise page.
-// Discord's own error detail stays in the log; the browser gets a stable
-// code the page can explain.
+// discordCallback lands the admin back where the install began: the
+// Integrations page or the guided setup, as the state names. Discord's
+// own error detail stays in the log; the browser gets a stable code the
+// page can explain.
 func (a *API) discordCallback(c *gin.Context) {
 	if declined := c.Query("error"); declined != "" {
-		a.redirectDiscordOutcome(c, "/settings/integrations", "discord_error", "access_denied")
+		redirectOAuthOutcome(c, c.Query("state"), "/settings/integrations", "discord_error", "access_denied")
 		return
 	}
 	_, err := a.discord.Complete(c.Request.Context(), c.Query("state"), c.Query("code"), c.Query("guild_id"))
@@ -111,16 +119,19 @@ func (a *API) discordCallback(c *gin.Context) {
 			code = "install_expired"
 		}
 		a.logger.WarnContext(c.Request.Context(), "discord install failed", "error", err)
-		a.redirectDiscordOutcome(c, "/settings/integrations", "discord_error", code)
+		redirectOAuthOutcome(c, c.Query("state"), "/settings/integrations", "discord_error", code)
 		return
 	}
-	a.redirectDiscordOutcome(c, "/settings/integrations", "discord", "connected")
+	redirectOAuthOutcome(c, c.Query("state"), "/settings/integrations", "discord", "connected")
 }
 
-// discordLinkCallback lands the person back on their Notifications page.
+// discordLinkCallback lands the person back where the link began: their
+// Notifications page or the guided setup. Its refusals use their own key,
+// discord_link_error, so a page can tell a failed link from a failed
+// install.
 func (a *API) discordLinkCallback(c *gin.Context) {
 	if declined := c.Query("error"); declined != "" {
-		a.redirectDiscordOutcome(c, "/settings/notifications", "discord_error", "access_denied")
+		redirectOAuthOutcome(c, c.Query("state"), "/settings/notifications", "discord_link_error", "access_denied")
 		return
 	}
 	_, err := a.discord.CompleteLink(c.Request.Context(), c.Query("state"), c.Query("code"))
@@ -139,12 +150,8 @@ func (a *API) discordLinkCallback(c *gin.Context) {
 			code = "no_connection"
 		}
 		a.logger.WarnContext(c.Request.Context(), "discord link failed", "error", err)
-		a.redirectDiscordOutcome(c, "/settings/notifications", "discord_error", code)
+		redirectOAuthOutcome(c, c.Query("state"), "/settings/notifications", "discord_link_error", code)
 		return
 	}
-	a.redirectDiscordOutcome(c, "/settings/notifications", "discord", "linked")
-}
-
-func (a *API) redirectDiscordOutcome(c *gin.Context, page, key, value string) {
-	c.Redirect(http.StatusFound, page+"?"+key+"="+url.QueryEscape(value))
+	redirectOAuthOutcome(c, c.Query("state"), "/settings/notifications", "discord", "linked")
 }

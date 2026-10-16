@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -92,7 +91,11 @@ func (a *API) getSlackConnection(c *gin.Context) {
 }
 
 func (a *API) beginSlackInstall(c *gin.Context) {
-	authorizeURL, err := a.slack.Begin(c.Request.Context(), currentPrincipal(c))
+	returnTo, ok := bindReturnTo(c)
+	if !ok {
+		return
+	}
+	authorizeURL, err := a.slack.Begin(c.Request.Context(), currentPrincipal(c), returnTo)
 	if err != nil {
 		a.writeError(c, err)
 		return
@@ -108,12 +111,13 @@ func (a *API) disconnectSlack(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// slackCallback always lands the admin back on the Enterprise page. Slack's
-// own error detail stays in the log; the browser gets a stable code the
-// page can explain.
+// slackCallback lands the admin back where the install began: the
+// Integrations page or the guided setup, as the state names. Slack's own
+// error detail stays in the log; the browser gets a stable code the page
+// can explain.
 func (a *API) slackCallback(c *gin.Context) {
 	if declined := c.Query("error"); declined != "" {
-		a.redirectSlackOutcome(c, "slack_error", "access_denied")
+		redirectOAuthOutcome(c, c.Query("state"), slackSettingsPage, "slack_error", "access_denied")
 		return
 	}
 	_, err := a.slack.Complete(c.Request.Context(), c.Query("state"), c.Query("code"))
@@ -130,15 +134,13 @@ func (a *API) slackCallback(c *gin.Context) {
 			code = "install_expired"
 		}
 		a.logger.WarnContext(c.Request.Context(), "slack install failed", "error", err)
-		a.redirectSlackOutcome(c, "slack_error", code)
+		redirectOAuthOutcome(c, c.Query("state"), slackSettingsPage, "slack_error", code)
 		return
 	}
-	a.redirectSlackOutcome(c, "slack", "connected")
+	redirectOAuthOutcome(c, c.Query("state"), slackSettingsPage, "slack", "connected")
 }
 
-func (a *API) redirectSlackOutcome(c *gin.Context, key, value string) {
-	c.Redirect(http.StatusFound, "/settings/integrations?"+key+"="+url.QueryEscape(value))
-}
+const slackSettingsPage = "/settings/integrations"
 
 func (a *API) slackEvents(c *gin.Context) {
 	if a.slack == nil {

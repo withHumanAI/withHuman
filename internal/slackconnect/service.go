@@ -5,9 +5,7 @@ package slackconnect
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,6 +16,7 @@ import (
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/authorization"
+	"github.com/withHumanAI/withHuman/internal/oauthreturn"
 	"github.com/withHumanAI/withHuman/internal/secrets"
 )
 
@@ -254,16 +253,16 @@ func (s *Service) Get(ctx context.Context, principal domain.Principal) (domain.S
 
 // Begin mints a state bound to this organization and the admin starting
 // the install, and returns where to send them. Only the hash is stored:
-// the state itself travels through Slack and back in the browser.
-func (s *Service) Begin(ctx context.Context, principal domain.Principal) (string, error) {
+// the state itself travels through Slack and back in the browser,
+// naming the page the callback returns to.
+func (s *Service) Begin(ctx context.Context, principal domain.Principal, returnTo oauthreturn.Page) (string, error) {
 	if err := s.requireManager(principal); err != nil {
 		return "", err
 	}
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
+	state, err := oauthreturn.NewState(returnTo)
+	if err != nil {
 		return "", err
 	}
-	state := base64.RawURLEncoding.EncodeToString(raw)
 	now := s.clock.Now()
 	if err := s.connections.CreateSlackInstallState(ctx, application.CreateSlackInstallStateInput{
 		StateHash: hashState(state), OrganizationID: principal.OrganizationID,

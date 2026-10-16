@@ -957,6 +957,11 @@ paths:
       x-withhuman-credential-kinds: [session]
       description: Mints a single-use install state bound to this organization and the calling admin, and returns where to send them. A Slack admin completes the install in Slack.
       security: [{ cookieAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OAuthBeginRequest" }
       responses:
         "201":
           description: Where to send the admin
@@ -1011,6 +1016,11 @@ paths:
       x-withhuman-credential-kinds: [session]
       description: Mints a single-use install state bound to this organization and the calling admin, and returns where to send them. A Discord server admin adds the bot in Discord. The bot token is deployment configuration, so the install records only which server the bot joined.
       security: [{ cookieAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OAuthBeginRequest" }
       responses:
         "201":
           description: Where to send the admin
@@ -1057,6 +1067,11 @@ paths:
       x-withhuman-credential-kinds: [session]
       description: Mints a single-use link state bound to the calling person in this organization and returns where to send them. Discord vouches for the account; the link is recorded only if the account is a member of the organization's connected server, because the bot can only message people it shares a server with.
       security: [{ cookieAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OAuthBeginRequest" }
       responses:
         "201":
           description: Where to send the person
@@ -3199,7 +3214,7 @@ paths:
       summary: Complete a Slack workspace install
       operationId: completeSlackInstall
       x-withhuman-permission: public
-      description: Slack sends the installing admin back here. The browser arrives cross-site without a session, so the install state minted at the start, redeemed exactly once, is what binds the workspace to its organization. Redirects to Integrations with slack=connected or a slack_error code. A revoked previous connection can be reclaimed; a healthy connection remains workspace_taken. An inconclusive check returns connection_check_unavailable and requires a new installation attempt.
+      description: Slack sends the installing admin back here. The browser arrives cross-site without a session, so the install state minted at the start, redeemed exactly once, is what binds the workspace to its organization. Redirects to Integrations, or to the guided setup at /welcome when the install began there, with slack=connected or a slack_error code. A revoked previous connection can be reclaimed; a healthy connection remains workspace_taken. An inconclusive check returns connection_check_unavailable and requires a new installation attempt.
       security: []
       parameters:
         - name: state
@@ -3214,13 +3229,13 @@ paths:
           description: Set by Slack when the admin declined the install.
           schema: { type: string }
       responses:
-        "302": { description: Redirect to the Enterprise page }
+        "302": { description: Redirect to Integrations or the guided setup }
   /auth/discord/callback:
     get:
       summary: Complete a Discord server install
       operationId: completeDiscordInstall
       x-withhuman-permission: public
-      description: Discord sends the installing admin back here. The browser arrives cross-site without a session, so the install state minted at the start, redeemed exactly once, is what binds the server to its organization. The guild is taken from the token exchange rather than the guild_id query parameter. Redirects to the Enterprise page with either discord=connected or a discord_error code.
+      description: Discord sends the installing admin back here. The browser arrives cross-site without a session, so the install state minted at the start, redeemed exactly once, is what binds the server to its organization. The guild is taken from the token exchange rather than the guild_id query parameter. Redirects to Integrations, or to the guided setup at /welcome when the install began there, with either discord=connected or a discord_error code.
       security: []
       parameters:
         - name: state
@@ -3239,13 +3254,13 @@ paths:
           description: Set by Discord when the admin declined the install.
           schema: { type: string }
       responses:
-        "302": { description: Redirect to the Enterprise page }
+        "302": { description: Redirect to Integrations or the guided setup }
   /auth/discord/link/callback:
     get:
       summary: Complete linking a Discord account
       operationId: completeDiscordLink
       x-withhuman-permission: public
-      description: Discord sends the person back here after authorizing the identify scope. The link state minted at the start, redeemed exactly once, identifies the person and organization; the bot then confirms the account is in the connected server. Redirects to the Notifications page with either discord=linked or a discord_error code.
+      description: Discord sends the person back here after authorizing the identify scope. The link state minted at the start, redeemed exactly once, identifies the person and organization; the bot then confirms the account is in the connected server. Redirects to the Notifications page, or to the guided setup at /welcome when the link began there, with either discord=linked or a discord_link_error code.
       security: []
       parameters:
         - name: state
@@ -3260,7 +3275,7 @@ paths:
           description: Set by Discord when the person declined.
           schema: { type: string }
       responses:
-        "302": { description: Redirect to the Notifications page }
+        "302": { description: Redirect to Notifications or the guided setup }
   /api/v1/me/password:
     post:
       summary: Change the signed-in person's password
@@ -8050,6 +8065,15 @@ components:
         linked_members:
           type: integer
           description: Active members whose Slack identity has been matched in this workspace.
+    OAuthBeginRequest:
+      type: object
+      additionalProperties: false
+      description: Where the browser comes back to after the provider's round trip. No body is the same as `settings`.
+      properties:
+        return_to:
+          type: string
+          enum: [settings, onboarding]
+          description: "`settings` returns to the page the flow belongs to (Integrations for an install, Notifications for a link); `onboarding` returns to the guided setup at `/welcome`."
     DiscordConnection:
       type: object
       description: A Discord server connected by an organization-level install. The bot token is deployment configuration and never appears here.

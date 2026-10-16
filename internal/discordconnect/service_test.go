@@ -13,6 +13,7 @@ import (
 
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/domain"
+	"github.com/withHumanAI/withHuman/internal/oauthreturn"
 )
 
 type fakeConnector struct {
@@ -217,7 +218,7 @@ func TestBeginThenCompleteBindsTheGuildToTheOrganization(t *testing.T) {
 	connector, repository := newConnector(), newMemoryRepository()
 	service := newTestService(connector, repository)
 
-	authorizeURL, err := service.Begin(context.Background(), admin())
+	authorizeURL, err := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if err != nil {
 		t.Fatalf("Begin: %v", err)
 	}
@@ -251,7 +252,7 @@ func TestCompleteRejectsUnknownExpiredAndMismatchedStates(t *testing.T) {
 	if _, err := service.Complete(context.Background(), "never-issued", "code", ""); !errors.Is(err, ErrStateExpired) {
 		t.Fatalf("unknown state = %v", err)
 	}
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	state := stateFrom(authorizeURL)
 	stored := repository.states[string(hashState(state))]
 	stored.expires = time.Unix(1_600_000_000, 0)
@@ -261,7 +262,7 @@ func TestCompleteRejectsUnknownExpiredAndMismatchedStates(t *testing.T) {
 	}
 	// A link state, minted by any member, can never complete an install.
 	connected(repository)
-	linkURL, err := service.BeginLink(context.Background(), reviewer())
+	linkURL, err := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	if err != nil {
 		t.Fatalf("BeginLink: %v", err)
 	}
@@ -276,7 +277,7 @@ func TestCompleteLeavesAnUnclaimedGuild(t *testing.T) {
 	connector, repository := newConnector(), newMemoryRepository()
 	repository.upsertErr = domain.ErrConflict
 	service := newTestService(connector, repository)
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if _, err := service.Complete(context.Background(), stateFrom(authorizeURL), "code", ""); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("Complete = %v, want the storage conflict", err)
 	}
@@ -289,7 +290,7 @@ func TestCompleteDistinguishesDiscordRefusalFromASpentState(t *testing.T) {
 	connector, repository := newConnector(), newMemoryRepository()
 	connector.exchangeErr = fmt.Errorf("discord refused the code: invalid_grant: %w", domain.ErrInvalid)
 	service := newTestService(connector, repository)
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	_, err := service.Complete(context.Background(), stateFrom(authorizeURL), "bad", "")
 	if !errors.Is(err, domain.ErrInvalid) || errors.Is(err, ErrStateExpired) {
 		t.Fatalf("refusal = %v, want invalid but not an expired state", err)
@@ -303,7 +304,7 @@ func TestDisconnectLeavesAndRequiresThePermission(t *testing.T) {
 	if err := service.Disconnect(context.Background(), reviewer()); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("reviewer disconnect = %v, want forbidden", err)
 	}
-	if _, err := service.Begin(context.Background(), reviewer()); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := service.Begin(context.Background(), reviewer(), oauthreturn.Settings); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("reviewer begin = %v, want forbidden", err)
 	}
 	if err := service.Disconnect(context.Background(), admin()); err != nil {
@@ -320,15 +321,15 @@ func TestDisconnectLeavesAndRequiresThePermission(t *testing.T) {
 func TestBeginLinkRequiresAConnectionAndAPerson(t *testing.T) {
 	connector, repository := newConnector(), newMemoryRepository()
 	service := newTestService(connector, repository)
-	if _, err := service.BeginLink(context.Background(), reviewer()); !errors.Is(err, ErrNotConnected) {
+	if _, err := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings); !errors.Is(err, ErrNotConnected) {
 		t.Fatalf("link without a connection = %v, want not found", err)
 	}
 	connected(repository)
 	agent := domain.Principal{ActorType: domain.ActorAgent, ActorID: "agent-1", OrganizationID: "org-1"}
-	if _, err := service.BeginLink(context.Background(), agent); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := service.BeginLink(context.Background(), agent, oauthreturn.Settings); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("agent link = %v, want forbidden", err)
 	}
-	authorizeURL, err := service.BeginLink(context.Background(), reviewer())
+	authorizeURL, err := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	if err != nil || !strings.Contains(authorizeURL, "scope=identify") || !strings.Contains(authorizeURL, "/auth/discord/link/callback") {
 		t.Fatalf("BeginLink = %s, %v", authorizeURL, err)
 	}
@@ -369,7 +370,7 @@ func TestCompleteLinkRecordsAVerifiedGuildMember(t *testing.T) {
 	connector, repository := newConnector(), newMemoryRepository()
 	service := newTestService(connector, repository)
 	connected(repository)
-	authorizeURL, _ := service.BeginLink(context.Background(), reviewer())
+	authorizeURL, _ := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	method, err := service.CompleteLink(context.Background(), stateFrom(authorizeURL), "link-code")
 	if err != nil {
 		t.Fatalf("CompleteLink: %v", err)
@@ -391,7 +392,7 @@ func TestCompleteLinkRefusesANonMemberAndATakenAccount(t *testing.T) {
 	connected(repository)
 
 	connector.user = application.DiscordUser{ID: "555", Username: "stranger"}
-	authorizeURL, _ := service.BeginLink(context.Background(), reviewer())
+	authorizeURL, _ := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	if _, err := service.CompleteLink(context.Background(), stateFrom(authorizeURL), "link-code"); !errors.Is(err, ErrNotGuildMember) || !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("non-member = %v, want not a guild member", err)
 	}
@@ -403,14 +404,14 @@ func TestCompleteLinkRefusesANonMemberAndATakenAccount(t *testing.T) {
 	repository.links = append(repository.links, application.LinkOrganizationContactMethodInput{
 		Kind: domain.ContactDiscord, OrganizationID: "org-1", UserID: "user-9", ExternalID: "100200300",
 	})
-	authorizeURL, _ = service.BeginLink(context.Background(), reviewer())
+	authorizeURL, _ = service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	if _, err := service.CompleteLink(context.Background(), stateFrom(authorizeURL), "link-code"); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("taken account = %v, want conflict", err)
 	}
 
 	// The organization disconnected between begin and complete.
 	repository.connection = nil
-	authorizeURL, _ = service.BeginLink(context.Background(), reviewer())
+	authorizeURL, _ = service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings)
 	if authorizeURL != "" {
 		t.Fatal("BeginLink succeeded without a connection")
 	}
@@ -446,13 +447,13 @@ func TestUnconfiguredServiceRefusesEverything(t *testing.T) {
 	if _, err := service.Get(context.Background(), admin()); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("Get = %v", err)
 	}
-	if _, err := service.Begin(context.Background(), admin()); !errors.Is(err, ErrNotConfigured) {
+	if _, err := service.Begin(context.Background(), admin(), oauthreturn.Settings); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("Begin = %v", err)
 	}
 	if _, err := service.Complete(context.Background(), "state", "code", ""); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("Complete = %v", err)
 	}
-	if _, err := service.BeginLink(context.Background(), reviewer()); !errors.Is(err, ErrNotConfigured) {
+	if _, err := service.BeginLink(context.Background(), reviewer(), oauthreturn.Settings); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("BeginLink = %v", err)
 	}
 	if _, err := service.CompleteLink(context.Background(), "state", "code"); !errors.Is(err, ErrNotConfigured) {

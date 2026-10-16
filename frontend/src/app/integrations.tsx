@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/ds/components/badge";
 import { Button } from "@/ds/components/button";
 import { Callout } from "@/ds/components/callout";
@@ -92,14 +92,6 @@ export function IntegrationsScreen({
   );
 }
 
-const SLACK_ERRORS: Record<string, string> = {
-  connection_check_unavailable: "We could not verify the existing Slack connection. Try connecting again shortly.",
-  access_denied: "The install was declined in Slack.",
-  install_expired: "The install took too long or was already used. Start it again.",
-  workspace_taken: "That workspace is already connected to another organization.",
-  slack_rejected: "Slack rejected the install. Check the app's redirect URL and credentials.",
-};
-
 /* The Slack workspace connection. Connecting is an organization-level
  * OAuth install a Slack admin completes in Slack; the page only opens the
  * door and shows what came back. Per-person Slack identities and delivery
@@ -120,30 +112,6 @@ function SlackSection({
   const connection = state.connection;
   const disconnected = connection?.status === "disconnected";
   const [busy, setBusy] = useState(false);
-
-  /* The install round-trips through slack.com, so the outcome arrives as
-   * a query parameter rather than a response. Read it once, say what
-   * happened, and take it off the URL so a reload does not repeat it. */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const outcome = params.get("slack");
-    const error = params.get("slack_error");
-    if (!outcome && !error) return;
-    if (outcome === "connected") {
-      toast.add({ type: "approve", title: "Slack connected" });
-    } else if (error) {
-      toast.add({
-        type: "deny",
-        title: "Slack was not connected",
-        description: SLACK_ERRORS[error] ?? "Something went wrong during the install. Try again.",
-      });
-    }
-    params.delete("slack");
-    params.delete("slack_error");
-    const query = params.toString();
-    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : ""));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function connect() {
     setBusy(true);

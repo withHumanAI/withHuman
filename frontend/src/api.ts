@@ -4,6 +4,7 @@ import type {
   OAuthAuthorizationDecision,
   OAuthAuthorizationPreview,
   OAuthAuthorizationRequest,
+  OAuthReturn,
 } from "./types";
 import type { QueueScope } from "./app/queue-search";
 import type {
@@ -602,9 +603,10 @@ export const api = {
     }),
   slackConnection: () =>
     request<{ connection: SlackConnection | null }>(`${APP_API_BASE}/enterprise/slack`),
-  beginSlackInstall: () =>
+  beginSlackInstall: (returnTo: OAuthReturn = "settings") =>
     request<{ authorize_url: string }>(`${APP_API_BASE}/enterprise/slack/install`, {
       method: "POST",
+      body: JSON.stringify({ return_to: returnTo }),
     }),
   syncSlackMembers: () =>
     request<{ members: number; linked: number }>(`${APP_API_BASE}/enterprise/slack/sync`, {
@@ -618,14 +620,18 @@ export const api = {
     }),
   discordConnection: () =>
     request<{ connection: DiscordConnection | null }>(`${APP_API_BASE}/enterprise/discord`),
-  beginDiscordInstall: () =>
+  beginDiscordInstall: (returnTo: OAuthReturn = "settings") =>
     request<{ authorize_url: string }>(`${APP_API_BASE}/enterprise/discord/install`, {
       method: "POST",
+      body: JSON.stringify({ return_to: returnTo }),
     }),
   disconnectDiscord: () =>
     request<void>(`${APP_API_BASE}/enterprise/discord`, { method: "DELETE" }),
-  beginDiscordLink: () =>
-    request<{ authorize_url: string }>(`${APP_API_BASE}/me/discord/link`, { method: "POST" }),
+  beginDiscordLink: (returnTo: OAuthReturn = "settings") =>
+    request<{ authorize_url: string }>(`${APP_API_BASE}/me/discord/link`, {
+      method: "POST",
+      body: JSON.stringify({ return_to: returnTo }),
+    }),
   unlinkDiscord: () => request<void>(`${APP_API_BASE}/me/discord`, { method: "DELETE" }),
   /* Directory groups linked to teams, and the grant each carries. The
    * grant is keyed by the provider's object id because that is what the

@@ -6,9 +6,7 @@ package discordconnect
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -19,6 +17,7 @@ import (
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/authorization"
+	"github.com/withHumanAI/withHuman/internal/oauthreturn"
 )
 
 // ErrNotConfigured means this deployment has no Discord application
@@ -138,11 +137,11 @@ func (s *Service) Server(ctx context.Context, principal domain.Principal) (strin
 // Begin mints an install state bound to this organization and the admin
 // starting it, and returns where to send them. Only the hash is stored:
 // the state itself travels through Discord and back in the browser.
-func (s *Service) Begin(ctx context.Context, principal domain.Principal) (string, error) {
+func (s *Service) Begin(ctx context.Context, principal domain.Principal, returnTo oauthreturn.Page) (string, error) {
 	if err := s.requireManager(principal); err != nil {
 		return "", err
 	}
-	state, err := s.mintState(ctx, application.DiscordPurposeInstall, principal)
+	state, err := s.mintState(ctx, application.DiscordPurposeInstall, principal, returnTo)
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +210,7 @@ func (s *Service) Disconnect(ctx context.Context, principal domain.Principal) er
 // BeginLink mints a link state bound to the calling person in this
 // organization. It needs a connected server to check membership against,
 // so without one it answers ErrNotConnected and the page explains.
-func (s *Service) BeginLink(ctx context.Context, principal domain.Principal) (string, error) {
+func (s *Service) BeginLink(ctx context.Context, principal domain.Principal, returnTo oauthreturn.Page) (string, error) {
 	if err := s.requireMember(principal); err != nil {
 		return "", err
 	}
@@ -221,7 +220,7 @@ func (s *Service) BeginLink(ctx context.Context, principal domain.Principal) (st
 		}
 		return "", err
 	}
-	state, err := s.mintState(ctx, application.DiscordPurposeLink, principal)
+	state, err := s.mintState(ctx, application.DiscordPurposeLink, principal, returnTo)
 	if err != nil {
 		return "", err
 	}
@@ -281,12 +280,13 @@ func (s *Service) Unlink(ctx context.Context, principal domain.Principal) error 
 	return domain.ErrNotFound
 }
 
-func (s *Service) mintState(ctx context.Context, purpose application.DiscordOAuthPurpose, principal domain.Principal) (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
+// mintState stores the state's hash for one purpose. The state itself
+// names the page the callback returns to.
+func (s *Service) mintState(ctx context.Context, purpose application.DiscordOAuthPurpose, principal domain.Principal, returnTo oauthreturn.Page) (string, error) {
+	state, err := oauthreturn.NewState(returnTo)
+	if err != nil {
 		return "", err
 	}
-	state := base64.RawURLEncoding.EncodeToString(raw)
 	now := s.clock.Now()
 	if err := s.connections.CreateDiscordOAuthState(ctx, application.CreateDiscordOAuthStateInput{
 		StateHash: hashState(state), Purpose: purpose, OrganizationID: principal.OrganizationID,

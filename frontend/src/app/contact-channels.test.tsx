@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, RequestError } from "../api";
 import type { ContactMethod } from "../types";
 import { ChannelGuide, loadChannelsPage, type DiscordServer } from "./contact-channels";
+import { resetReturnedProviderForTest } from "./oauth-outcome";
 import { OnboardingContactStep } from "./onboarding-contacts";
 
 const { access, config, navigate, invalidate, toast } = vi.hoisted(() => ({
@@ -104,5 +105,57 @@ describe("Discord setup", () => {
     vi.spyOn(api, "contactMethods").mockResolvedValue({ contact_methods: [], slack_workspace: null, discord_server: { guild_name: "Community" } });
     vi.spyOn(api, "notificationRules").mockRejectedValue(new Error("unavailable"));
     expect((await loadChannelsPage()).discordServer).toEqual({ guild_name: "Community" });
+  });
+});
+
+describe("Chat channels in the guided setup", () => {
+  const emptyPage = { methods: [], slackWorkspace: null, discordServer: null, rules: null, error: "" };
+  let assign: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    assign = vi.fn();
+    vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, assign } as Location);
+  });
+
+  it.each([
+    ["Slack", "Connect Slack", "beginSlackInstall"],
+    ["Discord", "Connect Discord", "beginDiscordInstall"],
+  ] as const)("connects %s in place instead of leaving for Integrations", async (kind, action, begin) => {
+    const started = vi.spyOn(api, begin).mockResolvedValue({ authorize_url: "https://provider.example/authorize" });
+    render(<OnboardingContactStep page={emptyPage} onChanged={vi.fn()} onContinue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: kind }));
+    expect(screen.queryByRole("button", { name: "Go to Integrations" })).toBeNull();
+    expect(screen.queryByText(/under Integrations/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://provider.example/authorize"));
+    expect(started).toHaveBeenCalledWith("onboarding");
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("links Discord with the way back to the setup", async () => {
+    const started = vi.spyOn(api, "beginDiscordLink").mockResolvedValue({ authorize_url: "https://discord.example/authorize" });
+    render(<OnboardingContactStep page={{ ...emptyPage, discordServer: { guild_name: "Community" } }}
+      onChanged={vi.fn()} onContinue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Discord" }));
+    fireEvent.click(screen.getByRole("button", { name: "Link Discord" }));
+    await waitFor(() => expect(started).toHaveBeenCalledWith("onboarding"));
+  });
+
+  it("keeps the settings page's way to Integrations", () => {
+    render(<ChannelGuide kind="slack" methods={[]} workspace={null} server={null}
+      onDone={vi.fn()} onAddEmail={vi.fn()} onLinked={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Go to Integrations" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Connect Slack" })).toBeNull();
+  });
+});
+
+describe("Coming back from a provider", () => {
+  it("reopens the Slack guide after the install comes back", () => {
+    window.history.replaceState(null, "", "/welcome?slack=connected");
+    resetReturnedProviderForTest();
+    render(<OnboardingContactStep page={{ methods: [], discordServer: null, rules: null, error: "", slackWorkspace: { team_name: "Acme" } }}
+      onChanged={vi.fn()} onContinue={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Link Slack" })).toBeTruthy();
+    window.history.replaceState(null, "", "/");
+    resetReturnedProviderForTest();
   });
 });

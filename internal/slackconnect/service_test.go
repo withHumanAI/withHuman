@@ -13,6 +13,7 @@ import (
 
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/domain"
+	"github.com/withHumanAI/withHuman/internal/oauthreturn"
 	"github.com/withHumanAI/withHuman/internal/secrets"
 )
 
@@ -196,7 +197,7 @@ func TestBeginThenCompleteBindsTheWorkspaceToTheOrganization(t *testing.T) {
 	connector, repository := &fakeConnector{}, newMemoryRepository()
 	service := newTestService(t, connector, repository)
 
-	authorizeURL, err := service.Begin(context.Background(), admin())
+	authorizeURL, err := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if err != nil {
 		t.Fatalf("Begin: %v", err)
 	}
@@ -229,13 +230,31 @@ func TestBeginThenCompleteBindsTheWorkspaceToTheOrganization(t *testing.T) {
 	}
 }
 
+// An install begun from the guided setup names it in the state, and the
+// state still redeems as a whole.
+func TestAnInstallFromTheGuidedSetupReturnsThere(t *testing.T) {
+	connector, repository := &fakeConnector{}, newMemoryRepository()
+	service := newTestService(t, connector, repository)
+	authorizeURL, err := service.Begin(context.Background(), admin(), oauthreturn.Onboarding)
+	if err != nil {
+		t.Fatalf("Begin: %v", err)
+	}
+	state := stateFrom(authorizeURL)
+	if page := oauthreturn.FromState(state); page != oauthreturn.Onboarding {
+		t.Fatalf("state returns to %q, want onboarding", page)
+	}
+	if _, err := service.Complete(context.Background(), state, "good-code"); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+}
+
 func TestCompleteRejectsUnknownAndExpiredStates(t *testing.T) {
 	connector, repository := &fakeConnector{}, newMemoryRepository()
 	service := newTestService(t, connector, repository)
 	if _, err := service.Complete(context.Background(), "never-issued", "good-code"); !errors.Is(err, ErrInstallExpired) {
 		t.Fatalf("unknown state = %v, want an expired install", err)
 	}
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	state := stateFrom(authorizeURL)
 	repository.expiries[string(hashState(state))] = time.Unix(1_600_000_000, 0)
 	if _, err := service.Complete(context.Background(), state, "good-code"); !errors.Is(err, ErrInstallExpired) {
@@ -248,7 +267,7 @@ func TestCompletePreservesProviderTokenAfterSaveFailure(t *testing.T) {
 	connector, repository := &fakeConnector{}, newMemoryRepository()
 	repository.upsertErr = domain.ErrConflict
 	service := newTestService(t, connector, repository)
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if _, err := service.Complete(context.Background(), stateFrom(authorizeURL), "good-code"); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("Complete = %v, want the storage conflict", err)
 	}
@@ -262,7 +281,7 @@ func TestCompletePreservesProviderTokenAfterSaveFailure(t *testing.T) {
 func TestCompleteDistinguishesSlackRefusalFromASpentState(t *testing.T) {
 	connector, repository := &fakeConnector{exchangeErr: fmt.Errorf("slack refused the install: invalid_code: %w", domain.ErrInvalid)}, newMemoryRepository()
 	service := newTestService(t, connector, repository)
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	_, err := service.Complete(context.Background(), stateFrom(authorizeURL), "bad-code")
 	if !errors.Is(err, domain.ErrInvalid) || errors.Is(err, ErrInstallExpired) {
 		t.Fatalf("slack refusal = %v, want invalid but not an expired install", err)
@@ -279,7 +298,7 @@ func TestDisconnectRevokesAndRequiresThePermission(t *testing.T) {
 	if err := service.Disconnect(context.Background(), reviewer); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("reviewer disconnect = %v, want forbidden", err)
 	}
-	if _, err := service.Begin(context.Background(), reviewer); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := service.Begin(context.Background(), reviewer, oauthreturn.Settings); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("reviewer begin = %v, want forbidden", err)
 	}
 	if err := service.Disconnect(context.Background(), admin()); err != nil {
@@ -298,7 +317,7 @@ func TestUnconfiguredServiceRefusesEverything(t *testing.T) {
 	if _, err := service.Get(context.Background(), admin()); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("Get = %v", err)
 	}
-	if _, err := service.Begin(context.Background(), admin()); !errors.Is(err, ErrNotConfigured) {
+	if _, err := service.Begin(context.Background(), admin(), oauthreturn.Settings); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("Begin = %v", err)
 	}
 	if _, err := service.Complete(context.Background(), "state", "code"); !errors.Is(err, ErrNotConfigured) {
@@ -320,7 +339,7 @@ func TestInstallMatchesMembersByVerifiedAddress(t *testing.T) {
 		{UserID: "user-cid", MembershipID: "m-cid", Emails: []string{"cid@example.com"}},
 	}
 	service := newTestService(t, connector, repository)
-	authorizeURL, _ := service.Begin(context.Background(), admin())
+	authorizeURL, _ := service.Begin(context.Background(), admin(), oauthreturn.Settings)
 	if _, err := service.Complete(context.Background(), stateFrom(authorizeURL), "good-code"); err != nil {
 		t.Fatalf("Complete: %v", err)
 	}

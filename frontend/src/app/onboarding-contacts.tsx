@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/ds/components/button";
 import { Callout } from "@/ds/components/callout";
 import {
@@ -25,6 +25,7 @@ import {
 import { NotificationLadders, type LadderDraft } from "./notification-rules";
 import { useAccess } from "./authorization";
 import { contactKind, extensions } from "./extensions";
+import { forgetReturnedProvider, returnedFromProvider } from "./oauth-outcome";
 import { useSession } from "./principal";
 import { useRuntimeConfig } from "./use-runtime-config";
 
@@ -37,7 +38,10 @@ import { useRuntimeConfig } from "./use-runtime-config";
  * Notifications settings page split over two steps, with the
  * add-a-channel picker inline rather than on a page of its own, because
  * the flow has the pane to itself and leaving it would lose the
- * person's place. Neither step writes to the session until the rules
+ * person's place. For the same reason nothing in the step leaves the
+ * flow: an admin connects Slack or Discord in place, and the provider
+ * sends them back here with that channel's guide open again. Neither
+ * step writes to the session until the rules
  * step's Continue, which records only that both were passed; the
  * channels and ladders themselves are the person's own settings.
  */
@@ -69,8 +73,10 @@ export function OnboardingContactStep({
   const session = useSession();
   const { can } = useAccess();
   const organization = session.organization?.name ?? "this organization";
-  /* The kind being added, whose form or guide unfolds under the picker. */
-  const [picked, setPicked] = useState<ChannelKind | null>(null);
+  /* The kind being added, whose form or guide unfolds under the picker.
+   * Back from a Slack or Discord round trip, that kind's guide. */
+  const [picked, setPicked] = useState<ChannelKind | null>(returnedFromProvider);
+  useEffect(forgetReturnedProvider, []);
 
   const kinds = channelKinds();
   const enabled = (kind: ChannelKind) =>
@@ -91,7 +97,14 @@ export function OnboardingContactStep({
       : picked === "email"
         ? EMAIL_FORM
         : isGuidedKind(picked)
-          ? channelGuideCopy(picked, organization, page.slackWorkspace, page.discordServer, can("connection.write"))
+          ? channelGuideCopy(
+              picked,
+              organization,
+              page.slackWorkspace,
+              page.discordServer,
+              can("connection.write"),
+              "onboarding",
+            )
           : (entry?.add ?? null);
   const Flow = entry?.add.component;
 
@@ -164,6 +177,7 @@ export function OnboardingContactStep({
                   onLinked={onChanged}
                   workspace={page.slackWorkspace}
                   server={page.discordServer}
+                  returnTo="onboarding"
                 />
               ) : Flow ? (
                 <Flow
