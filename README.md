@@ -14,6 +14,7 @@ agents can do real work.</p>
   <a href="go.mod"><img src="https://img.shields.io/github/go-mod/go-version/withHumanAI/withHuman" alt="Go version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Elastic%202.0-blue" alt="License: Elastic 2.0"></a>
   <a href="https://agentapprovalprotocol.io"><img src="https://img.shields.io/badge/protocol-AAP-6c47ff" alt="Agent Approval Protocol"></a>
+  <a href="https://discord.gg/fwSryh9p8"><img src="https://img.shields.io/badge/chat-Discord-5865F2?logo=discord&logoColor=white" alt="Chat on Discord"></a>
   <a href="https://x.com/withHumanAI"><img src="https://img.shields.io/badge/follow-%40withHumanAI-000000?logo=x&logoColor=white" alt="Follow @withHumanAI on X"></a>
 </p>
 
@@ -22,6 +23,7 @@ agents can do real work.</p>
   <a href="https://withhuman.ai/docs">Docs</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="https://agentapprovalprotocol.io">Protocol</a> ·
+  <a href="https://discord.gg/fwSryh9p8">Discord</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -152,6 +154,7 @@ agents or requests is sent. Set `WITHHUMAN_TELEMETRY=off` (or
 
 ## Community
 
+- **Questions and chat:** [Discord](https://discord.gg/fwSryh9p8)
 - **Bugs and ideas:** [GitHub Issues](https://github.com/withHumanAI/withHuman/issues)
 - **Security vulnerabilities:** follow [SECURITY.md](SECURITY.md). Do not open an issue.
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md)

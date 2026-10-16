@@ -21,17 +21,21 @@ import {
   SignOutIcon,
   SunIcon,
 } from "@/ds/icons";
+import { DiscordIcon } from "@/ds/icons/brands";
 import { cn } from "@/ds/lib/cn";
 import { focusRing } from "@/ds/lib/focus";
 import type { ThemePreference } from "@/ds/theme/theme";
 import { useTheme } from "@/ds/theme/theme-provider";
 import { useSession } from "./principal";
 
+const DISCORD_URL = "https://discord.gg/fwSryh9p8";
+
 /*
  * The sidebar's account row and its menu. The row is the only thing
  * the footer shows: who is signed in, and where. Its menu reads top to
- * bottom as the identity, the pages about you, the theme, and sign
- * out on its own so it cannot be mistaken for a page.
+ * bottom as the identity, the pages about you, the community link,
+ * the theme, and sign out on its own so it cannot be mistaken for a
+ * page.
  */
 export function AccountMenu({ onSignOut }: { onSignOut: () => void }) {
   const session = useSession();
@@ -95,6 +99,14 @@ export function AccountMenu({ onSignOut }: { onSignOut: () => void }) {
             icon={<AlertIcon width={15} height={15} />}
           >
             Notifications
+          </DropdownLinkItem>
+        </DropdownGroup>
+        <DropdownGroup>
+          <DropdownLinkItem
+            render={<a href={DISCORD_URL} target="_blank" rel="noreferrer" />}
+            icon={<DiscordIcon width={15} height={15} />}
+          >
+            Join our Discord
           </DropdownLinkItem>
         </DropdownGroup>
         <DropdownGroup>
