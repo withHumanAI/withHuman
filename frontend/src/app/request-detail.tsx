@@ -430,7 +430,7 @@ export function RequestDetail({
                   Written by the agent. It has not been checked.
                 </InfoCard>
               </p>
-              <Markdown className="max-w-[560px] text-body text-ink-secondary">{request.agent_reasoning}</Markdown>
+              <Markdown className="max-w-[560px] text-body text-ink-secondary" lines={5}>{request.agent_reasoning}</Markdown>
             </div>
           </div>
         ) : null}

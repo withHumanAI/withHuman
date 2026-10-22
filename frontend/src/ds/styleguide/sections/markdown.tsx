@@ -26,11 +26,17 @@ export function MarkdownSection() {
     <Section
       id="markdown"
       title="Markdown"
-      lede="Machine-authored prose (a tool's description, an agent's reasoning) rendered in the product's own type. Headings become bold lines at the surrounding size, code is mono, links open in a new tab, raw HTML is dropped. Sizes are relative, so the block takes the scale of where it sits."
+      lede="Machine-authored prose (a tool's description, an agent's reasoning) rendered in the product's own type. Headings become bold lines at the surrounding size, code is mono, links open in a new tab, raw HTML is dropped. Sizes are relative, so the block takes the scale of where it sits. Long prose can collapse to a few lines behind Show more."
     >
       <Demo label="Body size, in a card">
         <div className="max-w-[560px] text-body text-ink-secondary">
           <Markdown>{SAMPLE}</Markdown>
+        </div>
+      </Demo>
+
+      <Demo label="Collapsed to five lines">
+        <div className="max-w-[560px] text-body text-ink-secondary">
+          <Markdown lines={5}>{SAMPLE}</Markdown>
         </div>
       </Demo>
 

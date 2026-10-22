@@ -1,6 +1,8 @@
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/ds/lib/cn";
+import { focusRing } from "@/ds/lib/focus";
 
 /*
  * Machine-authored prose: a tool's description, an agent's reasoning.
@@ -10,7 +12,8 @@ import { cn } from "@/ds/lib/cn";
  * too (GitHub-flavoured Markdown, so tables and strikethrough read as
  * the author meant). Raw HTML is never rendered. Sizes
  * are relative so the block takes the type scale of where it sits
- * (text-body in a card, text-label in a list row).
+ * (text-body in a card, text-label in a list row). Long prose can be
+ * collapsed to a few lines, opened with Show more.
  */
 
 const components: Components = {
@@ -80,14 +83,67 @@ const components: Components = {
 export interface MarkdownProps {
   children: string;
   className?: string;
+  /* Collapse the text to this many lines, with a Show more toggle when
+   * it runs longer. */
+  lines?: number;
 }
 
-export function Markdown({ children, className }: MarkdownProps) {
+export function Markdown({ children, className, lines }: MarkdownProps) {
+  const body = (
+    <ReactMarkdown components={components} remarkPlugins={[remarkGfm]} skipHtml>
+      {children}
+    </ReactMarkdown>
+  );
+  if (lines === undefined) {
+    return <div className={cn("min-w-0 break-words", className)}>{body}</div>;
+  }
   return (
-    <div className={cn("min-w-0 break-words", className)}>
-      <ReactMarkdown components={components} remarkPlugins={[remarkGfm]} skipHtml>
+    <ClampedMarkdown className={className} lines={lines}>
+      {body}
+    </ClampedMarkdown>
+  );
+}
+
+function ClampedMarkdown({ children, className, lines }: { children: ReactNode; className?: string; lines: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+
+  /* Only the collapsed text can be measured: expanded, it never
+   * overflows. The toggle stays while expanded so it can close. */
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element || expanded) return;
+    const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [expanded, children]);
+
+  return (
+    <div className={cn("flex min-w-0 flex-col items-start gap-1", className)}>
+      <div
+        ref={ref}
+        className="min-w-0 self-stretch break-words"
+        style={expanded ? undefined : { display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines, overflow: "hidden" }}
+      >
         {children}
-      </ReactMarkdown>
+      </div>
+      {overflows || expanded ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((open) => !open)}
+          className={cn(
+            "cursor-pointer rounded-xs text-label text-ink-muted transition-colors duration-100 hover:text-ink",
+            focusRing,
+          )}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
     </div>
   );
 }
