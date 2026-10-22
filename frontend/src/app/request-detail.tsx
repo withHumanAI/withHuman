@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Avatar } from "@/ds/components/avatar";
 import { HoverCard } from "@/ds/components/hover-card";
 import { Referenced } from "@/ds/components/reference";
@@ -303,7 +303,7 @@ export function RequestDetail({
   const urgent = pending && budget > 0 && left / budget < URGENT_BUDGET_SHARE;
   const countdown = pending ? nextEscalation(routing) : null;
   const plan = useMemo(
-    () => planArguments(request.arguments, request.presentation),
+    () => planArguments(request.arguments, request.presentation, extensions.hiddenArguments),
     [request.arguments, request.presentation],
   );
   const title = useMemo(
@@ -313,40 +313,33 @@ export function RequestDetail({
   const summary = request.summary?.text;
   const showSummary = argumentsView === "summary";
   const payloadJSON = JSON.stringify(request.arguments, null, 2);
-  const canEditPresentations = holdsAnywhere("organization.settings.write");
 
   return (
     <Page width="narrow" className="@container gap-5">
       {/* Header: the plain title, then who asked read as a phrase: by the
-          agent (a link to its page, which lists its instances), and the
-          instance of it that is running, named as such because an
-          instance can be a conversation or a job as easily as a machine.
-          The exact tool name lives in the history's detail list. */}
+          agent (a link to its page; its card names the instance that
+          asked). The exact tool name lives in the history's detail list. */}
       <PageHeader back={onBack ? <PageBackButton onClick={onBack}>Queue</PageBackButton> : undefined}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {/* A summary takes the title's place, marked as written by AI;
-              the verified title stays visible underneath it. */}
-          {summary ? (
-            <div className="flex w-full flex-col gap-0.5">
-              <p className="text-micro text-ink-faint">AI summary</p>
-              <h1 className="text-title-lg text-ink">{summary}</h1>
-              <p className="text-body text-ink-muted">
-                {title ? <TitleSegments segments={title} /> : humanizeTool(request.tool)}
-              </p>
-            </div>
-          ) : (
-            <h1 className="text-title-lg text-ink">
-              {title ? (
-                <TitleSegments segments={title} valueClassName="text-ink-secondary" />
-              ) : (
-                humanizeTool(request.tool)
-              )}
-            </h1>
-          )}
+          {/* A summary takes the title's place. */}
+          <h1 className="text-title-lg text-ink">
+            {summary ? (
+              summary
+            ) : title ? (
+              <TitleSegments segments={title} valueClassName="text-ink-secondary" />
+            ) : (
+              humanizeTool(request.tool)
+            )}
+          </h1>
           <span className="flex flex-wrap items-center gap-1 text-label text-ink-muted">
             by
             <Referenced
-              reference={{ kind: "agent", slug: request.agent_slug, name: request.agent_name }}
+              reference={{
+                kind: "agent",
+                slug: request.agent_slug,
+                name: request.agent_name,
+                instance: request.agent_instance_name,
+              }}
               focusable={false}
             >
               <Badge
@@ -355,13 +348,8 @@ export function RequestDetail({
                 onClick={() => void navigate({ to: "/agents/$agentSlug", params: { agentSlug: request.agent_slug } })}
               >
                 {request.agent_name}
-                <span className="font-mono text-[12px] font-normal text-ink-muted">{request.agent_slug}</span>
               </Badge>
             </Referenced>
-            <span className="text-ink-faint">·</span>
-            <Badge icon={<span className="text-label text-ink-muted">instance</span>} tone="neutral">
-              {request.agent_instance_name}
-            </Badge>
             {request.requester_display_name ? (
               <>
                 for
@@ -390,7 +378,6 @@ export function RequestDetail({
               reference={{ kind: "tool", name: request.tool, server: request.server }}
               link={auditLinkProps(auditLinkFor({ q: request.tool }))}
             />
-            with these arguments
           </span>
           <span className="flex items-center gap-1.5">
             <ToggleGroup
@@ -434,7 +421,6 @@ export function RequestDetail({
             </div>
           </div>
         ) : null}
-        {canEditPresentations ? <PresentationFooter request={request} /> : null}
       </div>
 
       {Assessments ? <Assessments request={request} /> : null}
@@ -510,7 +496,7 @@ export function RequestDetail({
               setNote(event.target.value);
               if (noteError) setNoteError("");
             }}
-            placeholder="Why this decision is the right one"
+            placeholder="Explain your reasoning to the agent"
           />
           <div className="grid grid-cols-2 gap-2.5">
             <Tooltip content="Deny" keys="D">
@@ -556,7 +542,7 @@ export function RequestDetail({
 
       {/* Timing and routing share compact cells; the pipeline explanation
           gets a full row so block and pipeline names have room to wrap. */}
-      <div className="grid grid-cols-2 gap-y-4 border-y-hairline border-edge py-3.5 @xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-y-4 border-t-hairline border-edge pt-3.5 @xl:grid-cols-4">
         <Fact label="Requested" value={<When at={request.created_at} now={now} />} first />
         {pending ? (
           <Fact
@@ -1245,57 +1231,6 @@ function TitleSegments({
     ) : (
       <Fragment key={index}>{segment.text}</Fragment>
     ),
-  );
-}
-
-/* Where the call came from, for the presentation editor to bind to: the
- * runtime the adapter recorded and the server that defines the tool. */
-function requestSelector(request: ApprovalRequest): { runtime: string; server: string } {
-  const context = request.context && typeof request.context === "object" ? (request.context as Record<string, unknown>) : {};
-  const runtime = typeof context.runtime === "string" && context.runtime ? context.runtime : "";
-  return { runtime, server: request.server ?? "" };
-}
-
-/* For people who can change the organization's settings: which
- * presentation drew the arguments, and the way to change it. A quiet
- * strip under the payload, since it is about the page, not the request. */
-function PresentationFooter({ request }: { request: ApprovalRequest }) {
-  const presentation = request.presentation;
-  const { runtime, server } = requestSelector(request);
-  const linkClass = "text-ink-secondary underline decoration-edge-strong underline-offset-2 hover:text-ink hover:decoration-ink";
-  return (
-    <p className="flex flex-wrap items-center gap-x-1 border-t-hairline border-edge px-4 py-2 text-micro text-ink-faint">
-      {presentation?.source === "organization" ? (
-        <>
-          Shown with your organization's presentation.
-          <Link to="/settings/tool-presentations/$presentationId" params={{ presentationId: presentation.id ?? "" }} search={{ request: request.id }} className={linkClass}>
-            Edit it
-          </Link>
-        </>
-      ) : presentation ? (
-        <>
-          Shown with the built-in presentation.
-          <Link
-            to="/settings/tool-presentations/new"
-            search={{ tool: request.tool, runtime, server, request: request.id }}
-            className={linkClass}
-          >
-            Customize it
-          </Link>
-        </>
-      ) : (
-        <>
-          No presentation covers this tool.
-          <Link
-            to="/settings/tool-presentations/new"
-            search={{ tool: request.tool, runtime, server, request: request.id }}
-            className={linkClass}
-          >
-            Add one
-          </Link>
-        </>
-      )}
-    </p>
   );
 }
 

@@ -106,7 +106,7 @@ export function ReferenceCards({ children }: { children: ReactNode }) {
           return <WebhookEndpointCard endpointKey={reference.key} name={reference.name} />;
         case "agent":
           return reference.slug
-            ? <AgentCard slug={reference.slug} name={reference.name} />
+            ? <AgentCard slug={reference.slug} name={reference.name} instance={reference.instance} />
             : <AgentNameCard name={reference.name} />;
         case "tool":
           return <ToolCard tool={reference.name} />;
@@ -980,9 +980,10 @@ function AgentNameCard({ name }: { name: string }) {
 }
 
 /* An agent in three numbers: how many instances it has, when it last
- * asked, and how much it asks. The head carries its slug under the
- * name; a state badge appears only when it cannot call in at all. */
-function AgentCard({ slug, name }: { slug: string; name: string }) {
+ * asked, and how much it asks, led by the instance that made the
+ * request when the mention names one. The head carries its slug under
+ * the name; a state badge appears only when it cannot call in at all. */
+function AgentCard({ slug, name, instance }: { slug: string; name: string; instance?: string }) {
   const agent = useShared(`agent:${slug}`, () => api.agent(slug));
   const detail: AgentDetail | null = agent.status === "ready" ? agent.value : null;
   const connection = detail ? detailConnection(detail) : null;
@@ -1011,6 +1012,27 @@ function AgentCard({ slug, name }: { slug: string; name: string }) {
       <HoverCardBody>
         {detail ? (
           <HoverCardFacts>
+            {instance ? (
+              <HoverCardFact term="Instance" mono>
+                {/* No instance has a page of its own: its agent's
+                    Instances tab, filtered to it, is where it is managed. */}
+                <Link
+                  to="/agents/$agentSlug"
+                  params={{ agentSlug: slug }}
+                  search={{ tab: "instances", q: instance }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group/name inline-flex min-w-0 items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <span className="min-w-0 break-all underline-offset-[3px] group-hover/name:underline">{instance}</span>
+                  <ArrowUpRightIcon
+                    width={12}
+                    height={12}
+                    className="shrink-0 text-ink-faint transition-colors duration-100 group-hover/name:text-ink"
+                  />
+                </Link>
+              </HoverCardFact>
+            ) : null}
             <HoverCardFact term="Instances">{detail.instance_count}</HoverCardFact>
             <HoverCardFact term="Last request">
               {lastSeen ? `${formatRelative(lastSeen)} ago` : <span className="text-ink-muted">Never</span>}

@@ -108,9 +108,9 @@ var builtin = []Entry{
 	// Superhuman mail. The tool names are distinctive enough to bind
 	// without the server alias, which each person picks.
 	toolEntry("create_or_update_draft", "Email draft",
-		enum("/type", "Type"), emails("/to", "To"), emails("/cc", "Cc"), emails("/bcc", "Bcc"),
+		enum("/type", "Type"), email("/from", "From"), emails("/to", "To"), emails("/cc", "Cc"), emails("/bcc", "Bcc"),
 		text("/subject", "Subject"), html("/body", "Body"),
-		detail(email("/acting_email", "From")), detail(ref("/thread_id", "Thread")), detail(ref("/draft_id", "Draft"))),
+		detail(email("/acting_email", "Account")), detail(ref("/thread_id", "Thread")), detail(ref("/draft_id", "Draft"))),
 	toolEntry("send_draft", "Send an email draft", ref("/draft_id", "Draft"), detail(email("/acting_email", "From"))),
 	toolEntry("create_or_update_event", "Calendar event",
 		text("/title", "Title"), when("/start", "Starts"), when("/end", "Ends"), emails("/attendees", "Attendees"),

@@ -89,7 +89,9 @@ export function Badge({
     <>
       {icon === false ? null : (
         <span className={cn(
-          inline ? "mr-1 inline-flex items-center align-middle" : "flex items-center",
+          /* align-middle centers on the lowercase letters; the nudge
+           * centers the icon on the capitals instead. */
+          inline ? "relative top-[-0.08em] mr-1 inline-flex items-center align-middle" : "flex items-center",
           ICON_TONES[tone],
         )}>
           {icon ?? <ToneIcon tone={tone} />}

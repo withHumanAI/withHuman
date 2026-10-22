@@ -28,8 +28,10 @@ export type Reference =
   | { kind: "pipeline"; pipelineKey: string; name?: string; revision?: number }
   | { kind: "webhook_endpoint"; key: string; name: string }
   /* An agent by its slug when the mention carries one; a display name
-   * is enough for the app to find a live agent that is called that. */
-  | { kind: "agent"; slug?: string; name: string }
+   * is enough for the app to find a live agent that is called that.
+   * The instance, when the mention is of one request, names which of
+   * the agent's instances made it. */
+  | { kind: "agent"; slug?: string; name: string; instance?: string }
   /* A tool by the name its server defines, with that server when the
    * mention knows it: a hook's MCP server alias or the slug of a server an
    * edition registers. */

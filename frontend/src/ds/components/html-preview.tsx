@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { previewHTML } from "@/ds/lib/preview-html";
 import { cn } from "@/ds/lib/cn";
 import { useTheme } from "@/ds/theme/theme-provider";
@@ -23,44 +23,69 @@ export interface HtmlPreviewProps {
 
 type View = "preview" | "source";
 
-/* The preview's height comes from a rough count of block elements: the
- * frame cannot report its own height without running script. The
- * wrapper resizes by hand for the long ones. */
-function estimateHeight(html: string): number {
-  const blocks = (html.match(/<(?:div|p|br|li|tr|h[1-6]|blockquote|pre|hr)\b/gi) ?? []).length;
-  const chars = html.replace(/<[^>]*>/g, "").length;
-  return Math.min(560, Math.max(120, 40 + blocks * 22 + Math.floor(chars / 90) * 22));
+/* The tallest the preview grows before the frame scrolls. */
+const MAX_HEIGHT = 560;
+
+/* The page's own webfonts cannot load inside the frame, which loads
+ * nothing, so the frame's stack starts at the first family it can use.
+ * Measuring with the same stack keeps the measured lines the frame's. */
+function frameFontStack(stack: string): string {
+  const webfonts = new Set([...window.document.fonts].map((face) => face.family.replace(/^["']|["']$/g, "")));
+  const families = stack.split(",").map((family) => family.trim()).filter(Boolean);
+  const usable = families.filter((family) => !webfonts.has(family.replace(/^["']|["']$/g, "")));
+  return usable.length > 0 ? usable.join(", ") : "system-ui, sans-serif";
 }
 
 export function HtmlPreview({ html, label, raised = false, className }: HtmlPreviewProps) {
   const [view, setView] = useState<View>("preview");
   const { resolvedTheme } = useTheme();
-  const document = useMemo(() => {
+  const { body, css } = useMemo(() => {
     /* The product's own type inside the frame, from the tokens the
      * theme resolves to at this moment; the frame is opaque to the
-     * page's stylesheet. */
+     * page's stylesheet. The body rule is written for a root selector
+     * so the measurement below lays out under the same rules. */
     const style = getComputedStyle(window.document.documentElement);
     const token = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
-    const css = `
-      :root { color-scheme: ${resolvedTheme}; }
-      html, body { margin: 0; padding: 0; }
-      body {
+    const css = (root: string) => `
+      ${root} {
+        display: block;
+        margin: 0;
         padding: 14px 16px;
-        font: 14px/1.5 ${token("--font-sans", "system-ui, sans-serif")};
+        font: 14px/1.5 ${frameFontStack(token("--font-sans", "system-ui, sans-serif"))};
         color: ${token("--ds-ink", "#111")};
         background: ${token(raised ? "--ds-surface" : "--ds-canvas", "#fff")};
         overflow-wrap: anywhere;
       }
+      ${root} > :first-child { margin-top: 0; }
+      ${root} > :last-child { margin-bottom: 0; }
       a { color: ${token("--ds-accent", "#2450c8")}; pointer-events: none; }
-      img { max-width: 100%; }
       pre, code { font-family: ${token("--font-mono", "monospace")}; font-size: 12px; }
       blockquote { margin: 0.6em 0; padding-left: 0.8em; border-left: 2px solid ${token("--ds-edge-strong", "#ccc")}; color: ${token("--ds-ink-muted", "#666")}; }
       table { border-collapse: collapse; }
       td, th { padding: 0.2em 0.5em; }
     `;
-    return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"><style>${css}</style></head><body>${previewHTML(html)}</body></html>`;
+    return { body: previewHTML(html), css };
   }, [html, raised, resolvedTheme]);
-  const height = useMemo(() => estimateHeight(html), [html]);
+  const document = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"><style>:root { color-scheme: ${resolvedTheme}; } html { margin: 0; padding: 0; } ${css("body")}</style></head><body>${body}</body></html>`;
+
+  /* The frame runs no script, so it cannot report its height. The
+   * cleaned fragment carries no attributes, URLs or images, so it is
+   * laid out once more in the page, invisibly and under the same rules,
+   * and the frame takes that height up to the cap. */
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  useLayoutEffect(() => {
+    const host = measureRef.current;
+    if (!host || view !== "preview") return;
+    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+    shadow.innerHTML = `<style>:host { all: initial; } ${css(".root")}</style><div class="root">${body}</div>`;
+    const root = shadow.querySelector(".root") as HTMLElement;
+    const measure = () => setHeight(Math.min(MAX_HEIGHT, Math.ceil(root.getBoundingClientRect().height)));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [body, css, view]);
 
   return (
     <div
@@ -70,7 +95,8 @@ export function HtmlPreview({ html, label, raised = false, className }: HtmlPrev
         className,
       )}
     >
-      <div className="flex h-8 items-center justify-between border-b-hairline border-edge pr-1.5 pl-3">
+      {/* Tall enough for the toggle, as in the arguments card's header. */}
+      <div className="flex h-10 items-center justify-between border-b-hairline border-edge pr-2 pl-3">
         <span className="font-mono text-[11px] text-ink-muted">{label ?? "html"}</span>
         <span className="flex items-center gap-1.5">
           <ToggleGroup aria-label="HTML view" value={view} onValueChange={(next) => setView(next as View)}>
@@ -81,7 +107,8 @@ export function HtmlPreview({ html, label, raised = false, className }: HtmlPrev
         </span>
       </div>
       {view === "preview" ? (
-        <div className="resize-y overflow-hidden" style={{ height }}>
+        <div className="relative resize-y overflow-hidden" style={{ height: height || undefined }}>
+          <div ref={measureRef} aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-0" />
           <iframe
             title={label ? `${label} preview` : "HTML preview"}
             sandbox=""

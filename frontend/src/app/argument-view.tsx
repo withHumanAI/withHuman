@@ -21,6 +21,16 @@ import type { ArgumentPlan, RenderedField } from "./tool-presentation";
 /* Kinds that stand as a block under their label rather than beside it. */
 const BLOCK_KINDS = new Set(["prose", "markdown", "html", "code", "shell", "diff", "json", "list"]);
 
+/* A list of one-line values reads as a run beside its label; only a
+ * list holding blocks stands under it. */
+function isScalarList(field: RenderedField): boolean {
+  return field.kind === "list" && (field.items ?? []).every((item) => !BLOCK_KINDS.has(item.kind) && !item.additional?.length);
+}
+
+function standsAsBlock(field: RenderedField): boolean {
+  return BLOCK_KINDS.has(field.kind) && !isScalarList(field);
+}
+
 function textOf(value: unknown): string {
   if (value === null || value === undefined) return "none";
   if (typeof value === "string") return value;
@@ -121,7 +131,7 @@ function ListValue({ field }: { field: RenderedField }) {
   if (items.length === 0) {
     return <span className="text-label text-ink-faint">Empty list</span>;
   }
-  if (items.every((item) => !BLOCK_KINDS.has(item.kind) && !item.additional?.length)) {
+  if (isScalarList(field)) {
     return (
       <ul className="flex flex-wrap gap-x-3 gap-y-1">
         {items.map((item) => (
@@ -146,9 +156,12 @@ function ListValue({ field }: { field: RenderedField }) {
 }
 
 function FieldRow({ field }: { field: RenderedField }) {
-  const block = BLOCK_KINDS.has(field.kind);
+  const block = standsAsBlock(field);
+  /* The first line's height: a badge stands 24px tall, text 20px. The
+   * label and the copy button center on it. */
+  const line = field.kind === "enum" ? "h-6" : "h-5";
   const copyable = (
-    <span className="flex h-5 w-[26px] shrink-0 items-center justify-center opacity-0 transition-opacity duration-100 group-hover/item:opacity-100 has-[:focus-visible]:opacity-100 has-[[data-copied]]:opacity-100">
+    <span className={`flex ${line} w-[26px] shrink-0 items-center justify-center opacity-0 transition-opacity duration-100 group-hover/item:opacity-100 has-[:focus-visible]:opacity-100 has-[[data-copied]]:opacity-100`}>
       <CopyButton value={copyTextOf(field)} aria-label={`Copy ${field.label.toLowerCase()}`} />
     </span>
   );
@@ -165,10 +178,10 @@ function FieldRow({ field }: { field: RenderedField }) {
   }
   return (
     <div className="group/item grid grid-cols-[minmax(96px,max-content)_minmax(0,1fr)] gap-x-6 gap-y-1.5">
-      <span className="text-label leading-5 font-normal text-ink-muted">{field.label}</span>
+      <span className={`flex ${line} items-center text-label leading-5 font-normal text-ink-muted`}>{field.label}</span>
       <span className="flex min-w-0 items-start gap-1">
-        <span className="min-w-0 flex-1">
-          <InlineValue field={field} />
+        <span className="min-w-0">
+          {field.kind === "list" ? <ListValue field={field} /> : <InlineValue field={field} />}
         </span>
         {copyable}
       </span>
@@ -193,11 +206,14 @@ export function ArgumentView({ plan, empty }: { plan: ArgumentPlan; empty?: Reac
   if (plan.primary.length === 0 && plan.detail.length === 0) {
     return <div className="px-4 py-3 text-label text-ink-faint">{empty ?? "No arguments"}</div>;
   }
+  /* Folding saves nothing for a single argument: it shows with the rest. */
+  const folded = plan.detail.length > 1;
+  const shown = folded ? plan.primary : [...plan.primary, ...plan.detail];
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {plan.primary.length > 0 ? <Fields fields={plan.primary} /> : null}
-      {plan.detail.length > 0 ? (
-        <Disclosure label={plan.detail.length === 1 ? "1 more argument" : `${plan.detail.length} more arguments`}>
+      {shown.length > 0 ? <Fields fields={shown} /> : null}
+      {folded ? (
+        <Disclosure label={`${plan.detail.length} more arguments`}>
           <Fields fields={plan.detail} />
         </Disclosure>
       ) : null}

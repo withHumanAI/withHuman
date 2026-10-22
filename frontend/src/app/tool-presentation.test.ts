@@ -150,6 +150,13 @@ describe("planArguments", () => {
     expect(planArguments({}, null)).toEqual({ primary: [], detail: [] });
   });
 
+  it("leaves out hidden top-level arguments unless the presentation names them", () => {
+    const args = { query: "hello", withhuman_scope: "read" };
+    expect(planArguments(args, null, ["withhuman_scope"]).primary.map((field) => field.key)).toEqual(["/query"]);
+    const named = planArguments(args, { fields: [{ path: "/withhuman_scope", kind: "text", label: "Scope" }] }, ["withhuman_scope"]);
+    expect(named.primary.map((field) => field.key)).toEqual(["/withhuman_scope", "/query"]);
+  });
+
   it("renders a bare list by the shape of its elements", () => {
     const plan = planArguments({ to: ["a@x.com", "b@x.com"], n: [1, 2] }, null);
     expect(plan.primary[0].items?.map((item) => [item.kind, item.value])).toEqual([["email", "a@x.com"], ["email", "b@x.com"]]);

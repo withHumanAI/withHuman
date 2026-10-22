@@ -200,7 +200,13 @@ function renderField(root: unknown, field: PresentationField, base: string, fall
  * presentation that renders /edits/0/old_string still leaves /edits
  * out of the unnamed list only if it named /edits itself: a partial
  * reading of a nested value keeps the whole value on the page. */
-export function planArguments(args: unknown, spec: ToolPresentationSpec | null | undefined): ArgumentPlan {
+/* hidden names top-level arguments to leave out unless the
+ * presentation names them. */
+export function planArguments(
+  args: unknown,
+  spec: ToolPresentationSpec | null | undefined,
+  hidden: readonly string[] = [],
+): ArgumentPlan {
   const primary: RenderedField[] = [];
   const detail: RenderedField[] = [];
   const named = new Set<string>();
@@ -215,7 +221,7 @@ export function planArguments(args: unknown, spec: ToolPresentationSpec | null |
   if (args && typeof args === "object" && !Array.isArray(args)) {
     for (const [key, value] of Object.entries(args as Record<string, unknown>)) {
       const pointer = `/${key.replace(/~/g, "~0").replace(/\//g, "~1")}`;
-      if (named.has(pointer)) continue;
+      if (named.has(pointer) || hidden.includes(key)) continue;
       const kind = inferKind(key, value);
       primary.push(
         kind === "list"

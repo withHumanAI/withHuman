@@ -487,6 +487,9 @@ export interface Extensions {
    * loader, and a reader it refuses gets nothing rather than an error.
    * null in an edition that registers none. */
   serverDirectory: (() => Promise<ServerDirectoryEntry[]>) | null;
+  /* Top-level argument names the edition adds to calls itself, which
+   * the request page's summary leaves out. The JSON view keeps them. */
+  hiddenArguments: string[];
   /* The contact kinds the edition delivers to beside core's own (email,
    * slack, discord), in the order its menus list them. A method of a
    * kind no bundle registered still lists, by its raw value. */
@@ -516,6 +519,7 @@ export const extensions: Extensions = {
   toolSources: [],
   toolReference: () => null,
   serverDirectory: null,
+  hiddenArguments: [],
   contactKinds: [],
   organizationPolicyRows: [],
   loginMethods: { sso: null },
@@ -536,6 +540,7 @@ export function registerExtensions(partial: Partial<Extensions>): void {
   if (partial.toolSources) extensions.toolSources.push(...partial.toolSources);
   if (partial.toolReference) extensions.toolReference = partial.toolReference;
   if (partial.serverDirectory) extensions.serverDirectory = partial.serverDirectory;
+  if (partial.hiddenArguments) extensions.hiddenArguments.push(...partial.hiddenArguments);
   if (partial.contactKinds) extensions.contactKinds.push(...partial.contactKinds);
   if (partial.organizationPolicyRows) extensions.organizationPolicyRows.push(...partial.organizationPolicyRows);
   if (partial.loginMethods) Object.assign(extensions.loginMethods, partial.loginMethods);

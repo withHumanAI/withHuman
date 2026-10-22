@@ -938,7 +938,9 @@ Examples:
   runtime one) to the queue representation, never to the AAP one. A
   presentation is a reading aid over the arguments: it may fold a field
   into the details but never hide one, every unnamed argument still
-  renders by shape, and the raw JSON stays one click away. The frontend
+  renders by shape (except the top-level names an edition adds to calls
+  itself and registers as `hiddenArguments`), and the raw JSON stays one
+  click away. A single detail field shows with the rest, unfolded. The frontend
   planner is `frontend/src/app/tool-presentation.ts`; rendered HTML goes
   through `ds/components/html-preview.tsx`, a fully sandboxed frame that
   runs no script and loads nothing.
@@ -958,7 +960,7 @@ Examples:
   `generated_at`) on the queue representation, never the AAP one; a
   failed read leaves it out. The web queue row shows a summarized
   request's summary alone over both lines, and the request page
-  puts it above today's title under an "AI summary" label.
+  shows it as the title in place of the presentation title.
   `WorkerOptions.NotificationSummaries` (the same reader port, which the
   edition answers per organization) lets prompts and digests lead with
   the summary (`SendApprovalPromptInput.Summary`,
@@ -1425,7 +1427,9 @@ Examples:
   pattern) and `serverDirectory` read (the servers an edition registers
   centrally, by the alias a request carries as `server`, with their
   names, which the pipeline route loader offers in the condition
-  editors' MCP server field before any call through them is seen); and
+  editors' MCP server field before any call through them is seen);
+  `hiddenArguments`, top-level argument names the edition writes into
+  calls itself, which the request page's summary leaves out; and
   `contactKinds`, the contact kinds an edition registers
   beside email, Slack and Discord, each built with `defineContactKind`:
   the kind, its label, icon and add-menu description, `available` over
