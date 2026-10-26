@@ -152,7 +152,7 @@ func (a *API) onboardingSessionEvents(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
-		case <-a.drain.streamsEnded():
+		case <-a.drain.StreamsEnded():
 			return
 		case <-ticker.C:
 			fmt.Fprint(c.Writer, ": keepalive\n\n")
@@ -160,7 +160,7 @@ func (a *API) onboardingSessionEvents(c *gin.Context) {
 		}
 		// A session that expired or was revoked since the last tick ends
 		// the stream; the browser's reconnect then meets the 401.
-		resolved, err := resolvePrincipal(c, a.auth)
+		resolved, err := ResolvePrincipal(c, a.auth)
 		if err != nil || !onboarding.Authorized(resolved) {
 			return
 		}

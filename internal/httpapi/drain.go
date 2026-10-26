@@ -36,6 +36,8 @@ func (d *Drain) EndStreams() {
 	d.once.Do(func() { close(d.streams) })
 }
 
-func (d *Drain) streamsEnded() <-chan struct{} {
+// StreamsEnded closes when EndStreams runs; an event stream selects on it
+// and returns.
+func (d *Drain) StreamsEnded() <-chan struct{} {
 	return d.streams
 }

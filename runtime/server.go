@@ -510,6 +510,18 @@ func HoldsAnywhere(principal domain.Principal, permission domain.Permission) boo
 	return authorization.HoldsAnywhere(principal, permission)
 }
 
+// ResolvePrincipal resolves the request's credential again, for an
+// edition's event stream to call on every tick: the stream ends once the
+// session expires or is revoked, and reads with live grants.
+func (s *Server) ResolvePrincipal(c *gin.Context) (domain.Principal, error) {
+	return httpapi.ResolvePrincipal(c, s.Auth)
+}
+
+// StreamsEnded closes once shutdown starts. An edition's event stream
+// returns on it, so the wait for in-flight requests is bounded by real
+// work and the browser reconnects to another replica.
+func (s *Server) StreamsEnded() <-chan struct{} { return s.drain.StreamsEnded() }
+
 // Principal returns the principal PrincipalAuth resolved for the request.
 func Principal(c *gin.Context) domain.Principal { return httpapi.Principal(c) }
 

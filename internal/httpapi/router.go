@@ -813,7 +813,7 @@ func (a *API) events(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
-		case <-a.drain.streamsEnded():
+		case <-a.drain.StreamsEnded():
 			return
 		case <-ticker.C:
 			fmt.Fprint(c.Writer, ": keepalive\n\n")
@@ -821,7 +821,7 @@ func (a *API) events(c *gin.Context) {
 		}
 		// A session that expired or was revoked since the last tick ends
 		// the stream; the browser's reconnect then meets the 401.
-		resolved, err := resolvePrincipal(c, a.auth)
+		resolved, err := ResolvePrincipal(c, a.auth)
 		if err != nil || !authorization.HoldsAnywhere(resolved, domain.PermissionRequestRead) {
 			return
 		}
@@ -1384,7 +1384,7 @@ func PrincipalAuthAdmittingOrganizationKeys(auth *authn.Service, logger *slog.Lo
 
 func principalAuth(auth *authn.Service, logger *slog.Logger, allowOrganizationKeys bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		principal, err := resolvePrincipal(c, auth)
+		principal, err := ResolvePrincipal(c, auth)
 		if err != nil {
 			WriteError(c, logger, err)
 			return
@@ -1408,10 +1408,10 @@ func principalAuth(auth *authn.Service, logger *slog.Logger, allowOrganizationKe
 	}
 }
 
-// resolvePrincipal resolves the credential a request carries: an API
+// ResolvePrincipal resolves the credential a request carries: an API
 // key bearer or the session cookie. Event streams call it again on every tick, so a stream ends
 // once its session expires or is revoked and reads with live grants.
-func resolvePrincipal(c *gin.Context, auth *authn.Service) (domain.Principal, error) {
+func ResolvePrincipal(c *gin.Context, auth *authn.Service) (domain.Principal, error) {
 	if bearer := c.GetHeader("Authorization"); bearer != "" {
 		token := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
 		if !strings.HasPrefix(bearer, "Bearer ") || !authn.IsAPIKeyToken(token) {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/ds/components/avatar";
 import { Badge } from "@/ds/components/badge";
+import { Button } from "@/ds/components/button";
 import { ConfirmDialog } from "@/ds/components/confirm-dialog";
 import type { MenuAction } from "@/ds/components/menu";
 import { Pagination } from "@/ds/components/pagination";
@@ -26,6 +27,39 @@ const MEMBERS: Member[] = [
   { id: "m4", name: "Jonas Weber", email: "jonas@acme.test", role: "Member", scopes: [], joined: "Aug 2026", joinedAt: 8 },
 ];
 
+interface TailEvent {
+  id: string;
+  type: string;
+  actor: string;
+}
+
+const TAIL_TYPES = ["approval.created", "approval.decided", "routing.level_entered", "agent.updated"];
+const TAIL_ACTORS = ["Ana Batista", "deploy-bot", "System", "Sam Okafor"];
+const TAIL_SEED: TailEvent[] = [
+  { id: "t3", type: "approval.decided", actor: "Sam Okafor" },
+  { id: "t2", type: "approval.created", actor: "deploy-bot" },
+  { id: "t1", type: "agent.updated", actor: "Ana Batista" },
+];
+
+const TAIL_COLUMNS: TableColumn<TailEvent>[] = [
+  {
+    id: "event",
+    label: "Event",
+    grow: true,
+    cell: (event) => (
+      <Badge tone="neutral">
+        <span className="font-mono text-[11px]">{event.type}</span>
+      </Badge>
+    ),
+  },
+  {
+    id: "actor",
+    label: "Actor",
+    width: 140,
+    cell: (event) => <span className="text-body text-ink-secondary">{event.actor}</span>,
+  },
+];
+
 export function TablesSection() {
   const toast = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -34,6 +68,20 @@ export function TablesSection() {
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [tail, setTail] = useState<{ events: TailEvent[]; entering: Set<string> }>({
+    events: TAIL_SEED,
+    entering: new Set(),
+  });
+  /* A live tail inserts each batch at the top and marks it entering; the
+   * next batch replaces the mark, so only the newest rows ever slide. */
+  const arrive = (count: number) =>
+    setTail((current) => {
+      const batch = Array.from({ length: count }, (_, index) => {
+        const sequence = current.events.length + index + 1;
+        return { id: `t${sequence}`, type: TAIL_TYPES[sequence % TAIL_TYPES.length], actor: TAIL_ACTORS[sequence % TAIL_ACTORS.length] };
+      }).reverse();
+      return { events: [...batch, ...current.events], entering: new Set(batch.map((event) => event.id)) };
+    });
 
   const members = useMemo(() => {
     const rows = MEMBERS.filter((member) => !removed.has(member.id));
@@ -246,6 +294,33 @@ export function TablesSection() {
             hasMore={(page + 1) * 2 < MEMBERS.length}
             onChange={setPage}
           />
+        </div>
+      </Demo>
+      <Demo
+        label="Live tail"
+        hint="enteringIds opens a batch of arriving rows from the top in one 160ms slide; a screen leaves out a batch too large to follow, and reduced motion inserts instantly"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => arrive(1)}>
+              Add one event
+            </Button>
+            <Button size="sm" onClick={() => arrive(3)}>
+              Add three events
+            </Button>
+          </div>
+          <div className="overflow-hidden rounded-lg border-hairline border-edge bg-surface shadow-sm">
+            <Table
+              items={tail.events.slice(0, 6)}
+              columns={TAIL_COLUMNS}
+              getId={(event) => event.id}
+              selected={new Set()}
+              onSelectedChange={() => undefined}
+              selectable={false}
+              enteringIds={tail.entering}
+              aria-label="Live events"
+            />
+          </div>
         </div>
       </Demo>
       <ConfirmDialog

@@ -51,6 +51,11 @@ export interface ListProps<Item> {
    * matches a Card header's inset so a list inside a card lines up
    * with the title above it. */
   padding?: ListPadding;
+  /* A live list's rows that just arrived. Each opens from zero height
+   * over 160ms as it mounts, so the eye sees where the rows below went;
+   * nothing glows. Pass it (even empty) only on a list that receives
+   * live data, and leave out a batch too large to follow. */
+  enteringIds?: ReadonlySet<string>;
   className?: string;
   "aria-label": string;
 }
@@ -84,6 +89,7 @@ export function List<Item>({
   expandedId = null,
   renderExpanded,
   padding = "compact",
+  enteringIds,
   className,
   "aria-label": ariaLabel,
 }: ListProps<Item>) {
@@ -256,71 +262,73 @@ export function List<Item>({
               "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus",
             )}
           >
-            <div className={cn("flex min-h-9 items-center gap-1", inset)}>
-              {selectable ? (
-                <span
-                  onClick={(event) => event.stopPropagation()}
-                  className={cn(
-                    "flex w-[22px] shrink-0 items-center transition-opacity duration-100",
-                    isHighlighted || isSelected || anySelected
-                      ? "opacity-100"
-                      : "opacity-0",
-                  )}
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => toggle(index)}
-                    aria-label="Select item"
-                    tabIndex={-1}
-                  />
-                </span>
-              ) : null}
-              <div className="flex min-w-0 flex-1 items-center">
-                {children(item)}
-              </div>
-              {onOpen && openButton ? (
-                <span
-                  onClick={(event) => event.stopPropagation()}
-                  onDoubleClick={(event) => event.stopPropagation()}
-                  className={cn(
-                    "ml-2 flex w-[52px] shrink-0 justify-end transition-opacity duration-100",
-                    isHighlighted ? "opacity-100" : "opacity-0",
-                  )}
-                >
-                  <Button
-                    size="sm"
-                    variant="neutral"
-                    tabIndex={-1}
-                    onClick={() => onOpen(item)}
+            <RowEntrance live={enteringIds !== undefined} entering={enteringIds?.has(id) ?? false}>
+              <div className={cn("flex min-h-9 items-center gap-1", inset)}>
+                {selectable ? (
+                  <span
+                    onClick={(event) => event.stopPropagation()}
+                    className={cn(
+                      "flex w-[22px] shrink-0 items-center transition-opacity duration-100",
+                      isHighlighted || isSelected || anySelected
+                        ? "opacity-100"
+                        : "opacity-0",
+                    )}
                   >
-                    View
-                  </Button>
-                </span>
-              ) : null}
-            </div>
-            {isExpanded ? (
-              <div
-                className={cn(
-                  "grid transition-[grid-template-rows] duration-160 ease-standard",
-                  "motion-reduce:transition-none",
-                  expandedId === id
-                    ? "grid-rows-[1fr] starting:grid-rows-[0fr]"
-                    : "grid-rows-[0fr]",
-                )}
-              >
-                <div className="overflow-hidden">
-                  {/* The panel is content, not a click target: clicks
-                   * inside must not collapse the row they describe. */}
-                  <div
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggle(index)}
+                      aria-label="Select item"
+                      tabIndex={-1}
+                    />
+                  </span>
+                ) : null}
+                <div className="flex min-w-0 flex-1 items-center">
+                  {children(item)}
+                </div>
+                {onOpen && openButton ? (
+                  <span
                     onClick={(event) => event.stopPropagation()}
                     onDoubleClick={(event) => event.stopPropagation()}
-                    className={cn("cursor-default pb-3", inset)}
+                    className={cn(
+                      "ml-2 flex w-[52px] shrink-0 justify-end transition-opacity duration-100",
+                      isHighlighted ? "opacity-100" : "opacity-0",
+                    )}
                   >
-                    {renderExpanded(item)}
+                    <Button
+                      size="sm"
+                      variant="neutral"
+                      tabIndex={-1}
+                      onClick={() => onOpen(item)}
+                    >
+                      View
+                    </Button>
+                  </span>
+                ) : null}
+              </div>
+              {isExpanded ? (
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-160 ease-standard",
+                    "motion-reduce:transition-none",
+                    expandedId === id
+                      ? "grid-rows-[1fr] starting:grid-rows-[0fr]"
+                      : "grid-rows-[0fr]",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    {/* The panel is content, not a click target: clicks
+                     * inside must not collapse the row they describe. */}
+                    <div
+                      onClick={(event) => event.stopPropagation()}
+                      onDoubleClick={(event) => event.stopPropagation()}
+                      className={cn("cursor-default pb-3", inset)}
+                    >
+                      {renderExpanded(item)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </RowEntrance>
           </li>
         );
         return renderRow ? (
@@ -328,6 +336,33 @@ export function List<Item>({
         ) : row;
       })}
     </ul>
+  );
+}
+
+/* A live list's row body. An arriving row opens from 0fr to 1fr as it
+ * mounts (@starting-style), the same settle as an expanding panel; a
+ * row already on screen keeps the wrapper, so leaving the entering set
+ * never remounts it. Lists without live data render the body bare. */
+function RowEntrance({
+  live,
+  entering,
+  children,
+}: {
+  live: boolean;
+  entering: boolean;
+  children: ReactNode;
+}) {
+  if (!live) return children;
+  return (
+    <div
+      className={cn(
+        "grid grid-rows-[1fr]",
+        entering &&
+          "transition-[grid-template-rows] duration-160 ease-out starting:grid-rows-[0fr] motion-reduce:transition-none",
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   );
 }
 

@@ -511,6 +511,10 @@ Examples:
   own read off it, and `Server.PrincipalAuthAdmittingOrganizationKeys`
   is `PrincipalAuth` for an edition management route that admits
   organization keys through a permission naming that holder.
+  `Server.ResolvePrincipal` and `Server.StreamsEnded` let an edition's
+  event stream behave like core's own: resolve the credential again on
+  every tick, so the stream ends once the session expires or loses its
+  grant, and return when shutdown starts.
 - The open edition reports itself once a day (`internal/heartbeat`): a
   random installation ID from the one `installations` row, the version,
   OS, architecture and deployment kind, nothing else. `cmd/withhuman`

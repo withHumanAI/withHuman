@@ -102,6 +102,7 @@ export function SurfacesSection() {
                 "Handoffs inside a row: a separator ceding space to a control, a check drawing in. The container is reshaping; show it.",
                 "In-progress work: spinners and loading dots. The only motion without a user gesture, because the movement is the information.",
                 "Micro-feedback on interactive surfaces: hover and press fills, copy-tick fades. Color and opacity only, 100ms, never position or size.",
+                "Rows arriving in a live tail the reader switched on, like the audit log's Live: each batch opens from the top in one 160ms slide, and a batch too large to follow appears instantly. The switch is the gesture; nothing glows.",
               ]}
             />
             <PolicyList
@@ -111,7 +112,7 @@ export function SurfacesSection() {
                 "State where color is the signal: selection, active row, status. A 100ms color fade is the ceiling.",
                 "Keyboard-driven movement: arrowing through lists, focus rings. Animation there reads as lag. Instant.",
                 "Content: text, payloads, and values never slide or reflow-animate. Containers move; content appears.",
-                "Data arriving: queue updates swap instantly. No row shuffles, no new-item glows. This is a review queue, not a feed.",
+                "Data arriving anywhere else: queue updates swap instantly. No row shuffles, no new-item glows. This is a review queue, not a feed.",
                 "Errors and confirmations: urgency does not wait 160ms.",
               ]}
             />
