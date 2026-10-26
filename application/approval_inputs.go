@@ -811,6 +811,12 @@ func validateApprovalRequest(request domain.ApprovalRequest) error {
 }
 
 func validateDecisionCommand(command domain.DecisionCommand) error {
+	// A signed-in reviewer decides through a session. A personal API key
+	// never signs in: it is identified by its key id instead.
+	authID := requiredID("session ID", command.Principal.Auth.SessionID)
+	if command.Principal.Auth.Method == domain.AuthMethodAPIKey {
+		authID = requiredID("API key ID", command.Principal.Auth.CredentialID)
+	}
 	if err := firstError([]error{
 		requiredID("decision operation ID", command.OperationID),
 		requiredID("approval request ID", command.RequestID),
@@ -821,7 +827,7 @@ func validateDecisionCommand(command domain.DecisionCommand) error {
 		requiredString("authentication method", command.Principal.Auth.Method),
 		requiredString("authentication assurance", command.Principal.Auth.Assurance),
 		requiredTime("authentication time", command.Principal.Auth.AuthenticatedAt),
-		requiredID("session ID", command.Principal.Auth.SessionID),
+		authID,
 		requiredString("decision channel", command.Channel),
 		requiredString("idempotency key", command.IdempotencyKey),
 	}); err != nil {
