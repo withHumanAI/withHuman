@@ -27,7 +27,7 @@ import {
   type PipelineAddChoice,
 } from "@/ds/components/pipeline-flow";
 import { Referenced } from "@/ds/components/reference";
-import type { ReviewerTarget } from "@/ds/components/reviewer-target";
+import { agentOwnerLabel, type ReviewerTarget } from "@/ds/components/reviewer-target";
 import { UnknownBlockCard, UnknownBlockSummaryCard } from "@/ds/components/unknown-block";
 import {
   WebhookBlockCard,
@@ -44,7 +44,7 @@ import {
 } from "@/ds/icons";
 import { blockErrorLabel } from "./block-errors";
 import { blockKind, extensions, requireBlockKind } from "./extensions";
-import { duplicateDraft, newDraftBlock, type BlockDraft, type BranchDraft } from "./pipeline-blocks";
+import { duplicateDraft, newDraftBlock, type BlockDraft, type BranchDraft, type DelegateDraft } from "./pipeline-blocks";
 import {
   statusAt,
   stepAt,
@@ -78,7 +78,8 @@ import {
  * a request can get that far. A
  * delegate is one card and an exit naming the pipeline matching requests
  * continue in; that pipeline's blocks belong to its owners and are not
- * drawn here. The screen's state
+ * drawn here, except where a recorded run unfolds the pipeline a
+ * request entered (delegateContents). The screen's state
  * (mode, section, replay, edits) reaches every level through
  * RailContext rather than props.
  */
@@ -128,6 +129,14 @@ export interface RailState {
   /* The test replay and how far it has got. */
   run: TestRun | null;
   cursor: number;
+  /* Whether replayed steps show the evidence under their cards: a
+   * kind's own and a webhook's delivery. Failures always show. */
+  evidence?: boolean;
+  /* What an entered delegate draws in a well under its card, in place
+   * of its exit: the pipeline it handed the request to, for a recorded
+   * run. Without it, or when it draws nothing, the exit names the
+   * pipeline and its blocks are not drawn. */
+  delegateContents?: (delegate: DelegateDraft) => ReactNode;
   /* The block a review link points at, anywhere in the tree. */
   highlight?: { id: string; ref: RefObject<HTMLDivElement | null> };
   /* Present while editing. */
@@ -149,6 +158,18 @@ function useRail(): RailState {
   const rail = useContext(RailContext);
   if (!rail) throw new Error("PipelineRail needs a RailProvider.");
   return rail;
+}
+
+/* The rail's describeRoute for a pipeline whose default is
+ * defaultTarget: what a human exit that names a route, or none, asks.
+ * inheritedLabel is what no default means there. */
+export function routeDescriber(defaultTarget: ReviewerTarget | null, inheritedLabel: string) {
+  return (target: ReviewerTarget | null) =>
+    target?.type === "agent_owner"
+      ? `Asks the agent's owner. Without one, it goes to ${target.id ? target.name : "the pipeline default"}.`
+      : target
+        ? ""
+        : `Uses pipeline default: ${defaultTarget?.type === "agent_owner" ? agentOwnerLabel(defaultTarget.name) : (defaultTarget?.name ?? inheritedLabel)}.`;
 }
 
 export function testRing(status: TestStatus, outcome: TestOutcome | undefined): string {
@@ -343,9 +364,9 @@ function DeliveryEvidenceRow({ step, block, endpoints }: {
 
 /* A replayed step that failed instead of answering: the code and what
  * it means, so its human exit is not mistaken for a match. A webhook's
- * delivery row already carries its code. */
-function ErrorEvidenceRow({ step, block }: { step?: TestStep; block: BlockDraft }) {
-  if (!step?.errorCode || (block.kind === "webhook" && step.delivery)) return null;
+ * delivery row, when shown, already carries its code. */
+function ErrorEvidenceRow({ step, block, deliveryShown }: { step?: TestStep; block: BlockDraft; deliveryShown: boolean }) {
+  if (!step?.errorCode || (deliveryShown && block.kind === "webhook" && step.delivery)) return null;
   return (
     <div className="pt-1 pl-8">
       <p className="font-mono text-[11px] text-warn">
@@ -383,13 +404,27 @@ function BlockExits({
     case "delegate": {
       const pipeline = rail.pipelines?.find((option) => option.key === block.pipelineKey);
       const terminal = statusAt(rail.run, rail.cursor, stepKey(rail.section, block.id)) === "terminal";
+      const target = block.pipelineKey ? (
+        <Referenced reference={{ kind: "pipeline", pipelineKey: block.pipelineKey, name: pipeline?.name }} inline>
+          {pipeline?.name ?? <span className="font-mono text-[11px]">{block.pipelineKey}</span>}
+        </Referenced>
+      ) : "a pipeline";
+      const contents = matchedKey === "enter" ? rail.delegateContents?.(block) : undefined;
+      if (contents) {
+        return (
+          <PipelineBranchWell
+            name={pipeline?.name ?? block.pipelineKey}
+            taken="enter"
+            label={<>If conditions are met, continue in {target}</>}
+            continueLabel={continueLabel ?? "Otherwise, check the next block"}
+          >
+            {contents}
+          </PipelineBranchWell>
+        );
+      }
       return (
         <PipelineDelegateExits
-          pipeline={block.pipelineKey ? (
-            <Referenced reference={{ kind: "pipeline", pipelineKey: block.pipelineKey, name: pipeline?.name }} inline>
-              {pipeline?.name ?? <span className="font-mono text-[11px]">{block.pipelineKey}</span>}
-            </Referenced>
-          ) : "a pipeline"}
+          pipeline={target}
           taken={matchedKey === "enter" ? "enter" : matchedKey === "continue" ? "skip" : undefined}
           result={matchedKey === "enter" && terminal ? rail.run?.outcome : undefined}
           continueLabel={continueLabel}
@@ -536,9 +571,13 @@ function RailRow({
           listRef={listRef}
         />
       </div>
-      <KindEvidenceRow step={step} block={block} />
-      <DeliveryEvidenceRow step={step} block={block} endpoints={rail.endpoints} />
-      <ErrorEvidenceRow step={step} block={block} />
+      {rail.evidence === false ? null : (
+        <>
+          <KindEvidenceRow step={step} block={block} />
+          <DeliveryEvidenceRow step={step} block={block} endpoints={rail.endpoints} />
+        </>
+      )}
+      <ErrorEvidenceRow step={step} block={block} deliveryShown={rail.evidence !== false} />
       {block.kind === "branch" ? (
         <BranchContents
           branch={block}

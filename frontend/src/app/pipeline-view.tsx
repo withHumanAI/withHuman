@@ -29,7 +29,7 @@ import {
   PipelineTerminusCard,
 } from "@/ds/components/pipeline-flow";
 import { ReferenceChip } from "./reference-chip";
-import { TargetBadge, agentOwnerLabel, type ReviewerTarget } from "@/ds/components/reviewer-target";
+import { TargetBadge, type ReviewerTarget } from "@/ds/components/reviewer-target";
 import type { WebhookEndpointOption } from "@/ds/components/webhook-block";
 import { SaveBar } from "@/ds/components/save-bar";
 import { TextArea } from "@/ds/components/text-area";
@@ -82,6 +82,7 @@ import {
   PipelineRail,
   RailProvider,
   UnreachableNotice,
+  routeDescriber,
   useRailEditor,
   type RailState,
 } from "./pipeline-rail";
@@ -445,12 +446,7 @@ export function PipelineViewScreen({
   /* What no default means here: the queue for the entry pipeline, and
    * the delegating pipeline's own default for any other. */
   const inheritedLabel = entry ? "Any authorized reviewer" : "The delegating pipeline's default";
-  const describeTargetRoute = (target: ReviewerTarget | null) =>
-    target?.type === "agent_owner"
-      ? `Asks the agent's owner. Without one, it goes to ${target.id ? target.name : "the pipeline default"}.`
-      : target
-        ? ""
-        : `Uses pipeline default: ${currentDefault?.type === "agent_owner" ? agentOwnerLabel(currentDefault.name) : (currentDefault?.name ?? inheritedLabel)}.`;
+  const describeTargetRoute = routeDescriber(currentDefault, inheritedLabel);
   const defaultRoute = editing && currentDefault ? (
     <div className="flex flex-wrap items-center gap-1 text-micro text-ink-muted">
       <TargetBadge target={currentDefault} />
