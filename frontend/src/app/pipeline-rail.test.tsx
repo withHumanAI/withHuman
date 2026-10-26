@@ -229,6 +229,35 @@ describe("a delegate on the rail", () => {
     expect(screen.getByText("If conditions are met").className.split(" ")).toContain("text-ink");
     expect(screen.getByText("Every request").className.split(" ")).toContain("text-ink-muted");
   });
+
+  it("unfolds the target in a well when the rail is given its contents", () => {
+    const drafts = [delegate(), { ...outcome("last", "Deny deletes"), outcome: "deny" as const }];
+    const run = runFromPreview({
+      outcome: "approve",
+      reason_code: "block_outcome",
+      terminal_block_id: "small",
+      blocks: [
+        { block_id: "to-billing", pipeline_key: "entry", position: 0, outcome: "enter", cost: 1, trace: [] },
+        { block_id: "small", pipeline_key: "billing", position: 1, outcome: "approve", cost: 1, trace: [] },
+      ],
+    });
+    render(
+      <RailProvider
+        value={state(drafts, {
+          section: "entry",
+          pipelines: [{ key: "billing", name: "Billing", active: true }],
+          run,
+          cursor: run.steps.length,
+          delegateContents: (block) => <p>Inside {block.pipelineKey}</p>,
+        })}
+      >
+        <PipelineRail blocks={drafts} lastLabel="Otherwise" />
+      </RailProvider>,
+    );
+    const well = screen.getByRole("group", { name: "Blocks in “Billing”" });
+    expect(within(well).getByText("Inside billing")).toBeTruthy();
+    expect(screen.queryByText("Continue in Billing")).toBeNull();
+  });
 });
 
 describe("editing the rail", () => {

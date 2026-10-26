@@ -1103,24 +1103,31 @@ export function requestMoments(
 export function HistoryDisclosure({ moments, now, action }: { moments: Moment[]; now: number; action?: ReactNode }) {
   return (
     <Disclosure label="Request history" action={action}>
-      <Timeline>
-        {moments.map((moment) => (
-          <TimelineItem key={moment.key} tone={moment.tone} marker={moment.marker}>
-            <p className="text-body text-ink">
-              {moment.title}
-              {moment.detail ? <span className="text-ink-muted"> · {moment.detail}</span> : null}
-            </p>
-            {moment.live ? null : (
-              <p className="text-micro font-normal text-ink-faint">
-                {formatAbsolute(moment.at)}
-                <span className="mx-1.5">·</span>
-                {formatElapsed(moment.at, now)} ago
-              </p>
-            )}
-          </TimelineItem>
-        ))}
-      </Timeline>
+      <HistoryTimeline moments={moments} now={now} />
     </Disclosure>
+  );
+}
+
+/* The history's rows on their own, for a page that shows them open. */
+export function HistoryTimeline({ moments, now }: { moments: Moment[]; now: number }) {
+  return (
+    <Timeline>
+      {moments.map((moment) => (
+        <TimelineItem key={moment.key} tone={moment.tone} marker={moment.marker}>
+          <p className="text-body text-ink">
+            {moment.title}
+            {moment.detail ? <span className="text-ink-muted"> · {moment.detail}</span> : null}
+          </p>
+          {moment.live ? null : (
+            <p className="text-micro font-normal text-ink-faint">
+              {formatAbsolute(moment.at)}
+              <span className="mx-1.5">·</span>
+              {formatElapsed(moment.at, now)} ago
+            </p>
+          )}
+        </TimelineItem>
+      ))}
+    </Timeline>
   );
 }
 

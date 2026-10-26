@@ -775,7 +775,13 @@ Examples:
   one card and an exit ("if conditions are met, continue in <pipeline>");
   the target's blocks are never inlined into the delegating pipeline's
   page, and a test replay folds whatever ran inside the target onto the
-  delegate.
+  delegate. The one place a target unfolds is a recorded run
+  (`frontend/src/app/pipeline-run.tsx`, `RecordedPipelineRun`): the
+  revisions a real request ran, drawn read only with each step's outcome
+  and no evidence, a delegate the request entered drawing its target in
+  a well under the card (the rail's `delegateContents`), and a revision
+  the reader cannot read drawn as a line. An edition's audit log draws
+  it.
 - Request approval block types are a registry
   (`internal/approvalpipeline.BlockRegistry`), constructed once in each
   composition root and shared by compiled state, management, and
