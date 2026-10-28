@@ -1,15 +1,16 @@
 name: withhuman
-version: 1.5.0
+version: 1.5.1
 manifest_version: 2
 api_version: 1
 description: >-
-  Approve or deny Hermes tool calls before they run. Each call waits for
-  withHuman's decision, by your rules or a person on your team.
+  Human in the loop approval for Hermes tool calls. Set rules for what runs
+  automatically, approve the rest from Slack, Discord or your phone, and keep
+  an audit log.
 author: withHumanAI
 license: Elastic-2.0
 homepage: https://withhuman.ai/docs
 tags: [approvals, human-in-the-loop, security]
-requires_hermes: ">=0.22.5"
+requires_hermes: ">=0.21.5"
 provides_hooks:
   - pre_tool_call
 config_schema:
