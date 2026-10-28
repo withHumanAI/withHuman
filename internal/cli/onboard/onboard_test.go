@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/withHumanAI/withHuman/internal/cli/discovery"
 	"github.com/withHumanAI/withHuman/internal/cli/installation"
 	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
+	"github.com/withHumanAI/withHuman/plugins/hermes"
 )
 
 func TestMain(m *testing.M) {
@@ -194,15 +196,19 @@ func TestSetupEndToEnd(t *testing.T) {
 	if len(session.InstallResults) != 2 {
 		t.Fatalf("install results = %+v", session.InstallResults)
 	}
+	pluginFiles, err := fs.Glob(hermes.Files(), "*")
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, result := range session.InstallResults {
 		// Claude Code: the hook file and the MCP registration. Hermes: the
-		// plugin's four files, its aap.json, and config.yaml twice.
-		want := map[string]int{"claude-code": 2, "hermes": 7}[result.Runtime]
+		// plugin's files, its aap.json, and config.yaml twice.
+		want := map[string]int{"claude-code": 2, "hermes": len(pluginFiles) + 3}[result.Runtime]
 		if !result.OK || result.Manual || len(result.Changes) != want {
 			t.Fatalf("install result = %+v", result)
 		}
 	}
-	for _, name := range []string{"plugin.yaml", "__init__.py", "connect.py", "README.md", "aap.json"} {
+	for _, name := range append(pluginFiles, "aap.json") {
 		if _, err := os.Stat(filepath.Join(f.home, ".hermes", "plugins", "withhuman", name)); err != nil {
 			t.Fatalf("Hermes plugin file %s: %v", name, err)
 		}
