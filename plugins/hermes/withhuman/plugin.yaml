@@ -1,11 +1,11 @@
 name: withhuman
-version: 1.5.1
+version: 1.5.2
 manifest_version: 2
 api_version: 1
 description: >-
-  Human in the loop approval for Hermes tool calls. Set rules for what runs
-  automatically, approve the rest from Slack, Discord or your phone, and keep
-  an audit log.
+  Human approval for Hermes tool calls, with human in the loop guardrails. Set
+  rules for what runs automatically, and send the rest to your team to approve
+  or deny from Slack, Discord or your phone. Keep an audit log of every call.
 author: withHumanAI
 license: Elastic-2.0
 homepage: https://withhuman.ai/docs
