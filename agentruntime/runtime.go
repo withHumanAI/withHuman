@@ -333,7 +333,7 @@ func TestCommand(key Key, tool SelectedTool) (Command, bool) {
 	case Hermes:
 		return Command{
 			Shell: "hermes chat -q " + shellQuote(prompt),
-			Note:  "Hermes asks for one-time consent to run the withHuman hook; accept it or start once with --accept-hooks.",
+			Note:  "Start a new Hermes session so it loads the withHuman plugin.",
 		}, true
 	case DeepSeek:
 		return Command{

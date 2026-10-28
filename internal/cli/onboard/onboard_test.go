@@ -195,10 +195,16 @@ func TestSetupEndToEnd(t *testing.T) {
 		t.Fatalf("install results = %+v", session.InstallResults)
 	}
 	for _, result := range session.InstallResults {
-		// The hook file and the MCP registration: two changes each, Hermes's
-		// both on config.yaml.
-		if !result.OK || result.Manual || len(result.Changes) != 2 {
+		// Claude Code: the hook file and the MCP registration. Hermes: the
+		// plugin's three files, its aap.json, and config.yaml twice.
+		want := map[string]int{"claude-code": 2, "hermes": 6}[result.Runtime]
+		if !result.OK || result.Manual || len(result.Changes) != want {
 			t.Fatalf("install result = %+v", result)
+		}
+	}
+	for _, name := range []string{"plugin.yaml", "__init__.py", "README.md", "aap.json"} {
+		if _, err := os.Stat(filepath.Join(f.home, ".hermes", "plugins", "withhuman", name)); err != nil {
+			t.Fatalf("Hermes plugin file %s: %v", name, err)
 		}
 	}
 	manager, err := f.env.Manager()

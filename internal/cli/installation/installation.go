@@ -13,6 +13,7 @@ import (
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/credential"
 	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
+	"github.com/withHumanAI/withHuman/plugins/hermes"
 )
 
 func New(configDir string, env adapters.Environment) (*adapters.Manager, error) {
@@ -47,7 +48,8 @@ type Result struct {
 }
 
 // Install stores the one-time enrollment before installation so local failures
-// can be repaired without enrolling another instance, installs the hook,
+// can be repaired without enrolling another instance, installs the hook (for
+// Hermes, withHuman's own plugin),
 // then registers the provider's MCP servers with the runtime under the
 // same credential. Secrets never enter reports.
 func Install(manager *adapters.Manager, configDir, key string, cred credential.Credential, servers []domain.AgentMCPServer, env mcpservers.Env) (Result, error) {
@@ -79,7 +81,11 @@ func Install(manager *adapters.Manager, configDir, key string, cred credential.C
 			return result, err
 		}
 	}
-	installed, err := adapter.Install(cred.Token, origin+"/api/aap")
+	var options []adapters.InstallOption
+	if agentruntime.Key(key) == agentruntime.Hermes {
+		options = append(options, adapters.WithPlugin(hermes.Name, hermes.Files()))
+	}
+	installed, err := adapter.Install(cred.Token, origin+"/api/aap", options...)
 	result.Complete, result.Changes, result.Notes = installed.Complete, installed.Changes, installed.Notes
 	if err != nil || !installed.Complete {
 		return result, err
