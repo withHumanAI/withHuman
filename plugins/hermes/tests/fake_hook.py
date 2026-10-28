@@ -9,7 +9,8 @@ import time
 
 payload = json.loads(sys.stdin.read())
 with open(os.environ["FAKE_HOOK_LOG"], "w", encoding="utf-8") as log:
-    json.dump({"payload": payload, "config_dir": os.environ.get("AAP_CONFIG_DIR")}, log)
+    json.dump({"payload": payload, **{name: os.environ.get(name) for name in
+                                      ("AAP_CONFIG_DIR", "AAP_INSTANCE_TOKEN", "AAP_BASE_URL")}}, log)
 
 mode = os.environ.get("FAKE_HOOK_MODE", "approve")
 
@@ -27,6 +28,8 @@ if mode == "approve":
     answer({"action": "modify", "args": payload["tool_input"]})
 elif mode == "deny":
     answer({"action": "block", "message": "Denied by a reviewer."})
+elif mode == "refused":
+    answer({"action": "block", "message": "The approval provider refused this runtime's credential, so no tool call can run. The call was not run."})
 elif mode == "garbage":
     print("not json")
 elif mode == "slow":
