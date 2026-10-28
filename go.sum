@@ -46,8 +46,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.5-0.20261028130735-4ca5e4871478 h1:kCTgCBXPy1UYsAVA27Z6I2MB6ZA4jAR2EOn8FRzQOFA=
-github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.5-0.20261028130735-4ca5e4871478/go.mod h1:ByhPp1uUoTWJYAs14SBmD2bCBlLvGEcjfG/0FWFNwI8=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.5 h1:AgYiG3JL5B4u7lDINvkRXSgfbG3cTG5YftUePpGR9Lg=
+github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.5/go.mod h1:ByhPp1uUoTWJYAs14SBmD2bCBlLvGEcjfG/0FWFNwI8=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
