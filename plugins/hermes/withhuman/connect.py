@@ -13,6 +13,7 @@ from __future__ import annotations
 import getpass
 import hashlib
 import json
+import logging
 import os
 import platform
 import re
@@ -26,6 +27,8 @@ import urllib.request
 import uuid
 
 from . import DEFAULT_URL, KEY_ENV, current_connection, downloaded_cli, find_cli, hermes_key_connection, run_hook
+
+logger = logging.getLogger(__name__)
 
 INSTALL_DOCS = "https://withhuman.ai/docs/web-app/agents#cli-enrollment"
 # The CLI setup downloads when none is installed or the installed one is
@@ -300,13 +303,22 @@ def _ensure_cli():
     return download_cli()
 
 
-def download_cli():
+def refresh_downloaded_cli():
+    """Replace the CLI setup downloaded when the plugin now pins a newer
+    one, as after `hermes plugins update`. A CLI the person installed
+    themselves is theirs to upgrade."""
+    path = downloaded_cli()
+    if path.is_file() and _older(_cli_version(str(path)), CLI_VERSION):
+        download_cli(say=logger.info)
+
+
+def download_cli(say=print):
     target = platform_name()
     if target not in CLI_SHA256:
         raise SetupError(f"Setup can't download the withHuman CLI for {target}. "
                          f"Install it yourself, then run setup again: {INSTALL_DOCS}")
     url = f"{CLI_DOWNLOADS}/{CLI_VERSION}/withhuman-{target}"
-    print(f"Downloading the withHuman CLI {CLI_VERSION} for {target} from {url}")
+    say(f"Downloading the withHuman CLI {CLI_VERSION} for {target} from {url}")
     path = downloaded_cli()
     path.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
@@ -327,7 +339,7 @@ def download_cli():
     finally:
         if os.path.exists(partial):
             os.unlink(partial)
-    print(f"Checked it and saved it to {path}")
+    say(f"Checked it and saved it to {path}")
     return str(path)
 
 

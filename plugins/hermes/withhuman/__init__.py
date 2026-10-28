@@ -27,6 +27,7 @@ import os
 import shutil
 import signal
 import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -77,6 +78,17 @@ def register(ctx):
         name="withhuman", help="Connect Hermes to withHuman",
         setup_fn=connect.setup_parser, handler_fn=lambda args: connect.run(args, ctx),
     )
+    # After an update that pins a newer CLI, fetch it without holding up the load.
+    threading.Thread(target=_refresh_cli, name="withhuman-cli-refresh", daemon=True).start()
+
+
+def _refresh_cli():
+    from . import connect
+
+    try:
+        connect.refresh_downloaded_cli()
+    except Exception as exc:  # the old copy keeps working; setup can fetch it later
+        logger.warning("withhuman: could not update the withHuman CLI: %s", exc)
 
 
 def pre_tool_call(tool_name=None, args=None, **kwargs):

@@ -19,7 +19,8 @@ class DownloadTest(PluginTestCase):
         self.connect = connect
         self.release = self.tmp / "release"
         (self.release / "9.9.9").mkdir(parents=True)
-        self.cli_bytes = self.binary.read_bytes()
+        # The pinned release: the fake CLI, marked so a replaced copy is visible.
+        self.cli_bytes = self.binary.read_bytes() + b"\n# pinned release\n"
         name = connect.platform_name()
         (self.release / "9.9.9" / f"withhuman-{name}").write_bytes(self.cli_bytes)
         server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler())
@@ -72,6 +73,33 @@ class DownloadTest(PluginTestCase):
         for version in ("withhuman 9.9.9", "withhuman 10.0.0", "withhuman dev"):
             self.set_env(FAKE_CLI_VERSION=version)
             self.assertEqual(self.connect._ensure_cli(), str(self.binary))
+        self.assertFalse(self.plugin.downloaded_cli().exists())
+
+
+    def downloaded_copy(self, version):
+        """A copy setup downloaded earlier, reporting version."""
+        path = self.plugin.downloaded_cli()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(self.binary.read_bytes())
+        path.chmod(0o755)
+        self.set_env(FAKE_CLI_VERSION=version)
+        return path
+
+    def test_refresh_replaces_a_copy_older_than_the_pin(self):
+        path = self.downloaded_copy("withhuman 9.9.8")
+        self.connect.refresh_downloaded_cli()
+        self.assertEqual(path.read_bytes(), self.cli_bytes)
+
+    def test_refresh_leaves_a_copy_at_the_pin(self):
+        path = self.downloaded_copy("withhuman 9.9.9")
+        before = path.read_bytes()
+        self.connect.refresh_downloaded_cli()
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_refresh_needs_a_copy_setup_downloaded(self):
+        self.put_cli_on_path()
+        self.set_env(FAKE_CLI_VERSION="withhuman 9.9.8")
+        self.connect.refresh_downloaded_cli()
         self.assertFalse(self.plugin.downloaded_cli().exists())
 
 
