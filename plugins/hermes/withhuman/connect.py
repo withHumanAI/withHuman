@@ -39,6 +39,9 @@ CLI_SHA256 = {
     "linux-arm64": "a39304e0dc28a1c80c3518b82e196f9411cb2939cf596c5e135a774b6c99e99e",
 }
 CLI_DOWNLOADS = "https://downloads.withhuman.ai/cli"
+# withhuman.ai publishes core's skills in the well-known format Hermes reads.
+SKILLS_URL = "https://withhuman.ai/.well-known/skills"
+SKILLS = ("withhuman", "withhuman-pipelines")
 # The gateway holds a call waiting for a person for five minutes, then
 # answers; Hermes waits a little longer so that answer arrives.
 MCP_TIMEOUT_SECONDS = 600
@@ -104,6 +107,8 @@ def setup(ctx, url, agent) -> int:
     ctx.set_config("url", origin)
     print(f"Connected to withHuman as {described}.")
     _add_mcp_servers(origin)
+    if (_ask(f"Install the withHuman skills ({', '.join(SKILLS)})? [Y/n]: ") or "y").lower().startswith("y"):
+        _install_skills()
     print()
     print(TIMEOUT_NOTICE)
     _save_setting("plugins.hook_callback_timeout", "0")
@@ -192,6 +197,22 @@ def _add_mcp_servers(origin):
                  "timeout": MCP_TIMEOUT_SECONDS}
         if _save_mcp_server(name, entry):
             print(f"Added {server.get('label') or name} as the MCP server {name}.")
+
+
+def _install_skills():
+    """Install the skills through Hermes's own skill installer, which scans
+    them and records where they came from, so `hermes skills update` keeps
+    them current. A skill already installed is left as it is."""
+    from hermes_cli.skills_hub import do_install
+
+    for name in SKILLS:
+        try:
+            installed = do_install(f"well-known:{SKILLS_URL}/{name}", skip_confirm=True)
+        except Exception as exc:  # Hermes's installer raises on network and scan errors
+            installed = False
+            print(f"Could not install the {name} skill: {exc}")
+        if installed is False:
+            print(f"Install it later with `hermes skills install well-known:{SKILLS_URL}/{name}`.")
 
 
 def _get(url):

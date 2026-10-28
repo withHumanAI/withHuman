@@ -1066,7 +1066,10 @@ Examples:
   `agent_mcp_servers` (the hosted gateway) as remote MCP servers whose
   `Authorization` header references `${WITHHUMAN_AGENT_TOKEN}`, so Hermes
   sends the profile's key without the CLI relay; only servers on the
-  withHuman address's own origin are added. Requests from setup send their own user agent,
+  withHuman address's own origin are added. It then offers to install the
+  `withhuman` and `withhuman-pipelines` skills through Hermes's own skill
+  installer from `https://withhuman.ai/.well-known/skills/`, so they are
+  ordinary hub skills that `hermes skills update` keeps current. Requests from setup send their own user agent,
   because Cloudflare refuses Python's default one. Its tests run with
   `make hermes-plugin-test`; the ones against a real Hermes need it
   importable.

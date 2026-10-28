@@ -3,6 +3,7 @@ withHuman that answers sign-in and key checks. Skipped when Hermes is not
 importable."""
 
 import argparse
+import sys
 import json
 import threading
 import unittest
@@ -54,6 +55,17 @@ class FakeWithHuman(BaseHTTPRequestHandler):
         if self.refused():
             return
         origin = f"http://127.0.0.1:{self.server.server_port}"
+        if self.path == "/.well-known/skills/index.json":
+            return self.answer(200, {"skills": [{"name": name, "description": "A skill.", "files": ["SKILL.md"]}
+                                                for name in ("withhuman", "withhuman-pipelines")]})
+        if self.path.startswith("/.well-known/skills/") and self.path.endswith("/SKILL.md"):
+            name = self.path.split("/")[3]
+            raw = f"---\nname: {name}\ndescription: A skill.\n---\n\n# {name}\n".encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/markdown")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            return self.wfile.write(raw)
         if self.path == "/api/runtime-config":
             return self.answer(200, {"agent_mcp_servers": [
                 {"name": "withhuman-gateway", "url": origin + "/gateway/mcp", "label": "the withHuman MCP gateway"},
@@ -95,6 +107,23 @@ class SetupTest(PluginTestCase):
         self.manager = hermes_plugins.get_plugin_manager()
         self.manager.discover_and_load()
 
+    def serve_skills_locally(self):
+        """Point setup's skills at the fake withHuman. Hermes refuses
+        localhost URLs when fetching skills, so that check is off here."""
+        import httpx
+        import tools.skills_hub as hub
+
+        package = self.manager._cli_commands["withhuman"]["handler_fn"].__module__
+        connect = sys.modules[package + ".connect"]
+        for target, attribute, value in (
+            (connect, "SKILLS_URL", self.origin + "/.well-known/skills"),
+            (hub, "is_safe_url", lambda url: True),
+            (hub, "_ssrf_safe_http_get", lambda url, timeout=20, headers=None: httpx.get(url, timeout=timeout, headers=headers)),
+        ):
+            patcher = mock.patch.object(target, attribute, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
     def setup_command(self, answers, key=None):
         command = self.manager._cli_commands["withhuman"]
         args = argparse.Namespace(withhuman_action="setup", url=self.origin, agent=None)
@@ -108,7 +137,8 @@ class SetupTest(PluginTestCase):
         return env, load_config()
 
     def test_sign_in_saves_the_key_turns_off_the_timeout_and_tests(self):
-        self.assertEqual(self.setup_command(["1", "y"]), 0)
+        self.serve_skills_locally()
+        self.assertEqual(self.setup_command(["1", "y", "y"]), 0)
         env, config = self.saved()
         self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_signed_in", env)
         self.assertEqual(config["plugins"]["hook_callback_timeout"], 0)
@@ -120,6 +150,11 @@ class SetupTest(PluginTestCase):
         self.assertEqual(list(config["mcp_servers"]), ["withhuman-gateway"])
         gateway = config["mcp_servers"]["withhuman-gateway"]
         self.assertEqual((gateway["url"], gateway["timeout"]), (self.origin + "/gateway/mcp", 600))
+        for name in ("withhuman", "withhuman-pipelines"):
+            self.assertTrue((self.hermes_home / "skills" / name / "SKILL.md").exists(), name)
+        from tools.skills_hub import HubLockFile
+
+        self.assertEqual(HubLockFile().get_installed("withhuman")["source"], "well-known")
         saw = self.hook_saw()
         self.assertEqual(saw["AAP_INSTANCE_TOKEN"], "whc_signed_in")
         self.assertEqual(saw["AAP_BASE_URL"], self.origin + "/api/aap")
@@ -130,7 +165,7 @@ class SetupTest(PluginTestCase):
         env, config = self.saved()
         self.assertNotIn("WITHHUMAN_AGENT_TOKEN", env)
         self.assertNotEqual(config["plugins"]["hook_callback_timeout"], 0)
-        self.assertEqual(self.setup_command(["2", "n"], key="whc_pasted"), 0)
+        self.assertEqual(self.setup_command(["2", "n", "n"], key="whc_pasted"), 0)
         env, _ = self.saved()
         self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_pasted", env)
 
