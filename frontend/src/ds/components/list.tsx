@@ -241,6 +241,9 @@ export function List<Item>({
               if (event.shiftKey) event.preventDefault();
             }}
             onClick={(event) => {
+              /* Row text is selectable; the click that ends a drag
+               * over it copies, it does not open the row. */
+              if (!(window.getSelection()?.isCollapsed ?? true)) return;
               if (selectable && event.shiftKey) {
                 rangeTo(index);
                 return;
@@ -255,7 +258,7 @@ export function List<Item>({
             className={cn(
               "relative flex flex-col",
               interactive && "cursor-pointer",
-              "border-b-hairline border-edge outline-none select-none last:border-b-0",
+              "border-b-hairline border-edge outline-none last:border-b-0",
               "transition-colors duration-100",
               "data-highlighted:bg-fill-hover data-selected:bg-fill-selected",
               "data-active:bg-fill-hover data-active:shadow-[inset_2px_0_0_var(--ds-accent)]",
