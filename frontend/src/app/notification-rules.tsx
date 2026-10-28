@@ -32,14 +32,14 @@ const ACCOUNT_EMAIL = "";
 
 const LADDERS: { urgency: NotificationUrgency; title: string; description: string }[] = [
   {
-    urgency: "interrupt",
-    title: "Interrupts",
-    description: "Define how urgent requests should get to you.",
-  },
-  {
     urgency: "standard",
     title: "Standard requests",
     description: "Define how standard urgency requests should get to you.",
+  },
+  {
+    urgency: "interrupt",
+    title: "Interrupt Requests",
+    description: "Define how urgent requests should get to you.",
   },
 ];
 

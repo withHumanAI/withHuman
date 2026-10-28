@@ -328,26 +328,28 @@ export interface ContactConfirmProps {
   onRefresh: () => Promise<void>;
 }
 
-/* A method's state badge; without an icon the tone's status glyph. */
+/* A state a method is in that needs the person, such as unconfirmed;
+ * without an icon the tone's status glyph. */
 export interface ContactMethodBadge {
   tone: "approve" | "warn" | "neutral";
   label: string;
   icon?: ReactNode;
 }
 
-/* How the channel list draws a method of a kind: the row's title and
- * the line under it (a typed-in value in mono with the kind's name
- * under it; a registered device by name with its identifier under),
- * its state badge, the accessible name of its remove action (null when
- * the list cannot remove one) and what a failed removal is called, and
- * the panel an unconfirmed method's row unfolds to prove it (null for a
- * kind the server vouches for). */
+/* How the channel list draws a method of a kind: the row's title (a
+ * typed-in value in mono, a registered device by its app's name), the
+ * badge for a state that needs the person (null in the default state),
+ * the accessible name of its remove action and what a failed removal is
+ * called, why the list cannot remove one (shown on the disabled remove
+ * action; absent or null when it can), and the panel an unconfirmed
+ * method's row unfolds to prove it (null for a kind the server vouches
+ * for). The kind's name is the row icon's tooltip. */
 export interface ContactMethodRow {
   title: (method: ContactMethod) => ReactNode;
-  subtitle: (method: ContactMethod) => ReactNode;
-  badge: (method: ContactMethod) => ContactMethodBadge;
-  removeLabel: ((method: ContactMethod) => string) | null;
+  badge: (method: ContactMethod) => ContactMethodBadge | null;
+  removeLabel: (method: ContactMethod) => string;
   removeFailure: string;
+  cannotRemove?: (method: ContactMethod) => string | null;
   confirm: ComponentType<ContactConfirmProps> | null;
 }
 
