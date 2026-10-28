@@ -39,6 +39,9 @@ CLI_SHA256 = {
     "linux-arm64": "a39304e0dc28a1c80c3518b82e196f9411cb2939cf596c5e135a774b6c99e99e",
 }
 CLI_DOWNLOADS = "https://downloads.withhuman.ai/cli"
+# The gateway holds a call waiting for a person for five minutes, then
+# answers; Hermes waits a little longer so that answer arrives.
+MCP_TIMEOUT_SECONDS = 600
 TEST_CEILING_SECONDS = 10 * 60
 TIMEOUT_NOTICE = (
     "Hermes stops waiting for a plugin's hook after 30 seconds, and approvals often take longer.\n"
@@ -100,6 +103,7 @@ def setup(ctx, url, agent) -> int:
     _save_setting(KEY_ENV, key)
     ctx.set_config("url", origin)
     print(f"Connected to withHuman as {described}.")
+    _add_mcp_servers(origin)
     print()
     print(TIMEOUT_NOTICE)
     _save_setting("plugins.hook_callback_timeout", "0")
@@ -167,6 +171,38 @@ def _sign_in(origin, agent):
         name = agent_info.get("name") or agent_info.get("slug") or "your agent"
         return key, f'agent "{name}" (instance {instance})' if instance else f'agent "{name}"'
     raise SetupError("The sign-in expired. Run `hermes withhuman setup` again.")
+
+
+def _add_mcp_servers(origin):
+    """Add the MCP servers withHuman offers its agents (hosted withHuman's
+    gateway) as remote servers that send this profile's key. Only servers on
+    the withHuman address's own host are added, so the key goes nowhere else."""
+    try:
+        offered = _get(origin + "/api/runtime-config").get("agent_mcp_servers") or []
+    except SetupError:
+        print("Could not read which MCP servers withHuman offers. Run setup again to add them.")
+        return
+    from hermes_cli.mcp_config import _save_mcp_server
+
+    for server in offered:
+        name, url = server.get("name"), server.get("url")
+        if not isinstance(name, str) or not isinstance(url, str) or not url.startswith(origin + "/"):
+            continue
+        entry = {"url": url, "headers": {"Authorization": "Bearer ${" + KEY_ENV + "}"},
+                 "timeout": MCP_TIMEOUT_SECONDS}
+        if _save_mcp_server(name, entry):
+            print(f"Added {server.get('label') or name} as the MCP server {name}.")
+
+
+def _get(url):
+    try:
+        with _opener().open(url, timeout=30) as response:
+            body = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        raise SetupError(f"withHuman answered HTTP {exc.code}.") from None
+    except (OSError, ValueError):
+        raise SetupError(f"Could not reach withHuman at {url}.") from None
+    return body if isinstance(body, dict) else {}
 
 
 def _paste_key(origin):

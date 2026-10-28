@@ -53,6 +53,12 @@ class FakeWithHuman(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.refused():
             return
+        origin = f"http://127.0.0.1:{self.server.server_port}"
+        if self.path == "/api/runtime-config":
+            return self.answer(200, {"agent_mcp_servers": [
+                {"name": "withhuman-gateway", "url": origin + "/gateway/mcp", "label": "the withHuman MCP gateway"},
+                {"name": "elsewhere", "url": "https://elsewhere.example/mcp", "label": "a server on another host"},
+            ]})
         if self.path == "/api/v1/agent_instances/self" and self.headers["Authorization"] == "Bearer whc_pasted":
             return self.answer(200, {"agent_slug": "hermes", "agent_instance_id": "i1"})
         self.answer(401, {"error": {"code": "unauthenticated"}})
@@ -108,6 +114,12 @@ class SetupTest(PluginTestCase):
         self.assertEqual(config["plugins"]["hook_callback_timeout"], 0)
         self.assertEqual(config["plugins"]["entries"]["withhuman"]["settings"]["url"], self.origin)
         self.assertEqual(self.server.enrollment["runtime"], "hermes")
+        raw = (self.hermes_home / "config.yaml").read_text(encoding="utf-8")
+        self.assertIn("Authorization: Bearer ${WITHHUMAN_AGENT_TOKEN}", raw)
+        self.assertNotIn("whc_signed_in", raw)
+        self.assertEqual(list(config["mcp_servers"]), ["withhuman-gateway"])
+        gateway = config["mcp_servers"]["withhuman-gateway"]
+        self.assertEqual((gateway["url"], gateway["timeout"]), (self.origin + "/gateway/mcp", 600))
         saw = self.hook_saw()
         self.assertEqual(saw["AAP_INSTANCE_TOKEN"], "whc_signed_in")
         self.assertEqual(saw["AAP_BASE_URL"], self.origin + "/api/aap")

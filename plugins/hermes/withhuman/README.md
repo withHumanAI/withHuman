@@ -16,7 +16,7 @@ Setup asks how to connect:
 - **Sign in with your browser.** Open the link it prints, sign in and choose the agent Hermes belongs to. This works from a server or container too.
 - **Paste an agent key.** In withHuman, open Agents, your agent, New instance, then Generate an API key.
 
-Setup also turns off Hermes's 30 second hook timeout for this profile, so a call can wait for a person. Then it sends a test request.
+Setup also turns off Hermes's 30 second hook timeout for this profile, so a call can wait for a person. On hosted withHuman it adds the withHuman MCP gateway as an MCP server named `withhuman-gateway`. Then it sends a test request.
 
 Setup downloads the withHuman CLI the plugin runs, if it isn't installed already.
 
@@ -50,4 +50,4 @@ Revoke the instance in withHuman if you no longer need it.
 
 - **Hooks that change arguments:** Hermes applies argument changes from hooks that run after this plugin, including shell hooks. Keep other `pre_tool_call` hooks from changing tool arguments, or an approved call can run with different arguments.
 - **Hook timeout:** Setup sets `plugins.hook_callback_timeout` to `0`. A lower value blocks any call still waiting when it runs out.
-- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization. When no CLI is installed, or an older one is, setup downloads a fixed CLI version from downloads.withhuman.ai and checks it against a checksum in the plugin before using it.
+- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization. When no CLI is installed, or an older one is, setup downloads a fixed CLI version from downloads.withhuman.ai and checks it against a checksum in the plugin before using it. The `withhuman-gateway` MCP server sends your agent key to your withHuman address.
