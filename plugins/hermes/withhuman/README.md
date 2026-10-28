@@ -23,7 +23,7 @@ You can write rules like:
 You need a withHuman organization. Sign up at [app.withhuman.ai](https://app.withhuman.ai), or [run your own](https://github.com/withHumanAI/withHuman).
 
 ```sh
-hermes plugins install withHumanAI/withHuman/plugins/hermes/withhuman --enable
+hermes plugins install withhuman --enable
 hermes withhuman setup
 ```
 
