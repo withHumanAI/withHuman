@@ -1455,8 +1455,10 @@ Examples:
   the kind, its label, icon and add-menu description, `available` over
   the edition's runtime-config with the copy shown when it is not, the
   whole add flow as a component (`ContactAddProps`), how a method of
-  the kind lists (`ContactMethodRow`: title, subtitle, badge, removal,
-  and a confirmation panel under an unverified row), and the ladder
+  the kind lists (`ContactMethodRow`: title, a badge only for a state
+  that needs the person, removal with the reason when the list cannot
+  remove one, and a confirmation panel under an unverified row; the
+  kind's label is the row icon's tooltip), and the ladder
   option label; core ships `typedMethodRow`, `CodeConfirmPanel` and
   `ContactMethodForm` for a kind to build on, and a stored method of a
   kind this bundle has not registered renders as a generic row); and

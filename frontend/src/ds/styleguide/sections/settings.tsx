@@ -15,8 +15,7 @@ import { IconButton } from "@/ds/components/icon-button";
 import { Switch } from "@/ds/components/switch";
 import { TextField } from "@/ds/components/text-field";
 import { useToast } from "@/ds/components/toast";
-import { AgentIcon, ArrowLeftIcon, CheckIcon, MailIcon, ToolIcon, PlusIcon, TrashIcon } from "@/ds/icons";
-import { SlackIcon } from "@/ds/icons/brands";
+import { AgentIcon, ArrowLeftIcon, ClockIcon, MailIcon, ToolIcon, PlusIcon, TrashIcon } from "@/ds/icons";
 import { Section, Demo } from "../section";
 
 interface PolicyDraft {
@@ -231,7 +230,7 @@ export function SettingsSection_() {
         </ul>
       </Demo>
 
-      <Demo label="Things in rows" hint="icon, value, state, one quiet action; the section title line carries the add affordance" bare>
+      <Demo label="Things in rows" hint="icon, value, a badge only for a state that needs you, one quiet action (disabled with its reason when it cannot run); the section title line carries the add affordance" bare>
         <div className="flex max-w-[560px] flex-col">
           <SettingsSection
             title="Channels"
@@ -247,26 +246,26 @@ export function SettingsSection_() {
             <SettingRow
               icon={<MailIcon />}
               label={<span className="font-mono">chris@example.com</span>}
-              description="Account email"
             >
-              <Badge tone="neutral" icon={<CheckIcon />}>
-                Account email
-              </Badge>
+              <IconButton aria-label="Remove chris@example.com" variant="ghost" size="sm" disabled>
+                <TrashIcon />
+              </IconButton>
             </SettingRow>
             <SettingRow
               icon={<MailIcon />}
               label={<span className="font-mono">chris@work.example</span>}
-              description="Email"
             >
-              <Badge tone="approve" icon={<CheckIcon />}>
-                Confirmed
-              </Badge>
               <IconButton aria-label="Remove chris@work.example" variant="ghost" size="sm">
                 <TrashIcon />
               </IconButton>
             </SettingRow>
-            <SettingRow icon={<SlackIcon />} label="Slack" description="Matched from your confirmed addresses when an admin syncs members.">
-              <Badge tone="neutral">Not linked</Badge>
+            <SettingRow icon={<MailIcon />} label={<span className="font-mono">chris@home.example</span>}>
+              <Badge tone="warn" icon={<ClockIcon />}>
+                Unconfirmed
+              </Badge>
+              <IconButton aria-label="Remove chris@home.example" variant="ghost" size="sm">
+                <TrashIcon />
+              </IconButton>
             </SettingRow>
           </SettingsSection>
         </div>

@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type FormEvent, type ReactNode } from "react";
+import { Fragment, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { Badge } from "@/ds/components/badge";
 import { Button } from "@/ds/components/button";
 import { Callout } from "@/ds/components/callout";
@@ -6,6 +6,7 @@ import { IconButton } from "@/ds/components/icon-button";
 import { SettingRow } from "@/ds/components/setting-row";
 import { TextField } from "@/ds/components/text-field";
 import { useToast } from "@/ds/components/toast";
+import { Tooltip } from "@/ds/components/tooltip";
 import { CheckIcon, ClockIcon, MailIcon, MessageIcon, TrashIcon } from "@/ds/icons";
 import { DiscordIcon, SlackIcon } from "@/ds/icons/brands";
 import { api, RequestError } from "../api";
@@ -16,6 +17,7 @@ import {
   contactKind,
   extensions,
   type ContactConfirmProps,
+  type ContactMethodBadge,
   type ContactKind,
   type ContactMethodRow,
 } from "./extensions";
@@ -178,35 +180,32 @@ export function useDiscordLink(returnTo: OAuthReturn = "settings") {
   return { link, linking };
 }
 
-/* A typed-in kind's row: the value in mono with the kind's name under
- * it, confirmed or still waiting, removable, and proved by the panel
- * the kind hands over (CodeConfirmPanel for one whose code is delivered
- * to it, null for one confirmed some other way). Email's row; an
- * edition's typed-in kinds build theirs the same way. */
+/* A typed-in kind's row: the value in mono, a badge while it waits to
+ * be confirmed, removable, and proved by the panel the kind hands over
+ * (CodeConfirmPanel for one whose code is delivered to it, null for one
+ * confirmed some other way). Email's row; an edition's typed-in kinds
+ * build theirs the same way. */
 export function typedMethodRow({
-  label,
   removeFailure,
   confirm,
 }: {
-  label: string;
   removeFailure: string;
   confirm: ComponentType<ContactConfirmProps> | null;
 }): ContactMethodRow {
   return {
     title: (method) => <span className="font-mono">{method.value}</span>,
-    subtitle: () => label,
-    badge: (method) =>
-      method.verified
-        ? { tone: "approve", label: "Confirmed", icon: <CheckIcon /> }
-        : { tone: "warn", label: "Unconfirmed", icon: <ClockIcon /> },
+    badge: unconfirmedBadge,
     removeLabel: (method) => `Remove ${method.value}`,
     removeFailure,
     confirm,
   };
 }
 
+function unconfirmedBadge(method: ContactMethod): ContactMethodBadge | null {
+  return method.verified ? null : { tone: "warn", label: "Unconfirmed", icon: <ClockIcon /> };
+}
+
 const EMAIL_ROW = typedMethodRow({
-  label: "Email",
   removeFailure: "Could not remove that address",
   confirm: CodeConfirmPanel,
 });
@@ -215,28 +214,40 @@ const EMAIL_ROW = typedMethodRow({
  * removed here and needs no proving. */
 const ACCOUNT_EMAIL_ROW: ContactMethodRow = {
   ...EMAIL_ROW,
-  subtitle: () => "Account email",
-  badge: () => ({ tone: "neutral", label: "Account email", icon: <CheckIcon /> }),
-  removeLabel: null,
+  badge: () => null,
+  cannotRemove: () => "Your account email can't be removed.",
+  confirm: null,
+};
+
+/* The chat identities, by the name the service knows them by. Slack is
+ * linked by the organization's workspace, so it is not unlinked here. */
+const SLACK_ROW: ContactMethodRow = {
+  title: (method) => method.label || method.value,
+  badge: (method) => (method.available ? null : { tone: "neutral", label: "Unavailable" }),
+  removeLabel: () => "Unlink Slack",
+  removeFailure: "Could not unlink Slack",
+  cannotRemove: () => "Slack is linked through your organization's workspace.",
+  confirm: null,
+};
+
+const DISCORD_ROW: ContactMethodRow = {
+  title: (method) => method.label || method.value,
+  badge: () => null,
+  removeLabel: () => "Unlink Discord",
+  removeFailure: "Could not unlink Discord",
   confirm: null,
 };
 
 /* A method of a kind this bundle did not register still lists: by its
- * name when it has one, else its raw value, under the kind's raw name,
- * removable, with nothing here to prove it. */
-function unknownKindRow(kind: string): ContactMethodRow {
-  return {
-    title: (method) => method.label || <span className="font-mono">{method.value}</span>,
-    subtitle: (method) => (method.label ? <span className="font-mono">{method.value}</span> : kind),
-    badge: (method) =>
-      method.verified
-        ? { tone: "approve", label: "Confirmed", icon: <CheckIcon /> }
-        : { tone: "warn", label: "Unconfirmed", icon: <ClockIcon /> },
-    removeLabel: (method) => `Remove ${method.label || method.value}`,
-    removeFailure: "Could not remove that method",
-    confirm: null,
-  };
-}
+ * name when it has one, else its raw value, removable, with nothing
+ * here to prove it. */
+const UNKNOWN_KIND_ROW: ContactMethodRow = {
+  title: (method) => method.label || <span className="font-mono">{method.value}</span>,
+  badge: unconfirmedBadge,
+  removeLabel: (method) => `Remove ${method.label || method.value}`,
+  removeFailure: "Could not remove that method",
+  confirm: null,
+};
 
 /* The methods of kinds core does not own: the registered kinds in the
  * order the edition registered them, then any kind this bundle does not
@@ -252,13 +263,12 @@ function editionMethods(methods: ContactMethod[]): { method: ContactMethod; entr
   return [...registered, ...unknown];
 }
 
-/* Every channel the person has, one SettingRow each: the addresses
- * with their state and, for the one still waiting on you, the panel
- * that proves it; then the edition's kinds, each drawn as its entry
- * says; then the linked chat identities. Rows separate with hairlines
- * and expect the caller's horizontal inset. Every change is followed by
- * onChanged, a reload of the caller's page, so the list always shows
- * what the server holds. */
+/* Every channel the person has, one SettingRow each: the addresses,
+ * then the edition's kinds, each drawn as its entry says, then the
+ * linked chat identities, with the ones still waiting on you (and the
+ * panel that proves each) at the end. Rows separate with hairlines and expect the caller's
+ * horizontal inset. Every change is followed by onChanged, a reload of
+ * the caller's page, so the list always shows what the server holds. */
 export function ChannelRows({
   methods,
   onChanged,
@@ -292,74 +302,64 @@ export function ChannelRows({
     }
   }
 
-  async function remove(method: ContactMethod, failure: string) {
-    if ((await act(method.id, () => api.removeContactMethod(method.id), failure)) !== null) await onChanged();
+  async function remove(method: ContactMethod, shape: ContactMethodRow) {
+    const call = method.kind === "discord" ? () => api.unlinkDiscord() : () => api.removeContactMethod(method.id);
+    if ((await act(method.id, call, shape.removeFailure)) !== null) await onChanged();
   }
 
   const emails = methods.filter((method) => method.kind === "email");
   const slack = methods.find((method) => method.kind === "slack") ?? null;
   const discord = methods.find((method) => method.kind === "discord") ?? null;
 
-  const row = (method: ContactMethod, icon: ReactNode, shape: ContactMethodRow) => (
-    <MethodRow
-      key={method.id}
-      method={method}
-      icon={icon}
-      row={shape}
-      busy={busyId === method.id}
-      act={(action, failure) => act(method.id, action, failure)}
-      onRemove={() => void remove(method, shape.removeFailure)}
-      onRefresh={onChanged}
-    />
-  );
+  const entries: { method: ContactMethod; kind: string; icon: ReactNode; shape: ContactMethodRow }[] = [
+    ...emails.map((method) =>
+      method.primary
+        ? { method, kind: "Account email", icon: <MailIcon />, shape: ACCOUNT_EMAIL_ROW }
+        : { method, kind: "Email", icon: <MailIcon />, shape: EMAIL_ROW },
+    ),
+    ...editionMethods(methods).map(({ method, entry }) => ({
+      method,
+      kind: entry?.label ?? method.kind,
+      icon: entry?.icon ?? <MessageIcon />,
+      shape: entry?.row ?? UNKNOWN_KIND_ROW,
+    })),
+    ...(slack ? [{ method: slack, kind: "Slack", icon: <SlackIcon />, shape: SLACK_ROW }] : []),
+    ...(discord ? [{ method: discord, kind: "Discord", icon: <DiscordIcon />, shape: DISCORD_ROW }] : []),
+  ];
+  /* Methods still being confirmed go last, each group in its own order. */
+  const ordered = [...entries.filter(({ method }) => method.verified), ...entries.filter(({ method }) => !method.verified)];
 
   return (
     <>
-      {emails.map((method) => row(method, <MailIcon />, method.primary ? ACCOUNT_EMAIL_ROW : EMAIL_ROW))}
-      {editionMethods(methods).map(({ method, entry }) =>
-        row(method, entry?.icon ?? <MessageIcon />, entry?.row ?? unknownKindRow(method.kind)),
-      )}
-      {slack ? (
-        <SettingRow icon={<SlackIcon />} label="Slack" description={<LinkedIdentity method={slack} />}>
-          <Badge tone={slack.available ? "approve" : "neutral"}>
-            {slack.available ? "Linked" : "Unavailable"}
-          </Badge>
-        </SettingRow>
-      ) : null}
-      {slack && !slack.available ? <Callout tone="neutral">Slack is unavailable. Link your account again after the workspace is reconnected.</Callout> : null}
-      {discord ? (
-        <SettingRow
-          icon={<DiscordIcon />}
-          label="Discord"
-          description={<LinkedIdentity method={discord} />}
-        >
-          <Badge tone="approve" icon={<CheckIcon />}>
-            Linked
-          </Badge>
-          <IconButton
-            aria-label="Unlink Discord"
-            variant="ghost"
-            size="sm"
-            disabled={busyId === "discord"}
-            onClick={() =>
-              void act("discord", () => api.unlinkDiscord(), "Could not unlink Discord").then(
-                (unlinked) => (unlinked !== null ? onChanged() : undefined),
-              )
-            }
-          >
-            <TrashIcon />
-          </IconButton>
-        </SettingRow>
-      ) : null}
+      {ordered.map(({ method, kind, icon, shape }) => (
+        <Fragment key={method.id}>
+          <MethodRow
+            method={method}
+            kind={kind}
+            icon={icon}
+            row={shape}
+            busy={busyId === method.id}
+            act={(action, failure) => act(method.id, action, failure)}
+            onRemove={() => void remove(method, shape)}
+            onRefresh={onChanged}
+          />
+          {method.kind === "slack" && !method.available ? (
+            <Callout tone="neutral">Slack is unavailable. Link your account again after the workspace is reconnected.</Callout>
+          ) : null}
+        </Fragment>
+      ))}
     </>
   );
 }
 
-/* One method's row, drawn as its kind says a method reads: the title
- * and the line under it, the state badge, the quiet remove, and for a
- * method still waiting on the person, the panel that proves it. */
+/* One method's row, drawn as its kind says a method reads: the kind's
+ * icon with its name as the tooltip, the title, a badge only for a
+ * state that needs the person, the quiet remove (disabled with the
+ * reason when the list cannot remove it), and for a method still
+ * waiting on the person, the panel that proves it. */
 function MethodRow({
   method,
+  kind,
   icon,
   row,
   busy,
@@ -368,6 +368,7 @@ function MethodRow({
   onRefresh,
 }: {
   method: ContactMethod;
+  kind: string;
   icon: ReactNode;
   row: ContactMethodRow;
   busy: boolean;
@@ -376,42 +377,52 @@ function MethodRow({
   onRefresh: () => Promise<void>;
 }) {
   const badge = row.badge(method);
+  const blocked = row.cannotRemove?.(method) ?? null;
   const Confirm = row.confirm;
+  const removeButton = (
+    <IconButton
+      aria-label={row.removeLabel(method)}
+      variant="ghost"
+      size="sm"
+      disabled={busy || blocked !== null}
+      onClick={onRemove}
+    >
+      <TrashIcon />
+    </IconButton>
+  );
   return (
     <SettingRow
-      icon={icon}
+      icon={
+        <Tooltip content={kind}>
+          <span role="img" aria-label={kind} className="flex">
+            {icon}
+          </span>
+        </Tooltip>
+      }
       label={row.title(method)}
-      description={row.subtitle(method)}
       panel={
         !method.verified && Confirm ? (
           <Confirm method={method} busy={busy} act={act} onRefresh={onRefresh} />
         ) : null
       }
     >
-      <Badge tone={badge.tone} icon={badge.icon}>
-        {badge.label}
-      </Badge>
-      {row.removeLabel ? (
-        <IconButton
-          aria-label={row.removeLabel(method)}
-          variant="ghost"
-          size="sm"
-          disabled={busy}
-          onClick={onRemove}
-        >
-          <TrashIcon />
-        </IconButton>
+      {badge ? (
+        <Badge tone={badge.tone} icon={badge.icon}>
+          {badge.label}
+        </Badge>
       ) : null}
+      {blocked !== null ? (
+        /* A disabled button takes no pointer events, so the reason
+         * hangs off a focusable wrapper. */
+        <Tooltip content={blocked}>
+          <span tabIndex={0} className="inline-flex rounded-sm">
+            {removeButton}
+          </span>
+        </Tooltip>
+      ) : (
+        removeButton
+      )}
     </SettingRow>
-  );
-}
-
-function LinkedIdentity({ method }: { method: ContactMethod }) {
-  return (
-    <>
-      {method.label || method.value}
-      {method.label ? <span className="ml-2 font-mono">{method.value}</span> : null}
-    </>
   );
 }
 

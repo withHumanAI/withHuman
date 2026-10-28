@@ -57,7 +57,7 @@ describe("onboarding notification rules", () => {
 
     await waitFor(() => expect(onContinue).toHaveBeenCalledOnce());
     expect(save).toHaveBeenCalledOnce();
-    expect(save.mock.calls[0][0]).toBe("interrupt");
+    expect(save.mock.calls[0][0]).toBe("standard");
     expect(save.mock.calls[0][1]).toHaveLength(2);
   });
 
