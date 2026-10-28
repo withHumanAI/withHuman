@@ -122,6 +122,19 @@ class SetupTest(PluginTestCase):
         env, _ = self.saved()
         self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_pasted", env)
 
+    def test_the_address_defaults_to_cloud(self):
+        command = self.manager._cli_commands["withhuman"]
+        args = argparse.Namespace(withhuman_action="setup", url=None, agent=None)
+        prompts = []
+
+        def answer(prompt):
+            prompts.append(prompt)
+            raise KeyboardInterrupt
+
+        with mock.patch("builtins.input", side_effect=answer):
+            self.assertEqual(command["handler_fn"](args), 1)
+        self.assertEqual(prompts, ["withHuman address (default is cloud): "])
+
     def test_the_command_is_registered(self):
         self.assertIn("withhuman", self.manager._cli_commands)
         self.assertIsNone(self.manager._plugins["withhuman"].error)
