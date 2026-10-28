@@ -1038,6 +1038,16 @@ Examples:
   `hook <runtime>` delegates to AAP and internal `mcp <runtime> <server>`
   is the relay below.
   Runtime installation, hook handling and plugin assets belong only to AAP.
+  The one exception is the Hermes plugin (`plugins/hermes/withhuman`): it
+  carries withHuman's name so Hermes's plugin catalog can list it under
+  that name. Replacement rule: the plugin is a thin Python shim that runs
+  `withhuman hook hermes` and returns its verdict, so the gate stays
+  AAP's; core passes the files to `adapters.WithPlugin` and AAP still
+  writes and ejects every runtime file, sets
+  `plugins.hook_callback_timeout` to 0 and recognises the plugin as
+  installed. The plugin waits at most a week, stops the hook on a Hermes
+  interrupt so the request is withdrawn, and has no third-party
+  dependencies. Its tests run with `make hermes-plugin-test`.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
   `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an

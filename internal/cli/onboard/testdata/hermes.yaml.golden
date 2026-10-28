@@ -4,11 +4,10 @@ hooks:
   pre_tool_call:
     - command: audit --pre
       timeout: 10
-    - command: /usr/bin/env AAP_CONFIG_DIR={{CONFIG}} {{BINARY}} hook hermes
-      timeout: 300
-      fail_closed: true
 plugins:
-  hook_callback_timeout: 330
+  hook_callback_timeout: 0
+  enabled:
+    - withhuman
 mcp_servers:
   withhuman:
     command: {{BINARY}}
