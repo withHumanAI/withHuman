@@ -11,20 +11,34 @@ credential for the agent they pick.
 from __future__ import annotations
 
 import getpass
+import hashlib
 import json
 import os
 import platform
-import shutil
+import re
 import socket
+import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
 
-from . import DEFAULT_URL, KEY_ENV, current_connection, hermes_key_connection, run_hook
+from . import DEFAULT_URL, KEY_ENV, current_connection, downloaded_cli, find_cli, hermes_key_connection, run_hook
 
 INSTALL_DOCS = "https://withhuman.ai/docs/web-app/agents#cli-enrollment"
+# The CLI setup downloads when none is installed or the installed one is
+# older. The version and its hashes are pinned here, so the copy that runs is
+# the one reviewed with the plugin; change them together.
+CLI_VERSION = "1.0.43"
+CLI_SHA256 = {
+    "darwin-amd64": "43e9cd9b34a86033424fc8181a4cac00c96ec6d6b98c94d505c8ec2688c43eeb",
+    "darwin-arm64": "783c94f88a8f7f23d80b506802930d75748be819d45c2db474a57bc07bf37898",
+    "linux-amd64": "dfc1141e545fdc2a9f2d46e6ae7829dea8314119762c0db2877e90d63d2f648e",
+    "linux-arm64": "a39304e0dc28a1c80c3518b82e196f9411cb2939cf596c5e135a774b6c99e99e",
+}
+CLI_DOWNLOADS = "https://downloads.withhuman.ai/cli"
 TEST_CEILING_SECONDS = 10 * 60
 TIMEOUT_NOTICE = (
     "Hermes stops waiting for a plugin's hook after 30 seconds, and approvals often take longer.\n"
@@ -55,10 +69,10 @@ def run(args, ctx) -> int:
 
 
 def setup(ctx, url, agent) -> int:
-    binary = _find_cli()
-    if not binary:
-        print("Install the withHuman CLI first, then run `hermes withhuman setup` again.")
-        print(f"How to install it: {INSTALL_DOCS}")
+    try:
+        binary = _ensure_cli()
+    except SetupError as exc:
+        print(exc)
         return 1
     saved = ctx.get_config("url")
     current = saved if isinstance(saved, str) and saved else DEFAULT_URL
@@ -197,8 +211,14 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+# Cloudflare in front of withHuman refuses Python's default user agent.
+USER_AGENT = "withhuman-hermes-plugin"
+
+
 def _opener():
-    return urllib.request.build_opener(_NoRedirect)
+    opener = urllib.request.build_opener(_NoRedirect)
+    opener.addheaders = [("User-Agent", USER_AGENT)]
+    return opener
 
 
 def _origin(value):
@@ -211,11 +231,68 @@ def _origin(value):
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
-def _find_cli():
-    from . import _installed
+def _ensure_cli():
+    """The CLI to use, downloading the pinned one when none is installed or
+    the installed one is older."""
+    binary = find_cli()
+    if binary and not _older(_cli_version(binary), CLI_VERSION):
+        return binary
+    if binary:
+        print(f"The withHuman CLI at {binary} is older than {CLI_VERSION}.")
+    return download_cli()
 
-    binary = _installed().get("binary") or shutil.which("withhuman")
-    return binary if binary and os.path.exists(binary) else None
+
+def download_cli():
+    target = platform_name()
+    if target not in CLI_SHA256:
+        raise SetupError(f"Setup can't download the withHuman CLI for {target}. "
+                         f"Install it yourself, then run setup again: {INSTALL_DOCS}")
+    url = f"{CLI_DOWNLOADS}/{CLI_VERSION}/withhuman-{target}"
+    print(f"Downloading the withHuman CLI {CLI_VERSION} for {target} from {url}")
+    path = downloaded_cli()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256()
+    fd, partial = tempfile.mkstemp(dir=path.parent, prefix=".withhuman-")
+    try:
+        with os.fdopen(fd, "wb") as out, _opener().open(url, timeout=60) as response:
+            while chunk := response.read(1 << 16):
+                digest.update(chunk)
+                out.write(chunk)
+        if digest.hexdigest() != CLI_SHA256[target]:
+            raise SetupError("The downloaded withHuman CLI didn't match its checksum, so setup didn't use it. "
+                             "Try again later.")
+        os.chmod(partial, 0o755)
+        os.replace(partial, path)
+    except (OSError, urllib.error.URLError) as exc:
+        raise SetupError(f"Could not download the withHuman CLI ({exc}). "
+                         f"Install it yourself, then run setup again: {INSTALL_DOCS}") from None
+    finally:
+        if os.path.exists(partial):
+            os.unlink(partial)
+    print(f"Checked it and saved it to {path}")
+    return str(path)
+
+
+def platform_name():
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    arch = {"x86_64": "amd64", "amd64": "amd64", "arm64": "arm64", "aarch64": "arm64"}.get(machine, machine)
+    return f"{system}-{arch}"
+
+
+def _cli_version(binary):
+    try:
+        out = subprocess.run([binary, "version"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def _older(version, minimum):
+    """Whether a released version is older than minimum. A development build
+    has no version and counts as new enough."""
+    return version is not None and version < tuple(int(part) for part in minimum.split("."))
 
 
 def _ask(prompt):

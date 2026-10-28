@@ -7,6 +7,10 @@ import signal
 import sys
 import time
 
+if sys.argv[1:] == ["version"]:
+    print(os.environ.get("FAKE_CLI_VERSION", "withhuman 1.0.43"))
+    sys.exit(0)
+
 payload = json.loads(sys.stdin.read())
 with open(os.environ["FAKE_HOOK_LOG"], "w", encoding="utf-8") as log:
     json.dump({"payload": payload, **{name: os.environ.get(name) for name in

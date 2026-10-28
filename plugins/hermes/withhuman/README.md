@@ -7,7 +7,7 @@ Approve or deny Hermes tool calls before they run. [withHuman](https://withhuman
 Install the plugin, then connect it to withHuman:
 
 ```sh
-hermes plugins install withhuman --enable
+hermes plugins install withHumanAI/withHuman/plugins/hermes/withhuman --enable
 hermes withhuman setup
 ```
 
@@ -18,7 +18,7 @@ Setup asks how to connect:
 
 Setup also turns off Hermes's 30 second hook timeout for this profile, so a call can wait for a person. Then it sends a test request.
 
-Setup needs the [withHuman CLI](https://withhuman.ai/docs/web-app/agents#cli-enrollment). If it isn't installed, setup tells you how to install it.
+Setup downloads the withHuman CLI the plugin runs, if it isn't installed already.
 
 Until setup has run, the plugin is off and tool calls run without approval.
 
@@ -50,4 +50,4 @@ Revoke the instance in withHuman if you no longer need it.
 
 - **Hooks that change arguments:** Hermes applies argument changes from hooks that run after this plugin, including shell hooks. Keep other `pre_tool_call` hooks from changing tool arguments, or an approved call can run with different arguments.
 - **Hook timeout:** Setup sets `plugins.hook_callback_timeout` to `0`. A lower value blocks any call still waiting when it runs out.
-- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization.
+- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization. When no CLI is installed, or an older one is, setup downloads a fixed CLI version from downloads.withhuman.ai and checks it against a checksum in the plugin before using it.

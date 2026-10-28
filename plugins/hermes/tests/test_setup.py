@@ -23,7 +23,16 @@ class FakeWithHuman(BaseHTTPRequestHandler):
 
     polls = 0
 
+    def refused(self):
+        # Like Cloudflare in front of withHuman.
+        if self.headers.get("User-Agent", "").startswith("Python-urllib"):
+            self.answer(403, {})
+            return True
+        return False
+
     def do_POST(self):
+        if self.refused():
+            return
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         origin = f"http://127.0.0.1:{self.server.server_port}"
         if self.path == "/auth/agent_enrollments":
@@ -42,6 +51,8 @@ class FakeWithHuman(BaseHTTPRequestHandler):
         self.answer(404, {})
 
     def do_GET(self):
+        if self.refused():
+            return
         if self.path == "/api/v1/agent_instances/self" and self.headers["Authorization"] == "Bearer whc_pasted":
             return self.answer(200, {"agent_slug": "hermes", "agent_instance_id": "i1"})
         self.answer(401, {"error": {"code": "unauthenticated"}})

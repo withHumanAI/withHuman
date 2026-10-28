@@ -105,8 +105,8 @@ def connected():
 def current_connection():
     """The connection for this profile, or None when the CLI is missing."""
     installed = _installed()
-    binary = installed.get("binary") or shutil.which("withhuman")
-    if not binary or not os.path.exists(binary):
+    binary = find_cli()
+    if binary is None:
         return None
     key = _hermes_key()
     if key:
@@ -115,6 +115,21 @@ def current_connection():
     if installed.get("configDir"):
         env["AAP_CONFIG_DIR"] = installed["configDir"]
     return Connection(binary=binary, env=env, hermes_key=False)
+
+
+def find_cli():
+    """The withhuman CLI the hook runs: the copy setup downloaded for this
+    profile, else the one `withhuman agent install hermes` recorded, else
+    the one on PATH."""
+    for binary in (str(downloaded_cli()), _installed().get("binary"), shutil.which("withhuman")):
+        if binary and os.path.isfile(binary) and os.access(binary, os.X_OK):
+            return binary
+    return None
+
+
+def downloaded_cli():
+    """Where setup keeps the CLI it downloads, in this profile's plugin data."""
+    return _data_dir() / "bin" / "withhuman"
 
 
 def hermes_key_connection(binary, key, url):
