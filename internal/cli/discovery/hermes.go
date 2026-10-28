@@ -17,7 +17,7 @@ type hermes struct{}
 func (hermes) Key() agentruntime.Key { return agentruntime.Hermes }
 
 func (hermes) configPath(env Env) string {
-	return filepath.Join(env.Home, ".hermes", "config.yaml")
+	return filepath.Join(agentruntime.HermesHome(env.Home, env.getenv), "config.yaml")
 }
 
 func (h hermes) load(env Env) (*yaml.Node, error) {

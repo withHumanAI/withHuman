@@ -10,6 +10,7 @@ package agentruntime
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -367,4 +368,13 @@ func allowlistName(key Key, tool SelectedTool) string {
 func shellQuote(value string) string {
 	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "$", `\$`, "`", "\\`")
 	return `"` + replacer.Replace(value) + `"`
+}
+
+// HermesHome is Hermes's home: HERMES_HOME when set (the official Docker
+// image uses /opt/data), else ~/.hermes under home.
+func HermesHome(home string, getenv func(string) string) string {
+	if dir := getenv("HERMES_HOME"); dir != "" {
+		return dir
+	}
+	return filepath.Join(home, ".hermes")
 }

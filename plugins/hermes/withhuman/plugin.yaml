@@ -1,5 +1,5 @@
 name: withhuman
-version: 1.0.0
+version: 1.1.0
 manifest_version: 2
 api_version: 1
 description: >-
@@ -12,3 +12,14 @@ tags: [approvals, human-in-the-loop, security]
 requires_hermes: ">=0.22.5"
 provides_hooks:
   - pre_tool_call
+config_schema:
+  url:
+    type: str
+    default: https://app.withhuman.ai
+    label: withHuman address
+    description: Change it only for self-hosted withHuman.
+  agent_key:
+    type: secret
+    env: WITHHUMAN_AGENT_TOKEN
+    label: Agent key
+    description: Set by hermes withhuman setup.

@@ -196,13 +196,13 @@ func TestSetupEndToEnd(t *testing.T) {
 	}
 	for _, result := range session.InstallResults {
 		// Claude Code: the hook file and the MCP registration. Hermes: the
-		// plugin's three files, its aap.json, and config.yaml twice.
-		want := map[string]int{"claude-code": 2, "hermes": 6}[result.Runtime]
+		// plugin's four files, its aap.json, and config.yaml twice.
+		want := map[string]int{"claude-code": 2, "hermes": 7}[result.Runtime]
 		if !result.OK || result.Manual || len(result.Changes) != want {
 			t.Fatalf("install result = %+v", result)
 		}
 	}
-	for _, name := range []string{"plugin.yaml", "__init__.py", "README.md", "aap.json"} {
+	for _, name := range []string{"plugin.yaml", "__init__.py", "connect.py", "README.md", "aap.json"} {
 		if _, err := os.Stat(filepath.Join(f.home, ".hermes", "plugins", "withhuman", name)); err != nil {
 			t.Fatalf("Hermes plugin file %s: %v", name, err)
 		}
@@ -240,7 +240,7 @@ func TestSetupEndToEnd(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := installation.Remove(key, *cred, mcpservers.Env{Home: f.home, Binary: testBinary, ConfigDir: f.config}); err != nil {
+		if _, err := installation.Remove(key, *cred, mcpservers.Env{Home: f.home, Binary: testBinary, ConfigDir: f.config, Getenv: f.env.Getenv}); err != nil {
 			t.Fatal(err)
 		}
 		if err := credential.Delete(f.config, key); err != nil {

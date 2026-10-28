@@ -11,7 +11,7 @@ import (
 // Name is the plugin's Hermes key and directory name.
 const Name = "withhuman"
 
-//go:embed withhuman/plugin.yaml withhuman/__init__.py withhuman/README.md
+//go:embed withhuman/plugin.yaml withhuman/__init__.py withhuman/connect.py withhuman/README.md
 var files embed.FS
 
 // Files returns the plugin's files rooted at its directory.

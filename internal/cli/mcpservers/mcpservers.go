@@ -99,7 +99,7 @@ func Install(env Env, reg Registration) (Result, error) {
 	case agentruntime.Codex:
 		return installCodex(filepath.Join(env.Home, ".codex", "config.toml"), env, reg)
 	case agentruntime.Hermes:
-		return installHermes(filepath.Join(env.Home, ".hermes", "config.yaml"), env, reg)
+		return installHermes(filepath.Join(agentruntime.HermesHome(env.Home, env.getenv), "config.yaml"), env, reg)
 	case agentruntime.OpenClaw:
 		return installOpenClaw(filepath.Join(env.Home, ".openclaw", "openclaw.json"), env, reg)
 	case agentruntime.DeepSeek:
@@ -133,7 +133,7 @@ func remove(env Env, reg Registration) (Result, error) {
 	case agentruntime.Codex:
 		return removeCodex(filepath.Join(env.Home, ".codex", "config.toml"), reg.Servers)
 	case agentruntime.Hermes:
-		return removeHermes(filepath.Join(env.Home, ".hermes", "config.yaml"), reg.Servers)
+		return removeHermes(filepath.Join(agentruntime.HermesHome(env.Home, env.getenv), "config.yaml"), reg.Servers)
 	case agentruntime.OpenClaw:
 		return removeJSON(filepath.Join(env.Home, ".openclaw", "openclaw.json"), openClawServers, reg.Servers)
 	case agentruntime.DeepSeek:

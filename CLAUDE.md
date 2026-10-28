@@ -1040,14 +1040,25 @@ Examples:
   Runtime installation, hook handling and plugin assets belong only to AAP.
   The one exception is the Hermes plugin (`plugins/hermes/withhuman`): it
   carries withHuman's name so Hermes's plugin catalog can list it under
-  that name. Replacement rule: the plugin is a thin Python shim that runs
-  `withhuman hook hermes` and returns its verdict, so the gate stays
-  AAP's; core passes the files to `adapters.WithPlugin` and AAP still
-  writes and ejects every runtime file, sets
-  `plugins.hook_callback_timeout` to 0 and recognises the plugin as
-  installed. The plugin waits at most a week, stops the hook on a Hermes
-  interrupt so the request is withdrawn, and has no third-party
-  dependencies. Its tests run with `make hermes-plugin-test`.
+  that name, and it can be installed with Hermes's own `hermes plugins
+  install`. Replacement rule: the plugin runs `withhuman hook hermes` for
+  every call and returns its verdict, so the gate stays AAP's. It is off
+  until connected, in one of two ways. `hermes withhuman setup` signs in
+  through the CLI's enrollment endpoints (or checks a pasted agent key
+  against `/api/v1/agent_instances/self`), saves the key in the Hermes
+  profile's secrets as `WITHHUMAN_AGENT_TOKEN` and the address in the
+  plugin's settings, sets `plugins.hook_callback_timeout` to 0 and sends a
+  test request; the hook passes the key to the CLI as AAP's
+  `AAP_INSTANCE_TOKEN` and `AAP_BASE_URL`. This is the one place an agent
+  credential lives in a runtime's configuration: Hermes keeps secrets per
+  profile, so each profile is its own instance. `withhuman agent install
+  hermes` instead passes the files to `adapters.WithPlugin`, and AAP
+  writes and ejects every runtime file, writes an `aap.json` naming the
+  CLI and its saved credential, and sets the timeout. The plugin waits at
+  most a week, stops the hook on a Hermes interrupt so the request is
+  withdrawn, and has no third-party dependencies. Hermes paths follow
+  `HERMES_HOME` (`agentruntime.HermesHome`). Its tests run with `make
+  hermes-plugin-test`; the ones against a real Hermes need it importable.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
   `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an

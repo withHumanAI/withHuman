@@ -125,3 +125,19 @@ func TestTestCommand(t *testing.T) {
 		t.Fatalf("shellQuote: %s", got)
 	}
 }
+
+func TestHermesHomeFollowsHermesHome(t *testing.T) {
+	unset := func(string) string { return "" }
+	if got := HermesHome("/home/me", unset); got != "/home/me/.hermes" {
+		t.Fatalf("default = %s", got)
+	}
+	docker := func(key string) string {
+		if key == "HERMES_HOME" {
+			return "/opt/data"
+		}
+		return ""
+	}
+	if got := HermesHome("/home/me", docker); got != "/opt/data" {
+		t.Fatalf("HERMES_HOME = %s", got)
+	}
+}
