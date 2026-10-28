@@ -1062,7 +1062,11 @@ Examples:
   (`CLI_VERSION` with one SHA-256 per platform, as Hermes's catalog
   requires) into the profile's plugin data, and the hook prefers that copy.
   Raise the pin, with hashes checked against the release, whenever the
-  plugin needs a newer CLI. Requests from setup send their own user agent,
+  plugin needs a newer CLI. Setup also adds the servers in
+  `agent_mcp_servers` (the hosted gateway) as remote MCP servers whose
+  `Authorization` header references `${WITHHUMAN_AGENT_TOKEN}`, so Hermes
+  sends the profile's key without the CLI relay; only servers on the
+  withHuman address's own origin are added. Requests from setup send their own user agent,
   because Cloudflare refuses Python's default one. Its tests run with
   `make hermes-plugin-test`; the ones against a real Hermes need it
   importable.
