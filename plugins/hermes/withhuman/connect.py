@@ -77,7 +77,8 @@ def setup(ctx, url, agent) -> int:
     saved = ctx.get_config("url")
     current = saved if isinstance(saved, str) and saved else DEFAULT_URL
     try:
-        origin = _origin(url or _ask(f"withHuman address [{current}]: ") or current)
+        shown = "cloud" if current == DEFAULT_URL else current
+        origin = _origin(url or _ask(f"withHuman address (default is {shown}): ") or current)
         print("Connect Hermes to withHuman:")
         print("  1. Sign in with your browser")
         print("  2. Paste an agent key")
