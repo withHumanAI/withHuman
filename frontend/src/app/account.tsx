@@ -83,7 +83,7 @@ export function AccountScreen() {
     <SettingsPage title="Account" description={description}>
       <SettingsSection
         title="Password"
-        description="At least 12 characters. Changing it signs out every other device."
+        description="Changing your password signs out every other device."
         inset="none"
       >
         <form key={formKey} onSubmit={submit}>
@@ -98,6 +98,7 @@ export function AccountScreen() {
             <TextField
               name="new_password"
               label="New password"
+              info="At least 12 characters."
               type="password"
               minLength={12}
               autoComplete="new-password"
