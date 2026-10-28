@@ -36,6 +36,8 @@ Run `hermes withhuman test`, or ask Hermes to do something your rules send to a 
 
 ## Keep it working
 
+Run `hermes plugins update withhuman` to update the plugin. If the update needs a newer withHuman CLI than the one setup downloaded, the plugin downloads it in the background when Hermes next starts. A CLI you installed yourself is yours to upgrade with `withhuman upgrade`.
+
 Agent keys expire after 90 days by default. When a key expires or is revoked, calls are blocked and Hermes says why. Run `hermes withhuman setup` again to connect a new key.
 
 ## Remove it
@@ -50,4 +52,4 @@ Revoke the instance in withHuman if you no longer need it.
 
 - **Hooks that change arguments:** Hermes applies argument changes from hooks that run after this plugin, including shell hooks. Keep other `pre_tool_call` hooks from changing tool arguments, or an approved call can run with different arguments.
 - **Hook timeout:** Setup sets `plugins.hook_callback_timeout` to `0`. A lower value blocks any call still waiting when it runs out.
-- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization. When no CLI is installed, or an older one is, setup downloads a fixed CLI version from downloads.withhuman.ai and checks it against a checksum in the plugin before using it. The `withhuman-gateway` MCP server sends your agent key to your withHuman address. The skills come from withhuman.ai through Hermes's own skill installer.
+- **Network:** The plugin runs the `withhuman` CLI, which sends each call's tool name and arguments to your withHuman organization. When no CLI is installed, or an older one is, setup downloads a fixed CLI version from downloads.withhuman.ai and checks it against a checksum in the plugin before using it. The plugin downloads a newer fixed version the same way when an update needs one. The `withhuman-gateway` MCP server sends your agent key to your withHuman address. The skills come from withhuman.ai through Hermes's own skill installer.
