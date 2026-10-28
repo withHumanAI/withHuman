@@ -1057,8 +1057,15 @@ Examples:
   CLI and its saved credential, and sets the timeout. The plugin waits at
   most a week, stops the hook on a Hermes interrupt so the request is
   withdrawn, and has no third-party dependencies. Hermes paths follow
-  `HERMES_HOME` (`agentruntime.HermesHome`). Its tests run with `make
-  hermes-plugin-test`; the ones against a real Hermes need it importable.
+  `HERMES_HOME` (`agentruntime.HermesHome`). When no CLI is installed, or
+  an older one is, setup downloads the CLI release pinned in `connect.py`
+  (`CLI_VERSION` with one SHA-256 per platform, as Hermes's catalog
+  requires) into the profile's plugin data, and the hook prefers that copy.
+  Raise the pin, with hashes checked against the release, whenever the
+  plugin needs a newer CLI. Requests from setup send their own user agent,
+  because Cloudflare refuses Python's default one. Its tests run with
+  `make hermes-plugin-test`; the ones against a real Hermes need it
+  importable.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
   `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an

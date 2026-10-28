@@ -46,6 +46,7 @@ class PluginTest(PluginTestCase):
     def test_missing_cli_blocks(self):
         plugin = self.load_plugin()
         self.binary.unlink()
+        self.set_env(PATH=str(self.tmp / "empty"))
         self.assertEqual(self.call(plugin), {"action": "block", "message": plugin.NO_CLI_TEXT})
 
     def test_interrupt_withdraws_the_request(self):
