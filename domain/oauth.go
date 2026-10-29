@@ -2,16 +2,20 @@ package domain
 
 import "time"
 
-// OAuthClient is an MCP client that registered itself with the
-// management MCP server's authorization endpoint (RFC 7591). It is a
-// public client: no secret, PKCE on every authorization. It belongs to no
-// organization, because it registers before anyone signs in and one
-// installation connects to whichever organizations its people authorize.
+// OAuthClient is an MCP client known to the management MCP server's
+// authorization endpoint: one that registered itself (RFC 7591), or one
+// that names the URL of its metadata document as its client ID
+// (MetadataURL), whose name and redirect URIs are refreshed from that
+// document on every authorization. It is a public client: no secret, PKCE
+// on every authorization. It belongs to no organization, because it
+// arrives before anyone signs in and one installation connects to
+// whichever organizations its people authorize.
 type OAuthClient struct {
 	ID           ID        `json:"id"`
 	Name         string    `json:"name"`
 	RedirectURIs []string  `json:"redirect_uris"`
 	ClientURI    string    `json:"client_uri,omitempty"`
+	MetadataURL  string    `json:"metadata_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

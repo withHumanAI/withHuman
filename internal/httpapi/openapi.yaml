@@ -441,7 +441,7 @@ paths:
                 grant_type: { type: string, enum: [authorization_code] }
                 code: { type: string }
                 redirect_uri: { type: string }
-                client_id: { type: string, format: uuid }
+                client_id: { type: string, description: "A registered client's ID, or the https URL of the client's metadata document (draft-ietf-oauth-client-id-metadata-document)." }
                 code_verifier: { type: string }
       responses:
         "200":
@@ -5959,6 +5959,7 @@ components:
         token_endpoint_auth_methods_supported: { type: array, items: { type: string } }
         code_challenge_methods_supported: { type: array, items: { type: string } }
         authorization_response_iss_parameter_supported: { type: boolean }
+        client_id_metadata_document_supported: { type: boolean, description: "Whether a client may use the https URL of its metadata document as its client ID instead of registering." }
         service_documentation: { type: string, format: uri }
     OAuthProtectedResourceMetadata:
       type: object
@@ -6004,7 +6005,7 @@ components:
       type: object
       required: [client_id, redirect_uri, code_challenge, code_challenge_method]
       properties:
-        client_id: { type: string, format: uuid }
+        client_id: { type: string, description: "A registered client's ID, or the https URL of the client's metadata document (draft-ietf-oauth-client-id-metadata-document)." }
         redirect_uri: { type: string, format: uri }
         state: { type: string }
         code_challenge: { type: string }

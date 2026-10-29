@@ -46,6 +46,12 @@ func (r *oauthMemoryRepository) CreateOAuthClient(_ context.Context, input appli
 	return client, nil
 }
 
+// SaveOAuthClientMetadataDocument is never reached: the harness gives the
+// OAuth service no document fetcher, so URL client IDs are unknown here.
+func (r *oauthMemoryRepository) SaveOAuthClientMetadataDocument(context.Context, application.SaveOAuthClientMetadataDocumentInput) (domain.OAuthClient, error) {
+	return domain.OAuthClient{}, domain.ErrNotFound
+}
+
 func (r *oauthMemoryRepository) GetOAuthClient(_ context.Context, input application.GetOAuthClientInput) (domain.OAuthClient, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -23,14 +23,35 @@ func (s *Store) CreateOAuthClient(ctx context.Context, input application.CreateO
 	return s.GetOAuthClient(ctx, application.GetOAuthClientInput{ClientID: input.ClientID})
 }
 
+func (s *Store) SaveOAuthClientMetadataDocument(ctx context.Context, input application.SaveOAuthClientMetadataDocumentInput) (domain.OAuthClient, error) {
+	if err := input.Validate(); err != nil {
+		return domain.OAuthClient{}, err
+	}
+	row := s.pool.QueryRow(ctx, `INSERT INTO oauth_clients (id, name, redirect_uris, client_uri, metadata_url, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (metadata_url) WHERE metadata_url IS NOT NULL
+		DO UPDATE SET name = EXCLUDED.name, redirect_uris = EXCLUDED.redirect_uris, client_uri = EXCLUDED.client_uri
+		RETURNING `+oauthClientColumns,
+		input.ClientID, input.Name, input.RedirectURIs, input.ClientURI, input.MetadataURL, input.Now)
+	return scanOAuthClient(row)
+}
+
 func (s *Store) GetOAuthClient(ctx context.Context, input application.GetOAuthClientInput) (domain.OAuthClient, error) {
 	if err := input.Validate(); err != nil {
 		return domain.OAuthClient{}, err
 	}
+	if input.MetadataURL != "" {
+		return scanOAuthClient(s.pool.QueryRow(ctx, `SELECT `+oauthClientColumns+` FROM oauth_clients WHERE metadata_url = $1`, input.MetadataURL))
+	}
+	return scanOAuthClient(s.pool.QueryRow(ctx, `SELECT `+oauthClientColumns+` FROM oauth_clients WHERE id = $1`, input.ClientID))
+}
+
+const oauthClientColumns = `id::text, name, redirect_uris, client_uri, COALESCE(metadata_url, ''), created_at`
+
+func scanOAuthClient(row pgx.Row) (domain.OAuthClient, error) {
 	var client domain.OAuthClient
 	var id string
-	err := s.pool.QueryRow(ctx, `SELECT id::text, name, redirect_uris, client_uri, created_at FROM oauth_clients WHERE id = $1`, input.ClientID).
-		Scan(&id, &client.Name, &client.RedirectURIs, &client.ClientURI, &client.CreatedAt)
+	err := row.Scan(&id, &client.Name, &client.RedirectURIs, &client.ClientURI, &client.MetadataURL, &client.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.OAuthClient{}, domain.ErrNotFound
 	}

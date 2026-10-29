@@ -22,7 +22,7 @@ const (
 
 // ErrResponseTooLarge means the endpoint answered with more than the
 // response limit; the answer is discarded unread.
-var ErrResponseTooLarge = errors.New("webhook response exceeds the size limit")
+var ErrResponseTooLarge = errors.New("response exceeds the size limit")
 
 // Delivery is one signed POST. Timeout bounds the attempt from connect to
 // the full response. Secret signs with withHuman's own scheme; a caller
@@ -155,6 +155,60 @@ func (c *Client) Deliver(ctx context.Context, delivery Delivery) (Response, erro
 	if delivery.IdempotencyKey != "" {
 		request.Header.Set(IdempotencyKeyHeader, delivery.IdempotencyKey)
 	}
+	started := time.Now()
+	response, err := c.send(request, MaximumResponseBytes)
+	response.Duration = time.Since(started)
+	telemetry.WebhookDelivered(ctx, delivery.Purpose, response.StatusCode, err != nil, IsTimeout(err), response.Duration)
+	return response, err
+}
+
+// Fetch is one GET of a public document, such as an OAuth client's
+// metadata document, under the same egress policy as a delivery.
+// MaximumBytes bounds the body; zero means the delivery limit.
+type Fetch struct {
+	URL          string
+	Accept       string
+	Timeout      time.Duration
+	MaximumBytes int64
+}
+
+// Fetch gets the document once. Like Deliver it follows no redirects and
+// reads the body through the limit. It is not a webhook, so it records
+// no delivery metric.
+func (c *Client) Fetch(ctx context.Context, fetch Fetch) (Response, error) {
+	target, err := c.policy.ValidateURL(fetch.URL)
+	if err != nil {
+		return Response{}, err
+	}
+	timeout := fetch.Timeout
+	if timeout <= 0 {
+		timeout = DefaultTimeout
+	}
+	limit := fetch.MaximumBytes
+	if limit <= 0 {
+		limit = MaximumResponseBytes
+	}
+	attemptContext, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	request, err := http.NewRequestWithContext(attemptContext, http.MethodGet, target.String(), nil)
+	if err != nil {
+		return Response{}, err
+	}
+	request.Header.Set("User-Agent", UserAgent)
+	if fetch.Accept != "" {
+		request.Header.Set("Accept", fetch.Accept)
+	}
+	started := time.Now()
+	response, err := c.send(request, limit)
+	response.Duration = time.Since(started)
+	return response, err
+}
+
+// send makes the request through the pinned transport (or the proxy the
+// environment names) without following redirects, and reads at most
+// limit bytes of the body. A transport failure answers an empty Response;
+// an oversized body answers the status and headers without it.
+func (c *Client) send(request *http.Request, limit int64) (Response, error) {
 	transport := c.pinned
 	if proxyURL, proxyErr := http.ProxyFromEnvironment(request); proxyErr == nil && proxyURL != nil {
 		transport = c.proxied
@@ -163,24 +217,19 @@ func (c *Client) Deliver(ctx context.Context, delivery Delivery) (Response, erro
 		Transport:     transport,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
-	started := time.Now()
 	response, err := httpClient.Do(request)
 	if err != nil {
-		duration := time.Since(started)
-		telemetry.WebhookDelivered(ctx, delivery.Purpose, 0, true, IsTimeout(err), duration)
-		return Response{Duration: duration}, err
+		return Response{}, err
 	}
 	defer response.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(response.Body, MaximumResponseBytes+1))
-	duration := time.Since(started)
-	if err == nil && len(body) > MaximumResponseBytes {
+	body, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
+	if err == nil && int64(len(body)) > limit {
 		err = ErrResponseTooLarge
 	}
-	telemetry.WebhookDelivered(ctx, delivery.Purpose, response.StatusCode, err != nil, IsTimeout(err), duration)
 	if err != nil {
-		return Response{StatusCode: response.StatusCode, Header: response.Header, Duration: duration}, err
+		return Response{StatusCode: response.StatusCode, Header: response.Header}, err
 	}
-	return Response{StatusCode: response.StatusCode, Header: response.Header, Body: body, Duration: duration}, nil
+	return Response{StatusCode: response.StatusCode, Header: response.Header, Body: body}, nil
 }
 
 // IsTimeout reports whether a delivery error was the attempt deadline.

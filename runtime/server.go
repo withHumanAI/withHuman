@@ -397,8 +397,12 @@ func NewServer(ctx context.Context, options ServerOptions) (*Server, error) {
 		PublicOrigin: cfg.PublicOrigin, CLIDownloadURL: cfg.CLIDownloadURL,
 		SessionTTL: cfg.OnboardingSessionTTL, SetupCodeTTL: cfg.EnrollmentCodeTTL,
 	})
+	// Clients that name their metadata document's URL as their client ID
+	// (Claude, Claude Code) have it fetched under the webhook egress
+	// policy, which needs no secrets key.
 	mcpOAuthService := mcpoauth.NewService(store, authService, store, clock, mcpoauth.Config{
 		PublicOrigin: cfg.PublicOrigin, MCPPath: httpapi.MCPPath, AuthorizePath: httpapi.MCPAuthorizePath,
+		ClientMetadata: webhookdelivery.NewClient(webhookPolicy),
 	})
 	drain := httpapi.NewDrain()
 	router := httpapi.NewRouter(httpapi.Dependencies{

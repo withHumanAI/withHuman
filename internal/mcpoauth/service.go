@@ -1,7 +1,8 @@
 // Package mcpoauth is the OAuth 2.1 authorization server in front of the
-// management MCP endpoint: an MCP client registers itself, sends the
-// person to the consent page, and exchanges the resulting code for a
-// personal API key that acts as that person, narrowed to what they chose.
+// management MCP endpoint: an MCP client registers itself or names the URL
+// of its metadata document as its client ID, sends the person to the
+// consent page, and exchanges the resulting code for a personal API key
+// that acts as that person, narrowed to what they chose.
 // The key is the access token, so every credential rule (live grants,
 // revocation, expiry, the policy switch, audit) is the API key's own.
 package mcpoauth
@@ -14,6 +15,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -28,6 +30,7 @@ import (
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/authn"
 	"github.com/withHumanAI/withHuman/domain"
+	"github.com/withHumanAI/withHuman/internal/webhookdelivery"
 )
 
 const (
@@ -36,6 +39,11 @@ const (
 	// maxClientNameLength bounds what the consent page will show.
 	maxClientNameLength = 100
 	maxRedirectURIs     = 10
+	// A client metadata document is a few hundred bytes; the limit and
+	// the timeout keep a hostile one from holding the consent page.
+	maxMetadataDocumentBytes = 16 * 1024
+	metadataDocumentTimeout  = 5 * time.Second
+	maxMetadataURLLength     = 2048
 	// sealLabel domain-separates the code-derived sealing key.
 	sealLabel = "withhuman-oauth-authorization-code-seal"
 )
@@ -85,6 +93,13 @@ type KeyReader interface {
 	GetAPIKey(ctx context.Context, input application.GetAPIKeyInput) (domain.APIKey, error)
 }
 
+// DocumentFetcher gets a client's metadata document under the product's
+// outbound egress policy (public HTTPS, no private addresses, no
+// redirects, a bounded body).
+type DocumentFetcher interface {
+	Fetch(ctx context.Context, fetch webhookdelivery.Fetch) (webhookdelivery.Response, error)
+}
+
 type Config struct {
 	// PublicOrigin is the issuer and the base of every endpoint URL.
 	PublicOrigin string
@@ -94,6 +109,9 @@ type Config struct {
 	// consent screen; the SPA serves it.
 	AuthorizePath string
 	CodeTTL       time.Duration
+	// ClientMetadata fetches the metadata documents of clients whose
+	// client ID is a URL. Without it only registered clients are known.
+	ClientMetadata DocumentFetcher
 }
 
 type Service struct {
@@ -145,6 +163,7 @@ type AuthorizationServerMetadata struct {
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
 	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported"`
 	IssParameterSupported             bool     `json:"authorization_response_iss_parameter_supported"`
+	ClientIDMetadataDocumentSupported bool     `json:"client_id_metadata_document_supported"`
 	ServiceDocumentation              string   `json:"service_documentation"`
 }
 
@@ -186,6 +205,7 @@ func (s *Service) AuthorizationServerMetadata() AuthorizationServerMetadata {
 		TokenEndpointAuthMethodsSupported: []string{"none"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
 		IssParameterSupported:             true,
+		ClientIDMetadataDocumentSupported: s.config.ClientMetadata != nil,
 		ServiceDocumentation:              documentationURL,
 	}
 }
@@ -331,15 +351,154 @@ func redirectURIMatches(registered, presented string) bool {
 	return first.Hostname() == second.Hostname() && first.Path == second.Path && first.RawQuery == second.RawQuery
 }
 
+// GetClient answers the client a client ID names: a registered client's
+// UUID, or the HTTPS URL of a client's metadata document, which is fetched
+// and checked on every call so the consent page shows what the document
+// says now.
 func (s *Service) GetClient(ctx context.Context, clientID string) (domain.OAuthClient, error) {
+	if isMetadataURLShaped(clientID) {
+		return s.metadataDocumentClient(ctx, clientID)
+	}
 	if _, err := uuid.Parse(clientID); err != nil {
-		return domain.OAuthClient{}, &Error{Code: "invalid_client", Description: "Unknown client.", Status: http.StatusNotFound}
+		return domain.OAuthClient{}, unknownClient()
 	}
 	client, err := s.repository.GetOAuthClient(ctx, application.GetOAuthClientInput{ClientID: domain.ID(clientID)})
 	if errors.Is(err, domain.ErrNotFound) {
-		return domain.OAuthClient{}, &Error{Code: "invalid_client", Description: "Unknown client.", Status: http.StatusNotFound}
+		return domain.OAuthClient{}, unknownClient()
 	}
 	return client, err
+}
+
+func unknownClient() *Error {
+	return &Error{Code: "invalid_client", Description: "Unknown client.", Status: http.StatusNotFound}
+}
+
+func invalidMetadataDocument(description string) *Error {
+	return &Error{Code: "invalid_client", Description: description, Status: http.StatusBadRequest}
+}
+
+// isMetadataURLShaped tells a metadata document URL from a registered
+// client's UUID; whether the URL is acceptable is checked afterwards.
+func isMetadataURLShaped(clientID string) bool {
+	return strings.HasPrefix(clientID, "https://") || strings.HasPrefix(clientID, "http://")
+}
+
+// clientMetadataDocument is the part of a client's metadata document this
+// server reads (draft-ietf-oauth-client-id-metadata-document, RFC 7591
+// field names). ClientSecret is read only to refuse it.
+type clientMetadataDocument struct {
+	ClientID                string   `json:"client_id"`
+	ClientName              string   `json:"client_name"`
+	ClientURI               string   `json:"client_uri"`
+	RedirectURIs            []string `json:"redirect_uris"`
+	GrantTypes              []string `json:"grant_types"`
+	ResponseTypes           []string `json:"response_types"`
+	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
+	ClientSecret            *string  `json:"client_secret"`
+}
+
+// metadataDocumentClient fetches the document a URL client ID names,
+// checks it, and records it, so keys and codes refer to the client by a
+// row like any registered client's.
+func (s *Service) metadataDocumentClient(ctx context.Context, metadataURL string) (domain.OAuthClient, error) {
+	if s.config.ClientMetadata == nil {
+		return domain.OAuthClient{}, unknownClient()
+	}
+	if refusal := validateMetadataURL(metadataURL); refusal != nil {
+		return domain.OAuthClient{}, refusal
+	}
+	response, err := s.config.ClientMetadata.Fetch(ctx, webhookdelivery.Fetch{
+		URL: metadataURL, Accept: "application/json", Timeout: metadataDocumentTimeout, MaximumBytes: maxMetadataDocumentBytes,
+	})
+	if err != nil {
+		return domain.OAuthClient{}, invalidMetadataDocument("The client's metadata document could not be fetched.")
+	}
+	if response.StatusCode != http.StatusOK {
+		return domain.OAuthClient{}, invalidMetadataDocument(fmt.Sprintf("The client's metadata document answered status %d.", response.StatusCode))
+	}
+	var document clientMetadataDocument
+	if err := json.Unmarshal(response.Body, &document); err != nil {
+		return domain.OAuthClient{}, invalidMetadataDocument("The client's metadata document is not a JSON object.")
+	}
+	name, clientURI, refusal := checkMetadataDocument(metadataURL, document)
+	if refusal != nil {
+		return domain.OAuthClient{}, refusal
+	}
+	return s.repository.SaveOAuthClientMetadataDocument(ctx, application.SaveOAuthClientMetadataDocumentInput{
+		ClientID: domain.ID(uuid.NewString()), MetadataURL: metadataURL, Name: name,
+		RedirectURIs: document.RedirectURIs, ClientURI: clientURI, Now: s.clock.Now(),
+	})
+}
+
+// validateMetadataURL applies the draft's rules to a URL client ID:
+// https, a host, a path, no dot segments, no credentials, query or
+// fragment. Whether its host is reachable is the egress policy's call.
+func validateMetadataURL(raw string) *Error {
+	if len(raw) > maxMetadataURLLength {
+		return invalidMetadataDocument("The client ID URL is too long.")
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" {
+		return invalidMetadataDocument("A client ID URL must be an https URL with a host.")
+	}
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || strings.Contains(raw, "#") {
+		return invalidMetadataDocument("A client ID URL must not carry credentials, a query or a fragment.")
+	}
+	if parsed.Path == "" || parsed.Path == "/" {
+		return invalidMetadataDocument("A client ID URL must have a path.")
+	}
+	for _, segment := range strings.Split(parsed.Path, "/") {
+		if segment == "." || segment == ".." {
+			return invalidMetadataDocument("A client ID URL must not contain dot segments.")
+		}
+	}
+	return nil
+}
+
+// checkMetadataDocument holds a fetched document to what this server
+// supports: it names the URL it was fetched from, it describes a public
+// client that uses the authorization code flow, and its redirect URIs are
+// ones a registration would accept. Grant types this server does not
+// issue may be listed; they are never offered.
+func checkMetadataDocument(metadataURL string, document clientMetadataDocument) (string, string, *Error) {
+	if document.ClientID != metadataURL {
+		return "", "", invalidMetadataDocument("The client's metadata document names a different client_id.")
+	}
+	if document.ClientSecret != nil {
+		return "", "", invalidMetadataDocument("A client metadata document must not carry a client_secret.")
+	}
+	if method := document.TokenEndpointAuthMethod; method != "" && method != "none" {
+		return "", "", invalidMetadataDocument("Only public clients are supported: token_endpoint_auth_method must be none.")
+	}
+	if len(document.GrantTypes) > 0 && !slices.Contains(document.GrantTypes, "authorization_code") {
+		return "", "", invalidMetadataDocument("The client's metadata document does not use the authorization_code grant.")
+	}
+	if len(document.ResponseTypes) > 0 && !slices.Contains(document.ResponseTypes, "code") {
+		return "", "", invalidMetadataDocument("The client's metadata document does not use response_type code.")
+	}
+	if len(document.RedirectURIs) == 0 || len(document.RedirectURIs) > maxRedirectURIs {
+		return "", "", invalidMetadataDocument("The client's metadata document must name between 1 and 10 redirect_uris.")
+	}
+	for _, uri := range document.RedirectURIs {
+		if err := validateRedirectURI(uri); err != nil {
+			return "", "", invalidMetadataDocument(err.Error())
+		}
+	}
+	host, _ := url.Parse(metadataURL)
+	name := strings.TrimSpace(document.ClientName)
+	if name == "" {
+		name = host.Hostname()
+	}
+	if len(name) > maxClientNameLength {
+		return "", "", invalidMetadataDocument("The client's name in its metadata document is too long.")
+	}
+	clientURI := strings.TrimSpace(document.ClientURI)
+	if clientURI != "" {
+		if parsed, err := url.Parse(clientURI); err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+			return "", "", invalidMetadataDocument("client_uri must be an HTTP(S) URL.")
+		}
+	}
+	return name, clientURI, nil
 }
 
 // AuthorizationRequest is what the client put in the authorization URL
@@ -566,7 +725,7 @@ func (s *Service) Exchange(ctx context.Context, request TokenRequest) (TokenResp
 	}
 	// The code is consumed either way: a mismatch below burns it, so a
 	// stolen code cannot be retried against a guessed verifier.
-	if string(code.ClientID) != request.ClientID {
+	if !s.issuedTo(ctx, code.ClientID, request.ClientID) {
 		return TokenResponse{}, &Error{Code: "invalid_grant", Description: "The code was issued to a different client.", Status: http.StatusBadRequest}
 	}
 	if request.RedirectURI != "" && request.RedirectURI != code.RedirectURI {
@@ -587,6 +746,17 @@ func (s *Service) Exchange(ctx context.Context, request TokenRequest) (TokenResp
 		}
 	}
 	return response, nil
+}
+
+// issuedTo reports whether the client ID a token request presents names
+// the client a code was issued to. A URL client ID is looked up by the URL
+// the consent recorded; the document is not fetched again.
+func (s *Service) issuedTo(ctx context.Context, issued domain.ID, presented string) bool {
+	if !isMetadataURLShaped(presented) {
+		return string(issued) == presented
+	}
+	client, err := s.repository.GetOAuthClient(ctx, application.GetOAuthClientInput{MetadataURL: presented})
+	return err == nil && client.ID == issued
 }
 
 func verifierMatches(verifier, challenge string) bool {
