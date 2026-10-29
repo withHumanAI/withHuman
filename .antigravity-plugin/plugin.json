@@ -1,7 +1,10 @@
 {
   "name": "withhuman",
-  "description": "Approve or deny Antigravity's tool calls in withHuman before they run.",
-  "author": { "name": "withHuman", "url": "https://withhuman.ai" },
+  "description": "Human approval for Antigravity tool calls, with human in the loop guardrails. Set rules for what runs automatically, and send the rest to your team to approve or deny from Slack, Discord or your phone. Keep an audit log of every call.",
+  "author": {
+    "name": "withHuman",
+    "url": "https://withhuman.ai"
+  },
   "homepage": "https://withhuman.ai/docs/getting-started/connect-antigravity",
   "repository": "https://github.com/withHumanAI/withHuman",
   "logo": "frontend/public/icon.svg"

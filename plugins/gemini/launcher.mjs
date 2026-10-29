@@ -34,8 +34,8 @@ const STATE = join(ROOT, ".withhuman");
 
 const FAIL_CLOSED_TEXT = "withHuman could not get an approval decision. The call was not run.";
 const NO_CLI_TEXT = "The withHuman CLI could not be downloaded, so this call was not run. Ask the user to install it: https://withhuman.ai/docs/getting-started/quickstart";
-const WINDOWS_TEXT = "withHuman runs on macOS and Linux only, so this call was not run. Ask the user to remove the agent API key with `gemini extensions config withhuman`.";
-const KEY_REFUSED_TEXT = "withHuman refused this Gemini CLI agent API key. It may have expired or been revoked. Ask the user to update it with `gemini extensions config withhuman`. The call was not run.";
+const WINDOWS_TEXT = "withHuman runs on macOS and Linux only, so this call was not run. Ask the user to remove the agent key with `gemini extensions config withhuman`.";
+const KEY_REFUSED_TEXT = "withHuman refused this Gemini CLI key. It may have expired or been revoked. Ask the user to update it with `gemini extensions config withhuman`. The call was not run.";
 // The start of the CLI's text for a refused credential.
 const REFUSED_PREFIX = "The approval provider refused this runtime's credential";
 
@@ -211,7 +211,7 @@ export async function hook(env = process.env) {
 // The gateway relay: the CLI's `mcp` with this connection, over our stdio.
 export async function mcp(env = process.env) {
   if (!connected(env)) {
-    process.stderr.write("withHuman is not connected. Set the agent API key with `gemini extensions config withhuman`.\n");
+    process.stderr.write("withHuman is not connected. Set the agent key with `gemini extensions config withhuman`.\n");
     return 1;
   }
   const binary = await findCLI(env);
