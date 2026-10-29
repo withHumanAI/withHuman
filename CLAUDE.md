@@ -1107,8 +1107,11 @@ Examples:
   reads CLI metadata, so `register` touches it only inside handlers. The
   pinned CLI (`CLI_RELEASE` in `setup.js`) downloads into
   `<state dir>/withhuman/bin`, with the same refresh rules as Hermes.
-  A plugin that `withhuman agent install openclaw` wrote finds the CLI and
-  its credential in an `aap.json` beside its files.
+  `withhuman agent install openclaw` passes the files to
+  `adapters.WithPlugin`; AAP writes them to its configuration directory
+  with an `aap.json`, adds a `plugins.load.paths` entry, which outranks a
+  ClawHub install of the same id, and removes its own embedded plugin;
+  the plugin finds the CLI and its credential in that `aap.json`.
   Its tests run with `make openclaw-plugin-test`.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
