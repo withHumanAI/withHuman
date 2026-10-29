@@ -55,6 +55,17 @@ class HermesTest(PluginTestCase):
         self.assertIsNotNone(block)
         self.assertNotIn("Denied", block)
 
+    def test_the_hook_limit_withdraws_the_request(self):
+        self.set_env(FAKE_HOOK_MODE="wait")
+        self.start_hermes(callback_timeout=2)
+        block, _ = self.dispatch()
+        self.assertIsNotNone(block)
+        withdrawn = self.log.with_name(self.log.name + ".withdrawn")
+        deadline = time.monotonic() + 10
+        while not withdrawn.exists() and time.monotonic() < deadline:
+            time.sleep(0.1)
+        self.assertTrue(withdrawn.exists())
+
     def test_no_callback_timeout_waits_for_the_decision(self):
         self.set_env(FAKE_HOOK_MODE="slow", FAKE_HOOK_SLEEP="3")
         self.start_hermes(callback_timeout=0)

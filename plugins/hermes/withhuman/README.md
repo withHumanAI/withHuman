@@ -46,8 +46,8 @@ Agent keys expire after 90 days by default. Run `hermes withhuman setup` again t
 
 - **Sends:** each tool call's name and arguments to your withHuman organization.
 - **Stores:** the agent key in this profile's secrets (`WITHHUMAN_AGENT_TOKEN`), and the withHuman address in the plugin's settings.
-- **Runs:** the `withhuman` CLI, once for each tool call.
+- **Runs:** the `withhuman` CLI, once for each tool call. It sees only the environment variables it needs, never your provider keys or other plugins' secrets.
 - **Downloads:** a pinned version of the withHuman CLI from downloads.withhuman.ai, when it is missing or older. The plugin checks it against a checksum it ships with.
-- **Changes in Hermes:** setup sets `plugins.hook_callback_timeout` to `0`, so a call can wait for a person. On hosted withHuman it adds the `withhuman-gateway` MCP server, which sends the agent key to your withHuman address. It offers to install the `withhuman` and `withhuman-pipelines` skills from withhuman.ai.
+- **Changes in Hermes:** setup asks to set `plugins.hook_callback_timeout` to `0`, so a call can wait for a person. That setting applies to every plugin's hooks. If you keep the limit, calls that wait for a person longer than it are blocked. On hosted withHuman setup adds the `withhuman-gateway` MCP server, which sends the agent key to your withHuman address. It offers to install the `withhuman` and `withhuman-pipelines` skills from withhuman.ai.
 - **Left after removal:** the timeout setting, the gateway and the skills. Remove them with `hermes config set plugins.hook_callback_timeout 30`, `hermes mcp remove withhuman-gateway` and `hermes skills uninstall <name>`.
 - **Other hooks:** Hermes applies argument changes from hooks that run after this one. Keep other `pre_tool_call` hooks from changing arguments, or an approved call can run with different arguments.

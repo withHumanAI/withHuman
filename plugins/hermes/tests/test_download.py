@@ -96,6 +96,10 @@ class DownloadTest(PluginTestCase):
         self.connect.refresh_downloaded_cli()
         self.assertEqual(path.read_bytes(), before)
 
+    def test_refresh_downloads_for_a_connected_plugin_without_a_cli(self):
+        self.connect.refresh_downloaded_cli(connected=True)
+        self.assertEqual(self.plugin.downloaded_cli().read_bytes(), self.cli_bytes)
+
     def test_refresh_needs_a_copy_setup_downloaded(self):
         self.put_cli_on_path()
         self.set_env(FAKE_CLI_VERSION="withhuman 9.9.8")
