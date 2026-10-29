@@ -1,0 +1,28 @@
+{
+  "name": "@withhuman/openclaw",
+  "version": "1.0.0",
+  "description": "Human approval for OpenClaw tool calls, with human in the loop guardrails. Set rules for what runs automatically, and send the rest to your team to approve or deny from Slack, Discord or your phone.",
+  "license": "Elastic-2.0",
+  "author": "withHumanAI",
+  "homepage": "https://withhuman.ai/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/withHumanAI/withHuman.git",
+    "directory": "plugins/openclaw/withhuman"
+  },
+  "bugs": "https://github.com/withHumanAI/withHuman/issues",
+  "keywords": ["openclaw", "approvals", "human-in-the-loop", "guardrails", "security"],
+  "type": "module",
+  "files": ["index.js", "hook.js", "setup.js", "openclaw.plugin.json", "README.md", "assets/icon.png"],
+  "openclaw": {
+    "extensions": ["./index.js"],
+    "compat": {
+      "pluginApi": ">=2026.10.8",
+      "minGatewayVersion": "2026.10.8"
+    },
+    "build": {
+      "openclawVersion": "2026.10.8",
+      "pluginSdkVersion": "2026.10.8"
+    }
+  }
+}

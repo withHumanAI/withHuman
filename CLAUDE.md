@@ -1038,7 +1038,7 @@ Examples:
   `hook <runtime>` delegates to AAP and internal `mcp <runtime> <server>`
   is the relay below.
   Runtime installation, hook handling and plugin assets belong only to AAP.
-  The one exception is the Hermes plugin (`plugins/hermes/withhuman`): it
+  The first exception is the Hermes plugin (`plugins/hermes/withhuman`): it
   carries withHuman's name so Hermes's plugin catalog can list it under
   that name, and it can be installed with Hermes's own `hermes plugins
   install`. Replacement rule: the plugin runs `withhuman hook hermes` for
@@ -1083,6 +1083,33 @@ Examples:
   because Cloudflare refuses Python's default one. Its tests run with
   `make hermes-plugin-test`; the ones against a real Hermes need it
   importable.
+  The OpenClaw plugin (`plugins/openclaw/withhuman`, id `withhuman`,
+  published to ClawHub as `@withhuman/openclaw` from that directory) is
+  the second exception, with the same replacement rule: it runs
+  `withhuman hook openclaw` for every call from its `before_tool_call`
+  hook, is off until connected, gives the CLI the same allowlisted
+  environment, and has no dependencies, so it loads from a load path or a
+  ClawHub install without a build. `openclaw withhuman setup` (registered
+  with `api.registerCli`, declared in the manifest's `cliCommands`) signs
+  in or checks a pasted key the same way, saves the key and address in
+  `plugins.entries.withhuman.config` through
+  `api.runtime.config.mutateConfigFile` (a config edit hot-reloads the
+  plugin; a `.env` value would need a Gateway restart), adds the
+  `agent_mcp_servers` on the address's own origin to `mcp.servers` as
+  `streamable-http` entries whose `Authorization` header carries the key
+  (OpenClaw's MCP headers take no secret references), offers to install
+  the `@withhuman/withhuman` and `@withhuman/withhuman-pipelines` ClawHub
+  skills with `openclaw skills install --global`, and sends a test
+  request. The hook registers its own `timeoutMs` (a week plus margins);
+  an operator's lower `plugins.entries.withhuman.hooks` limit makes the
+  request expire just before it and stops the CLI just before that, so no
+  request outlives its call. `api.runtime` is unavailable while OpenClaw
+  reads CLI metadata, so `register` touches it only inside handlers. The
+  pinned CLI (`CLI_RELEASE` in `setup.js`) downloads into
+  `<state dir>/withhuman/bin`, with the same refresh rules as Hermes.
+  A plugin that `withhuman agent install openclaw` wrote finds the CLI and
+  its credential in an `aap.json` beside its files.
+  Its tests run with `make openclaw-plugin-test`.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
   `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an

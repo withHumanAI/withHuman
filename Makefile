@@ -1,4 +1,4 @@
-.PHONY: all frontend fmt test hermes-plugin-test verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
+.PHONY: all frontend fmt test hermes-plugin-test openclaw-plugin-test verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
 
 all: test build
 
@@ -8,7 +8,7 @@ frontend:
 fmt:
 	gofmt -w cmd internal db domain application approvalblock authn entitlements loggermdc runtime singlebinary plugins
 
-test: frontend hermes-plugin-test
+test: frontend hermes-plugin-test openclaw-plugin-test
 	go test $(GOTESTFLAGS) ./...
 	go vet ./...
 	cd frontend && npm test
@@ -17,6 +17,10 @@ test: frontend hermes-plugin-test
 # Hermes is importable.
 hermes-plugin-test:
 	cd plugins/hermes/tests && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+
+# The OpenClaw plugin's tests, against a fake withhuman CLI and server.
+openclaw-plugin-test:
+	node --test plugins/openclaw/tests/*.test.mjs
 
 verify: test api-lint deployment-check
 
