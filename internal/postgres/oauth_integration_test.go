@@ -110,3 +110,49 @@ func TestOAuthCodesRedeemOnceAndKeysRememberTheirClient(t *testing.T) {
 		t.Fatalf("expired code = %v", err)
 	}
 }
+
+// A client known by its metadata document's URL keeps one row: the first
+// save creates it, later saves refresh what the document says under the
+// same ID, and the URL finds it.
+func TestOAuthMetadataDocumentClientsKeepOneRowPerURL(t *testing.T) {
+	server := embeddedpgtest.Start(t)
+	ctx := context.Background()
+	store, err := Open(ctx, server.URL("postgres"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err := db.Apply(ctx, store.Pool(), db.Migrations()); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	const metadataURL = "https://claude.ai/oauth/mcp-oauth-client-metadata"
+	first, err := store.SaveOAuthClientMetadataDocument(ctx, application.SaveOAuthClientMetadataDocumentInput{
+		ClientID: domain.ID(uuid.NewString()), MetadataURL: metadataURL, Name: "Claude",
+		RedirectURIs: []string{"https://claude.ai/api/mcp/auth_callback"}, ClientURI: "https://claude.ai", Now: now,
+	})
+	if err != nil || first.MetadataURL != metadataURL || first.Name != "Claude" {
+		t.Fatalf("first save = %+v, %v", first, err)
+	}
+	second, err := store.SaveOAuthClientMetadataDocument(ctx, application.SaveOAuthClientMetadataDocumentInput{
+		ClientID: domain.ID(uuid.NewString()), MetadataURL: metadataURL, Name: "Claude for Work",
+		RedirectURIs: []string{"https://claude.ai/api/mcp/auth_callback", "https://claude.com/api/mcp/auth_callback"}, Now: now.Add(time.Minute),
+	})
+	if err != nil || second.ID != first.ID || second.Name != "Claude for Work" || len(second.RedirectURIs) != 2 || second.ClientURI != "" || !second.CreatedAt.Equal(now) {
+		t.Fatalf("second save = %+v, %v", second, err)
+	}
+	found, err := store.GetOAuthClient(ctx, application.GetOAuthClientInput{MetadataURL: metadataURL})
+	if err != nil || found.ID != first.ID {
+		t.Fatalf("by URL = %+v, %v", found, err)
+	}
+	if byID, err := store.GetOAuthClient(ctx, application.GetOAuthClientInput{ClientID: first.ID}); err != nil || byID.MetadataURL != metadataURL {
+		t.Fatalf("by ID = %+v, %v", byID, err)
+	}
+	if _, err := store.GetOAuthClient(ctx, application.GetOAuthClientInput{MetadataURL: "https://elsewhere.example.com/metadata"}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("unknown URL = %v", err)
+	}
+	registered, err := store.CreateOAuthClient(ctx, application.CreateOAuthClientInput{ClientID: domain.ID(uuid.NewString()), Name: "Cursor", RedirectURIs: []string{"cursor://cb"}, Now: now})
+	if err != nil || registered.MetadataURL != "" {
+		t.Fatalf("registered client = %+v, %v", registered, err)
+	}
+}

@@ -11,6 +11,10 @@ import (
 // the single-use authorization codes that carry a consented key to them.
 type OAuthRepository interface {
 	CreateOAuthClient(context.Context, CreateOAuthClientInput) (domain.OAuthClient, error)
+	// SaveOAuthClientMetadataDocument records what a client's metadata
+	// document says, creating the client's row the first time its URL is
+	// seen and refreshing it after that.
+	SaveOAuthClientMetadataDocument(context.Context, SaveOAuthClientMetadataDocumentInput) (domain.OAuthClient, error)
 	GetOAuthClient(context.Context, GetOAuthClientInput) (domain.OAuthClient, error)
 	CreateOAuthAuthorizationCode(context.Context, CreateOAuthAuthorizationCodeInput) error
 	// ConsumeOAuthAuthorizationCode redeems one code exactly once: an
@@ -45,12 +49,39 @@ func (input CreateOAuthClientInput) Validate() error {
 	return nil
 }
 
+// SaveOAuthClientMetadataDocumentInput carries a fetched and checked
+// metadata document. ClientID is the row's ID if the URL is new.
+type SaveOAuthClientMetadataDocumentInput struct {
+	ClientID     domain.ID
+	MetadataURL  string
+	Name         string
+	RedirectURIs []string
+	ClientURI    string
+	Now          time.Time
+}
+
+func (input SaveOAuthClientMetadataDocumentInput) Validate() error {
+	if err := requiredString("metadata URL", input.MetadataURL); err != nil {
+		return err
+	}
+	return CreateOAuthClientInput{ClientID: input.ClientID, Name: input.Name, RedirectURIs: input.RedirectURIs, ClientURI: input.ClientURI, Now: input.Now}.Validate()
+}
+
+// GetOAuthClientInput finds a client by its row ID or, for a client
+// identified by its metadata document, by that document's URL.
 type GetOAuthClientInput struct {
-	ClientID domain.ID
+	ClientID    domain.ID
+	MetadataURL string
 }
 
 func (input GetOAuthClientInput) Validate() error {
-	return requiredID("client ID", input.ClientID)
+	if (input.ClientID == "") == (input.MetadataURL == "") {
+		return invalidField("client", "name exactly one of a client ID or a metadata URL")
+	}
+	if input.ClientID != "" {
+		return requiredID("client ID", input.ClientID)
+	}
+	return nil
 }
 
 type CreateOAuthAuthorizationCodeInput struct {

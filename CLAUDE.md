@@ -1020,7 +1020,16 @@ Examples:
   is an OAuth 2.1 authorization server (RFC 8414 and 9728 discovery at
   `/.well-known/...`, RFC 7591 registration at `/auth/oauth/register`
   for public clients with PKCE S256, the token endpoint at
-  `/auth/oauth/token`), the MCP refusal carries the resource-metadata
+  `/auth/oauth/token`). A client may instead name the https URL of its
+  metadata document as its client ID (draft-ietf-oauth-client-id-metadata-document,
+  which Claude and Claude Code use once the metadata advertises
+  `client_id_metadata_document_supported`): the document is fetched
+  through `webhookdelivery.Client.Fetch` under the webhook egress policy
+  on every preview and authorization, must name its own URL, describe a
+  public authorization-code client and carry acceptable redirect URIs
+  (grant types it lists that this server does not issue are ignored),
+  and is kept as an `oauth_clients` row found by `metadata_url`, so keys
+  and codes refer to it like a registered client. The MCP refusal carries the resource-metadata
   challenge, and the consent page `/oauth/authorize` (a product route
   outside the shell, browser-only API at `/api/v1/oauth_authorizations`)
   mints a personal API key named after the client through

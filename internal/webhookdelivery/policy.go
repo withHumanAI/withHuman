@@ -1,6 +1,8 @@
 // Package webhookdelivery is the one outbound HTTP client the product uses
 // on an organization's behalf: it enforces the egress policy, signs every
-// delivery, bounds the response, and parses the closed answer shape.
+// delivery, bounds the response, and parses the closed answer shape. The
+// same client fetches the public documents a request names, such as an
+// OAuth client's metadata document, under the same policy.
 package webhookdelivery
 
 import (

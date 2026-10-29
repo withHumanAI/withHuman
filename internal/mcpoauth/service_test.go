@@ -16,6 +16,7 @@ import (
 	"github.com/withHumanAI/withHuman/application"
 	"github.com/withHumanAI/withHuman/authn"
 	"github.com/withHumanAI/withHuman/domain"
+	"github.com/withHumanAI/withHuman/internal/webhookdelivery"
 )
 
 // memoryRepository is the OAuth repository over maps: enough to prove the
@@ -41,14 +42,66 @@ func (r *memoryRepository) CreateOAuthClient(_ context.Context, input applicatio
 	return client, nil
 }
 
-func (r *memoryRepository) GetOAuthClient(_ context.Context, input application.GetOAuthClientInput) (domain.OAuthClient, error) {
+func (r *memoryRepository) SaveOAuthClientMetadataDocument(_ context.Context, input application.SaveOAuthClientMetadataDocumentInput) (domain.OAuthClient, error) {
+	if err := input.Validate(); err != nil {
+		return domain.OAuthClient{}, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	client := domain.OAuthClient{ID: input.ClientID, CreatedAt: input.Now}
+	for _, existing := range r.clients {
+		if existing.MetadataURL == input.MetadataURL {
+			client = existing
+		}
+	}
+	client.Name, client.RedirectURIs, client.ClientURI, client.MetadataURL = input.Name, input.RedirectURIs, input.ClientURI, input.MetadataURL
+	r.clients[client.ID] = client
+	return client, nil
+}
+
+func (r *memoryRepository) GetOAuthClient(_ context.Context, input application.GetOAuthClientInput) (domain.OAuthClient, error) {
+	if err := input.Validate(); err != nil {
+		return domain.OAuthClient{}, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if input.MetadataURL != "" {
+		for _, client := range r.clients {
+			if client.MetadataURL == input.MetadataURL {
+				return client, nil
+			}
+		}
+		return domain.OAuthClient{}, domain.ErrNotFound
+	}
 	client, ok := r.clients[input.ClientID]
 	if !ok {
 		return domain.OAuthClient{}, domain.ErrNotFound
 	}
 	return client, nil
+}
+
+// fakeDocuments serves client metadata documents by URL and counts the
+// fetches, standing in for the egress-checked outbound client.
+type fakeDocuments struct {
+	mu        sync.Mutex
+	documents map[string]string
+	status    int
+	fetches   int
+}
+
+func (f *fakeDocuments) Fetch(_ context.Context, fetch webhookdelivery.Fetch) (webhookdelivery.Response, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.fetches++
+	document, ok := f.documents[fetch.URL]
+	if !ok {
+		return webhookdelivery.Response{}, errors.New("connection refused")
+	}
+	status := f.status
+	if status == 0 {
+		status = http.StatusOK
+	}
+	return webhookdelivery.Response{StatusCode: status, Body: []byte(document)}, nil
 }
 
 func (r *memoryRepository) CreateOAuthAuthorizationCode(_ context.Context, input application.CreateOAuthAuthorizationCodeInput) error {
@@ -135,6 +188,28 @@ func fixture(t *testing.T, scoping bool) (*Service, *memoryRepository, *fakeMint
 	repository := newMemoryRepository()
 	service := NewService(repository, minter, minter, fixedClock{now: time.Now()}, Config{PublicOrigin: "https://app.example.com/", MCPPath: "/api/mcp/v1", AuthorizePath: "/oauth/authorize"})
 	return service, repository, minter
+}
+
+// The documents Claude and Claude Code publish, as fetched on 2026-10-29.
+const (
+	claudeMetadataURL      = "https://claude.ai/oauth/mcp-oauth-client-metadata"
+	claudeCodeMetadataURL  = "https://claude.ai/oauth/claude-code-client-metadata"
+	claudeMetadataDocument = `{"client_id":"https://claude.ai/oauth/mcp-oauth-client-metadata","client_name":"Claude","client_uri":"https://claude.ai",` +
+		`"redirect_uris":["https://claude.ai/api/mcp/auth_callback"],"grant_types":["authorization_code","refresh_token","urn:ietf:params:oauth:grant-type:jwt-bearer"],` +
+		`"response_types":["code"],"token_endpoint_auth_method":"none"}`
+	claudeCodeMetadataDocument = `{"client_id":"https://claude.ai/oauth/claude-code-client-metadata","client_name":"Claude Code","client_uri":"https://claude.ai",` +
+		`"redirect_uris":["http://localhost/callback","http://127.0.0.1/callback"],"grant_types":["authorization_code","refresh_token"],` +
+		`"response_types":["code"],"token_endpoint_auth_method":"none"}`
+)
+
+func metadataFixture(t *testing.T, documents map[string]string) (*Service, *fakeMinter, *fakeDocuments) {
+	t.Helper()
+	minter := &fakeMinter{scoping: true, allowed: true, expiry: time.Hour, bearable: []domain.PermissionDefinition{{Key: domain.PermissionPipelineRead}}}
+	fetcher := &fakeDocuments{documents: documents}
+	service := NewService(newMemoryRepository(), minter, minter, fixedClock{now: time.Now()}, Config{
+		PublicOrigin: "https://app.example.com", MCPPath: "/api/mcp/v1", AuthorizePath: "/oauth/authorize", ClientMetadata: fetcher,
+	})
+	return service, minter, fetcher
 }
 
 func register(t *testing.T, service *Service, uris ...string) RegisteredClient {
@@ -380,5 +455,137 @@ func TestSealedTokenNeedsTheCode(t *testing.T) {
 	}
 	if _, err := unseal("code-one", sealed[:5]); err == nil {
 		t.Fatal("a truncated seal opened")
+	}
+}
+
+func TestAMetadataDocumentClientConnectsWithoutRegistering(t *testing.T) {
+	service, minter, _ := metadataFixture(t, map[string]string{claudeMetadataURL: claudeMetadataDocument, claudeCodeMetadataURL: claudeCodeMetadataDocument})
+	if !service.AuthorizationServerMetadata().ClientIDMetadataDocumentSupported {
+		t.Fatal("metadata must advertise client ID metadata documents")
+	}
+	verifier, challenge := pkce(t)
+	person := principal()
+	request := AuthorizationRequest{ClientID: claudeMetadataURL, RedirectURI: "https://claude.ai/api/mcp/auth_callback", State: "s", CodeChallenge: challenge, CodeChallengeMethod: "S256"}
+	consent, err := service.Preview(context.Background(), person, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if consent.Client.Name != "Claude" || consent.Client.MetadataURL != claudeMetadataURL || consent.Client.ID == "" {
+		t.Fatalf("client = %+v", consent.Client)
+	}
+	redirect, err := service.Authorize(context.Background(), person, Decision{AuthorizationRequest: request, Approve: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if minter.requests[0].Name != "Claude" || minter.requests[0].OAuthClientID != consent.Client.ID {
+		t.Fatalf("mint request = %+v", minter.requests[0])
+	}
+	target, _ := url.Parse(redirect)
+	token, err := service.Exchange(context.Background(), TokenRequest{GrantType: "authorization_code", Code: target.Query().Get("code"), ClientID: claudeMetadataURL, RedirectURI: request.RedirectURI, CodeVerifier: verifier})
+	if err != nil || !strings.HasPrefix(token.AccessToken, "whk_") {
+		t.Fatalf("token = %+v, %v", token, err)
+	}
+	// The same URL is the same client; another URL is not, even for a
+	// code it did not get.
+	again, err := service.GetClient(context.Background(), claudeMetadataURL)
+	if err != nil || again.ID != consent.Client.ID {
+		t.Fatalf("second resolution = %+v, %v", again, err)
+	}
+	redirect, err = service.Authorize(context.Background(), person, Decision{AuthorizationRequest: request, Approve: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, _ = url.Parse(redirect)
+	_, err = service.Exchange(context.Background(), TokenRequest{GrantType: "authorization_code", Code: target.Query().Get("code"), ClientID: claudeCodeMetadataURL, CodeVerifier: verifier})
+	if refusal := oauthCode(t, err); refusal.Code != "invalid_grant" {
+		t.Fatalf("another client redeemed the code: %v", err)
+	}
+	// Claude Code's loopback redirect matches on any port.
+	if _, err := service.Preview(context.Background(), person, AuthorizationRequest{
+		ClientID: claudeCodeMetadataURL, RedirectURI: "http://localhost:3118/callback", CodeChallenge: challenge, CodeChallengeMethod: "S256",
+	}); err != nil {
+		t.Fatalf("Claude Code: %v", err)
+	}
+}
+
+func TestAMetadataDocumentIsReadAgainOnEveryAuthorization(t *testing.T) {
+	documents := map[string]string{claudeMetadataURL: claudeMetadataDocument}
+	service, _, fetcher := metadataFixture(t, documents)
+	first, err := service.GetClient(context.Background(), claudeMetadataURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	documents[claudeMetadataURL] = strings.Replace(claudeMetadataDocument, `"client_name":"Claude"`, `"client_name":"Claude for Work"`, 1)
+	second, err := service.GetClient(context.Background(), claudeMetadataURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.ID != first.ID || second.Name != "Claude for Work" || fetcher.fetches != 2 {
+		t.Fatalf("second = %+v after %d fetches", second, fetcher.fetches)
+	}
+}
+
+func TestMetadataDocumentsAreHeldToWhatThisServerSupports(t *testing.T) {
+	const documentURL = "https://client.example.com/oauth/metadata"
+	document := func(fields string) string {
+		return `{"client_id":"` + documentURL + `","redirect_uris":["https://client.example.com/cb"]` + fields + `}`
+	}
+	for name, body := range map[string]string{
+		"another client_id":   strings.Replace(document(""), documentURL, "https://evil.example.com/oauth/metadata", 1),
+		"a client secret":     document(`,"client_secret":"shh"`),
+		"a confidential auth": document(`,"token_endpoint_auth_method":"private_key_jwt"`),
+		"no code grant":       document(`,"grant_types":["client_credentials"]`),
+		"no code response":    document(`,"response_types":["token"]`),
+		"an http redirect":    strings.Replace(document(""), "https://client.example.com/cb", "http://client.example.com/cb", 1),
+		"no redirects":        `{"client_id":"` + documentURL + `"}`,
+		"not JSON":            "<html>",
+	} {
+		service, minter, _ := metadataFixture(t, map[string]string{documentURL: body})
+		_, err := service.GetClient(context.Background(), documentURL)
+		if refusal := oauthCode(t, err); refusal.Code != "invalid_client" || refusal.Status != http.StatusBadRequest {
+			t.Errorf("%s: %v", name, err)
+		}
+		if len(minter.requests) != 0 {
+			t.Errorf("%s minted a key", name)
+		}
+	}
+	// A document without a name is shown by its host.
+	service, _, fetcher := metadataFixture(t, map[string]string{documentURL: document("")})
+	client, err := service.GetClient(context.Background(), documentURL)
+	if err != nil || client.Name != "client.example.com" {
+		t.Fatalf("unnamed client = %+v, %v", client, err)
+	}
+	// A failed or refused fetch is a refusal, never a client.
+	fetcher.status = http.StatusNotFound
+	if _, err := service.GetClient(context.Background(), documentURL); err == nil {
+		t.Fatal("a 404 document resolved")
+	}
+	if _, err := service.GetClient(context.Background(), "https://unreachable.example.com/metadata"); err == nil {
+		t.Fatal("an unreachable document resolved")
+	}
+	// URLs the draft forbids are refused before anything is fetched.
+	fetches := fetcher.fetches
+	for _, clientID := range []string{
+		"http://client.example.com/metadata", "https://client.example.com", "https://client.example.com/",
+		"https://client.example.com/metadata?v=1", "https://client.example.com/metadata#x", "https://user:pass@client.example.com/metadata",
+		"https://client.example.com/a/../metadata", "https://client.example.com/./metadata",
+	} {
+		if _, err := service.GetClient(context.Background(), clientID); err == nil {
+			t.Errorf("%s resolved", clientID)
+		}
+	}
+	if fetcher.fetches != fetches {
+		t.Fatal("a forbidden URL was fetched")
+	}
+}
+
+func TestWithoutAFetcherAURLIsAnUnknownClient(t *testing.T) {
+	service, _, _ := fixture(t, true)
+	if service.AuthorizationServerMetadata().ClientIDMetadataDocumentSupported {
+		t.Fatal("metadata documents advertised without a fetcher")
+	}
+	_, err := service.GetClient(context.Background(), claudeMetadataURL)
+	if refusal := oauthCode(t, err); refusal.Code != "invalid_client" || refusal.Status != http.StatusNotFound {
+		t.Fatalf("URL client without a fetcher: %v", err)
 	}
 }
