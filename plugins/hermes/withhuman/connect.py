@@ -112,8 +112,10 @@ def setup(ctx, url, agent) -> int:
     limit = hook_limit()
     if limit:
         print()
-        print(f"Approvals often take longer than Hermes's {limit}-second hook limit.")
-        prompt = "Turn the limit off for this Hermes profile? It applies to every plugin's hooks. [Y/n]: "
+        print(f"Hermes stops waiting for a plugin's hook after {limit} seconds. "
+              f"With that limit on, each request must be approved within {limit} seconds.")
+        print("Turning the limit off is highly recommended. It applies to every plugin's hooks.")
+        prompt = "Turn the limit off for this Hermes profile? [Y/n]: "
         if (_ask(prompt) or "y").lower().startswith("y"):
             _save_setting("plugins.hook_callback_timeout", "0")
         else:
