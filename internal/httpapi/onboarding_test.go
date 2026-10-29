@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/withHumanAI/withHuman/agentruntime"
 	"io"
 	"log/slog"
 	"net/http"
@@ -329,7 +330,7 @@ func TestOnboardingRoutesSeparateTheTwoCredentialClasses(t *testing.T) {
 		t.Fatalf("detections: %d %s", response.Code, response.Body.String())
 	}
 	var detected domain.OnboardingSession
-	if err := json.Unmarshal(response.Body.Bytes(), &detected); err != nil || detected.Status != domain.OnboardingDetected || len(detected.Detections) != 6 {
+	if err := json.Unmarshal(response.Body.Bytes(), &detected); err != nil || detected.Status != domain.OnboardingDetected || len(detected.Detections) != len(agentruntime.Keys()) {
 		t.Fatalf("detected session: %v %+v", err, detected.Status)
 	}
 	if response := serve(router, onboardingRequest(http.MethodPut, "/api/onboarding/v1/session/error", map[string]any{"code": "discovery_failed", "message": "spawn failed"}, false, exchanged.Token)); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"code":"discovery_failed"`) {
@@ -355,8 +356,8 @@ func TestOnboardingRoutesSeparateTheTwoCredentialClasses(t *testing.T) {
 
 func detectionsBody() map[string]any {
 	runtimes := []any{}
-	for _, key := range []string{"claude-code", "codex", "openclaw", "pi", "hermes", "deepseek"} {
-		runtimes = append(runtimes, map[string]any{"runtime": key, "installed": key == "claude-code", "mcp_servers": []any{}})
+	for _, key := range agentruntime.Keys() {
+		runtimes = append(runtimes, map[string]any{"runtime": string(key), "installed": key == agentruntime.ClaudeCode, "mcp_servers": []any{}})
 	}
 	return map[string]any{"runtimes": runtimes}
 }

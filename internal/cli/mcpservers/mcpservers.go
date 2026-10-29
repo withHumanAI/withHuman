@@ -106,6 +106,10 @@ func Install(env Env, reg Registration) (Result, error) {
 		return manualDeepSeek(env, reg), nil
 	case agentruntime.Pi:
 		return Result{Notes: []string{fmt.Sprintf("Pi has no MCP client, so %s is not available to it.", labels(reg.Servers))}}, nil
+	case agentruntime.Gemini, agentruntime.Antigravity:
+		// withHuman's extension or plugin starts the relay for each server
+		// itself, from the enrollment record's servers.
+		return Result{}, nil
 	default:
 		return Result{}, fmt.Errorf("unknown runtime %q", reg.Runtime)
 	}
@@ -138,7 +142,7 @@ func remove(env Env, reg Registration) (Result, error) {
 		return removeJSON(filepath.Join(env.Home, ".openclaw", "openclaw.json"), openClawServers, reg.Servers)
 	case agentruntime.DeepSeek:
 		return Result{Notes: []string{fmt.Sprintf("Remove %s from the DeepSeek Harness profile's MCP configuration by hand if you added it.", names(reg.Servers))}}, nil
-	case agentruntime.Pi:
+	case agentruntime.Pi, agentruntime.Gemini, agentruntime.Antigravity:
 		return Result{}, nil
 	default:
 		return Result{}, fmt.Errorf("unknown runtime %q", reg.Runtime)

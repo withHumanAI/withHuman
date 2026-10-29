@@ -1,0 +1,9 @@
+# The withhuman CLI release the Gemini CLI extension and the Antigravity
+# plugin download on first use, with one SHA-256 per platform from the
+# release's SHA256SUMS. Raise it, with the hashes checked against the
+# release, whenever either plugin needs a newer CLI.
+version 1.0.57
+darwin-amd64 7280b92ba39f507ea19e5dd19334ba74b1a048af49112a17e7a828eb6a65c683
+darwin-arm64 b82eb81ce7631439a29b7d5d17ee65247cb34502881f513e16cc7e26e82561c5
+linux-amd64 8439565f5a8b31537fa77ea99e1b74f7a099840884a05d0008e1a24bdf8b34cd
+linux-arm64 78f68dd942dcb850f22b07d1a8823cae04b187bd6a02601c23f81199905cbb25

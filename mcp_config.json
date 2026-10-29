@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "withhuman-gateway": {
+      "command": "sh",
+      "args": ["${PLUGIN_ROOT}/plugins/antigravity/launcher.sh", "mcp"]
+    }
+  }
+}

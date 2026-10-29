@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "name": "withhuman",
+            "type": "command",
+            "command": "node \"${extensionPath}${/}plugins${/}gemini${/}launcher.mjs\" hook",
+            "timeout": 604860000
+          }
+        ]
+      }
+    ]
+  }
+}

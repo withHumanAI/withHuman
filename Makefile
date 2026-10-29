@@ -1,4 +1,4 @@
-.PHONY: all frontend fmt test hermes-plugin-test openclaw-plugin-test openai-plugin verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
+.PHONY: all frontend fmt test hermes-plugin-test openclaw-plugin-test openai-plugin runtime-plugin-test verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
 
 all: test build
 
@@ -8,7 +8,7 @@ frontend:
 fmt:
 	gofmt -w cmd internal db domain application approvalblock authn entitlements loggermdc runtime singlebinary plugins
 
-test: frontend hermes-plugin-test openclaw-plugin-test
+test: frontend hermes-plugin-test openclaw-plugin-test runtime-plugin-test
 	go test $(GOTESTFLAGS) ./...
 	go vet ./...
 	cd frontend && npm test
@@ -32,6 +32,11 @@ openai-plugin:
 	rm -f dist/withhuman-openai-plugin.zip
 	cd plugins/openai/withhuman && zip -qrX ../../../dist/withhuman-openai-plugin.zip . -x '.*'
 
+# The launchers the Gemini CLI extension and the Antigravity plugin at the
+# repository root run.
+runtime-plugin-test:
+	node --test plugins/gemini/launcher.test.mjs plugins/antigravity/launcher.test.mjs
+
 verify: test api-lint deployment-check
 
 api-lint:
@@ -41,7 +46,7 @@ openapi-permissions:
 	go run ./cmd/withhuman-openapi-permissions
 
 deployment-check:
-	sh -n scripts/third-party-notices.sh scripts/check-cli-builds.sh deployment/cli/install.sh scripts/smoke.sh scripts/smoke-onboarding.sh scripts/smoke-rbac.sh
+	sh -n scripts/third-party-notices.sh scripts/check-cli-builds.sh deployment/cli/install.sh plugins/antigravity/launcher.sh scripts/smoke.sh scripts/smoke-onboarding.sh scripts/smoke-rbac.sh
 
 build: frontend
 	go build ./cmd/withhuman ./cmd/withhuman-cli

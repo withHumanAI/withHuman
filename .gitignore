@@ -5,3 +5,7 @@ node_modules/
 webapp/assets/
 examples/typescript/package-lock.json
 dist/
+
+# State the Gemini CLI extension and the Antigravity plugin keep in an
+# installed copy: the downloaded CLI and the hook cache.
+/.withhuman/

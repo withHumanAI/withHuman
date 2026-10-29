@@ -1,0 +1,31 @@
+{
+  "name": "withhuman",
+  "version": "1.0.0",
+  "description": "Human approval for Gemini CLI tool calls, with human in the loop guardrails. Set rules for what runs automatically, and send the rest to your team to approve or deny from Slack, Discord or your phone. Keep an audit log of every call.",
+  "settings": [
+    {
+      "name": "Agent key",
+      "description": "From your agent's New instance page in withHuman. Leave it empty to connect with the withHuman CLI.",
+      "envVar": "WITHHUMAN_AGENT_TOKEN",
+      "sensitive": true
+    },
+    {
+      "name": "withHuman address",
+      "description": "Change it only for self-hosted withHuman.",
+      "envVar": "WITHHUMAN_URL"
+    }
+  ],
+  "mcpServers": {
+    "withhuman-gateway": {
+      "command": "node",
+      "args": [
+        "${extensionPath}${/}plugins${/}gemini${/}launcher.mjs",
+        "mcp"
+      ],
+      "env": {
+        "WITHHUMAN_AGENT_TOKEN": "${WITHHUMAN_AGENT_TOKEN}",
+        "WITHHUMAN_URL": "${WITHHUMAN_URL}"
+      }
+    }
+  }
+}

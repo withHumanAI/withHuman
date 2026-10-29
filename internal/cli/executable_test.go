@@ -186,9 +186,12 @@ func TestExecutableAdapters(t *testing.T) {
 			if info.Key == "hermes" && !strings.Contains(out, `"amount":42`) {
 				t.Fatalf("argument snapshot lost: %s", out)
 			}
-			out, _ = run(payload, "hook", info.Key)
-			if !hookDenied(out) {
-				t.Fatalf("approval replay allowed: %s", out)
+			// Gemini sends no call ID, so every invocation is a new request.
+			if info.Key != "gemini" {
+				out, _ = run(payload, "hook", info.Key)
+				if !hookDenied(out) {
+					t.Fatalf("approval replay allowed: %s", out)
+				}
 			}
 			out, _ = run(`{}`, "hook", info.Key)
 			if !hookDenied(out) {
@@ -223,7 +226,8 @@ func TestExecutableAdapters(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if !pinned {
+			// A runtime plugin carries its own hook, so nothing is written there.
+			if !pinned && !runtimePlugins[info.Key] {
 				t.Fatal("generated integration does not pin executable and state directory")
 			}
 			// The provider's gateway is registered as this executable's relay on
@@ -257,6 +261,10 @@ func TestExecutableAdapters(t *testing.T) {
 			save(token)
 			if info.Key == "pi" {
 				mustWrite(t, filepath.Join(bin, "pi"), "#!/bin/sh\n[ \"${1:-}\" != install ]\n", 0700)
+			} else if runtimePlugins[info.Key] {
+				if err := os.RemoveAll(runtimePluginDir(home, info.Key)); err != nil {
+					t.Fatal(err)
+				}
 			} else {
 				mustWrite(t, userFile, "{ invalid configuration", 0600)
 			}
@@ -274,6 +282,17 @@ func TestExecutableAdapters(t *testing.T) {
 			}
 		})
 	}
+}
+
+// runtimePlugins are the runtimes whose hook is withHuman's own extension
+// or plugin, installed by the runtime; the fixtures hold an installed copy.
+var runtimePlugins = map[string]bool{"gemini": true, "antigravity": true}
+
+func runtimePluginDir(home, runtime string) string {
+	if runtime == "gemini" {
+		return filepath.Join(home, ".gemini", "extensions", "withhuman")
+	}
+	return filepath.Join(home, ".gemini", "config", "plugins", "withhuman")
 }
 
 // hasRelay reports whether any file under home runs `withhuman mcp`.
@@ -307,6 +326,8 @@ func editRuntimeConfig(t *testing.T, home, config, runtime string) string {
 		"hermes":      filepath.Join(home, ".hermes", "config.yaml"),
 		"deepseek":    filepath.Join(home, ".dsh", "profiles", "default", "cordis.patch.yml"),
 		"pi":          filepath.Join(config, "aap", "plugins", "pi", "index.js"),
+		"gemini":      filepath.Join(home, ".gemini", "settings.json"),
+		"antigravity": filepath.Join(home, ".gemini", "config", "mcp_config.json"),
 	}
 	path := paths[runtime]
 	raw, err := os.ReadFile(path)
@@ -314,7 +335,7 @@ func editRuntimeConfig(t *testing.T, home, config, runtime string) string {
 		t.Fatal(err)
 	}
 	switch runtime {
-	case "claude-code", "openclaw":
+	case "claude-code", "openclaw", "gemini", "antigravity":
 		var doc map[string]any
 		if err := json.Unmarshal(raw, &doc); err != nil {
 			t.Fatal(err)
@@ -345,6 +366,13 @@ func hookPayload(runtime, attempt string) string {
 	case "hermes":
 		in["hook_event_name"] = "pre_tool_call"
 		in["extra"] = map[string]any{"tool_call_id": attempt}
+	case "gemini":
+		in = map[string]any{"hook_event_name": "BeforeTool", "tool_name": "mcp_payments_create_refund", "tool_input": map[string]any{"amount": 42}, "session_id": "session", "cwd": "/work",
+			"mcp_context": map[string]any{"server_name": "payments", "tool_name": "create_refund"}}
+	case "antigravity":
+		// Antigravity names the attempt by its step in the conversation.
+		in = map[string]any{"conversationId": "session-" + attempt, "stepIdx": 1, "workspacePaths": []string{"/work"},
+			"toolCall": map[string]any{"name": "call_mcp_tool", "args": map[string]any{"ServerName": "payments", "ToolName": "create_refund", "Arguments": map[string]any{"amount": 42}}}}
 	}
 	raw, _ := json.Marshal(in)
 	return string(raw)

@@ -1122,6 +1122,32 @@ Examples:
   ClawHub install of the same id, and removes its own embedded plugin;
   the plugin finds the CLI and its credential in that `aap.json`.
   Its tests run with `make openclaw-plugin-test`.
+  The third exception is the
+  Gemini CLI extension and the Antigravity plugin, which are this
+  repository's root: Gemini's gallery and `gemini extensions install`
+  read only a repository root (`gemini-extension.json`, `hooks/hooks.json`),
+  Antigravity installs a folder (`.antigravity-plugin/plugin.json`, root
+  `hooks.json` and `mcp_config.json`), and both load the root `skills/`.
+  Replacement rule: each hook only runs a launcher (`plugins/gemini/launcher.mjs`,
+  Node because Gemini always has it; `plugins/antigravity/launcher.sh`, sh
+  because Antigravity hooks get no plugin variables), which runs
+  `withhuman hook gemini|antigravity` and passes the verdict through, so the
+  gate stays AAP's. Both are off until connected: Gemini's extension
+  settings hold an agent key (`WITHHUMAN_AGENT_TOKEN`, `WITHHUMAN_URL`)
+  the launcher passes as `AAP_INSTANCE_TOKEN` and `AAP_BASE_URL`, or
+  `withhuman agent install gemini|antigravity` saves a credential through
+  `adapters.WithRuntimePlugin`, which writes nothing into the runtime and
+  checks the extension or plugin is installed. Every other path prints an
+  explicit verdict, because Gemini runs a call when its hook crashes, times
+  out or exits 1, and Antigravity blocks one whose hook prints no decision.
+  The launchers download the CLI release pinned in `plugins/cli.pin` (one
+  SHA-256 per platform) into the installed copy's `.withhuman/` on first
+  use, falling back to a `withhuman` on PATH; raise the pin with the hashes
+  checked against the release whenever either needs a newer CLI. Each
+  starts the MCP gateway as `withhuman mcp <runtime> withhuman-gateway`,
+  which with `WITHHUMAN_AGENT_TOKEN` set reads the server from the
+  address's runtime-config and sends the key only to that origin. Their
+  tests run with `make runtime-plugin-test`.
   `internal/cli/discovery` retains the tool discovery used by onboarding.
   The MCP servers a provider offers every agent (`agent_mcp_servers` in
   `/api/runtime-config`, `domain.AgentMCPServer`, core's key filled by an

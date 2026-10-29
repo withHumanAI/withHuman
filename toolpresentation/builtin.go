@@ -105,6 +105,23 @@ var builtin = []Entry{
 	runtimeEntry("deepseek", "edit", "Edit {{/path}}", editPathSnake...),
 	runtimeEntry("deepseek", "read", "Read {{/path}}", filePath("/path", "File")),
 
+	// Gemini CLI.
+	runtimeEntry("gemini", "run_shell_command", "Run a shell command",
+		shell("/command", "Command"), prose("/description", "Description"), filePath("/dir_path", "In"), detail(text("/is_background", "In background"))),
+	runtimeEntry("gemini", "write_file", "Write {{/file_path}}", writeFile...),
+	runtimeEntry("gemini", "replace", "Edit {{/file_path}}",
+		filePath("/file_path", "File"), prose("/instruction", "Instruction"), change("/old_string", "/new_string", "Change"), detail(text("/allow_multiple", "Replace all"))),
+	runtimeEntry("gemini", "read_file", "Read {{/file_path}}", filePath("/file_path", "File"), detail(text("/start_line", "From line")), detail(text("/end_line", "To line"))),
+	runtimeEntry("gemini", "web_fetch", "Fetch a web page", prose("/prompt", "Prompt")),
+	runtimeEntry("gemini", "google_web_search", "Search the web", text("/query", "Query")),
+
+	// Antigravity: its argument names are capitalised.
+	runtimeEntry("antigravity", "run_command", "Run a shell command",
+		shell("/CommandLine", "Command"), filePath("/Cwd", "In"), detail(text("/WaitMsBeforeAsync", "Wait before running in background"))),
+	runtimeEntry("antigravity", "write_file", "Write {{/Path}}", filePath("/Path", "File"), code("/Content", "Content")),
+	runtimeEntry("antigravity", "edit_file", "Edit {{/Path}}", filePath("/Path", "File"), change("/Target", "/Replacement", "Change")),
+	runtimeEntry("antigravity", "read_file", "Read {{/Path}}", filePath("/Path", "File")),
+
 	// Superhuman mail. The tool names are distinctive enough to bind
 	// without the server alias, which each person picks.
 	toolEntry("create_or_update_draft", "Email draft",
