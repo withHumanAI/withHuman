@@ -1601,6 +1601,20 @@ Examples:
   `TestMCPListsTheManagementCatalog` checks the MCP tools they name.
   Contributor-only skills go in `.agents/skills/` with
   `metadata: internal: true`.
+- `plugins/openai/withhuman` is withHuman's plugin for OpenAI's plugin
+  directory, shared by ChatGPT and Codex: the hosted MCP server
+  (`mcp.json`) and copies of the `withhuman` and `withhuman-pipelines`
+  skills, with the listing under `extensions.com.openai.interface` in
+  `plugin.json`. It is the third exception to plugin assets belonging to
+  AAP, and it carries no hook: the directory refuses hooks, so a Codex
+  user's calls are still gated by the CLI's own install. A plugin cannot
+  link outside its folder, so `make openai-plugin` refreshes the skill
+  copies and builds `dist/withhuman-openai-plugin.zip`, the file the
+  submission portal takes; `plugins/openai` tests fail when a copy drifts
+  from `skills/` or the package breaks a directory limit. `mcp.json`
+  declares no auth block: Codex refuses `extensions` there and drops the
+  server, and the server's OAuth discovery is enough. Bump `version` in
+  `plugin.json` for each upload.
 - `examples/` holds user-facing examples that connect an agent framework
   to withHuman through the AAP SDKs: one self-contained refund agent per
   framework (`python/` runs with `uv run`, `typescript/` on Node's type

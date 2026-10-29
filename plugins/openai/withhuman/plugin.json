@@ -1,0 +1,39 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "withhuman",
+  "version": "1.0.0",
+  "description": "Human approval for AI agent tool calls, with human in the loop guardrails. Set rules for what runs automatically and what your team approves from Slack, Discord or your phone. Write and test them from ChatGPT or Codex.",
+  "author": {
+    "name": "withHuman",
+    "url": "https://withhuman.ai"
+  },
+  "homepage": "https://withhuman.ai/docs",
+  "repository": "https://github.com/withHumanAI/withHuman",
+  "license": "Elastic-2.0",
+  "keywords": ["approvals", "human-in-the-loop", "guardrails", "ai-agents", "security", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "withHuman",
+        "shortDescription": "Human approval for AI agents",
+        "longDescription": "Human in the loop approvals for your AI agents. Let your agents work on their own, and have a person approve the actions that matter.\n\nwithHuman checks every tool call your agents make against your approval rules before it runs. Routine calls go straight through. The rest wait for someone on your team to approve or deny them.\n\nYou can write rules like:\n\n\"Let the support agent refund customers up to $20 automatically. Send larger refunds to the support team to approve first.\"\n\nWhat you can do:\n\n- Write and test rules. Preview a rule against sample requests, then turn it on.\n- Ask the right people. Send requests to teams, with escalation levels and working hours.\n- Use one set of rules for every agent. The same rules cover Claude Code, Codex, OpenClaw, Hermes and your own agents.\n- Manage your agents and teams.\n- See why a request was held.\n\nYou need a withHuman organization. Sign up at app.withhuman.ai, then connect your agents with the withhuman CLI. Your team approves requests in the web app, Slack, Discord, email or the withHuman phone app.",
+        "developerName": "withHuman",
+        "category": "Developer Tools",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://withhuman.ai",
+        "supportURL": "https://withhuman.ai/support",
+        "privacyPolicyURL": "https://withhuman.ai/privacy",
+        "termsOfServiceURL": "https://withhuman.ai/terms",
+        "defaultPrompt": [
+          "Show me the approval rules my agents follow",
+          "Send refunds over $20 to the support team to approve",
+          "Who gets notified when a request needs approval?"
+        ],
+        "brandColor": "#0A0D17",
+        "brandColorDark": "#F9F9F8",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      }
+    }
+  }
+}

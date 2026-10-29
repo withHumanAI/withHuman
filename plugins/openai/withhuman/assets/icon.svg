@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0a0d17"/>
+  <!-- The W mark, matching WMark in components/site/logo.tsx: the
+       wide-stance cut, straight arms flaring from the caret's feet,
+       dot head above. Monochrome: porcelain on onyx. -->
+  <path d="M9.95 16.1 L20.8 47.3" fill="none" stroke="#f9f9f8" stroke-width="5.1" stroke-linecap="round"/>
+  <path d="M54.05 16.1 L43.2 47.3" fill="none" stroke="#f9f9f8" stroke-width="5.1" stroke-linecap="round"/>
+  <path d="M20.8 47.3 L32 30.5 L43.2 47.3" fill="none" stroke="#f9f9f8" stroke-width="5.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="18.9" r="4.7" fill="#f9f9f8"/>
+</svg>
