@@ -1,4 +1,4 @@
-.PHONY: all frontend fmt test hermes-plugin-test openclaw-plugin-test verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
+.PHONY: all frontend fmt test hermes-plugin-test openclaw-plugin-test openai-plugin verify api-lint openapi-permissions deployment-check build smoke smoke-onboarding smoke-rbac
 
 all: test build
 
@@ -21,6 +21,16 @@ hermes-plugin-test:
 # The OpenClaw plugin's tests, against a fake withhuman CLI and server.
 openclaw-plugin-test:
 	node --test plugins/openclaw/tests/*.test.mjs
+
+# The OpenAI plugin carries copies of the published skills, since a plugin
+# cannot link outside its folder. This refreshes them and builds the ZIP
+# the submission portal takes.
+openai-plugin:
+	rm -rf plugins/openai/withhuman/skills
+	mkdir -p plugins/openai/withhuman/skills dist
+	cp -R skills/withhuman skills/withhuman-pipelines plugins/openai/withhuman/skills/
+	rm -f dist/withhuman-openai-plugin.zip
+	cd plugins/openai/withhuman && zip -qrX ../../../dist/withhuman-openai-plugin.zip . -x '.*'
 
 verify: test api-lint deployment-check
 
