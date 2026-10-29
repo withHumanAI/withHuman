@@ -2,8 +2,8 @@
 
 Setup connects this Hermes profile to a withHuman agent, by browser sign-in
 or a pasted agent key, saves the key in the profile's secrets and the
-address in the plugin's settings, turns off Hermes's hook callback timeout,
-and sends a test request. Sign-in is the withhuman CLI's enrollment: the
+address in the plugin's settings, offers to turn off Hermes's hook callback
+timeout, and sends a test request. Sign-in is the withhuman CLI's enrollment: the
 person confirms a code in the browser and withHuman issues an instance
 credential for the agent they pick.
 """
@@ -26,7 +26,8 @@ import urllib.parse
 import urllib.request
 import uuid
 
-from . import DEFAULT_URL, KEY_ENV, current_connection, downloaded_cli, find_cli, hermes_key_connection, run_hook
+from . import (DEFAULT_URL, KEY_ENV, cli_env, current_connection, downloaded_cli, find_cli, hermes_key_connection,
+               hook_limit, run_hook)
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,6 @@ SKILLS = ("withhuman", "withhuman-pipelines")
 # answers; Hermes waits a little longer so that answer arrives.
 MCP_TIMEOUT_SECONDS = 600
 TEST_CEILING_SECONDS = 10 * 60
-TIMEOUT_NOTICE = (
-    "Hermes stops waiting for a plugin's hook after 30 seconds, and approvals often take longer.\n"
-    "Setup turns that limit off for this Hermes profile. It applies to every plugin's hooks."
-)
 
 
 def setup_parser(parser) -> None:
@@ -112,9 +109,15 @@ def setup(ctx, url, agent) -> int:
     _add_mcp_servers(origin)
     if (_ask(f"Install the withHuman skills ({', '.join(SKILLS)})? [Y/n]: ") or "y").lower().startswith("y"):
         _install_skills()
-    print()
-    print(TIMEOUT_NOTICE)
-    _save_setting("plugins.hook_callback_timeout", "0")
+    limit = hook_limit()
+    if limit:
+        print()
+        print(f"Approvals often take longer than Hermes's {limit}-second hook limit.")
+        prompt = "Turn the limit off for this Hermes profile? It applies to every plugin's hooks. [Y/n]: "
+        if (_ask(prompt) or "y").lower().startswith("y"):
+            _save_setting("plugins.hook_callback_timeout", "0")
+        else:
+            print(f"Kept the limit. Calls that wait for a person are blocked after {limit} seconds.")
     print()
     if (_ask("Send a test request? [Y/n]: ") or "y").lower().startswith("y"):
         return test(hermes_key_connection(binary, key, origin))
@@ -303,12 +306,16 @@ def _ensure_cli():
     return download_cli()
 
 
-def refresh_downloaded_cli():
+def refresh_downloaded_cli(connected=False):
     """Replace the CLI setup downloaded when the plugin now pins a newer
-    one, as after `hermes plugins update`. A CLI the person installed
-    themselves is theirs to upgrade."""
+    one, as after `hermes plugins update`, and download it when a connected
+    plugin has none. A CLI the person installed themselves is theirs to
+    upgrade."""
     path = downloaded_cli()
-    if path.is_file() and _older(_cli_version(str(path)), CLI_VERSION):
+    if path.is_file():
+        if _older(_cli_version(str(path)), CLI_VERSION):
+            download_cli(say=logger.info)
+    elif connected and find_cli() is None:
         download_cli(say=logger.info)
 
 
@@ -352,7 +359,7 @@ def platform_name():
 
 def _cli_version(binary):
     try:
-        out = subprocess.run([binary, "version"], capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run([binary, "version"], capture_output=True, text=True, timeout=10, env=cli_env()).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)

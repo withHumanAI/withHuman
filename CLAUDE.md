@@ -1047,9 +1047,14 @@ Examples:
   through the CLI's enrollment endpoints (or checks a pasted agent key
   against `/api/v1/agent_instances/self`), saves the key in the Hermes
   profile's secrets as `WITHHUMAN_AGENT_TOKEN` and the address in the
-  plugin's settings, sets `plugins.hook_callback_timeout` to 0 and sends a
-  test request; the hook passes the key to the CLI as AAP's
-  `AAP_INSTANCE_TOKEN` and `AAP_BASE_URL`. This is the one place an agent
+  plugin's settings, asks (default yes) before setting
+  `plugins.hook_callback_timeout` to 0, since that applies to every plugin's
+  hooks, and sends a test request; the hook passes the key to the CLI as
+  AAP's `AAP_INSTANCE_TOKEN` and `AAP_BASE_URL`. The CLI gets only an
+  allowlisted environment (`CLI_ENV_NAMES`, `LC_*`, `AAP_*`), never the
+  provider keys and other plugins' secrets in the Hermes process. While the
+  limit stays on, each request expires a few seconds before it and the CLI
+  is stopped just before it, so no request outlives its call. This is the one place an agent
   credential lives in a runtime's configuration: Hermes keeps secrets per
   profile, so each profile is its own instance. `withhuman agent install
   hermes` instead passes the files to `adapters.WithPlugin`, and AAP
@@ -1060,7 +1065,9 @@ Examples:
   `HERMES_HOME` (`agentruntime.HermesHome`). When no CLI is installed, or
   an older one is, setup downloads the CLI release pinned in `connect.py`
   (`CLI_VERSION` with one SHA-256 per platform, as Hermes's catalog
-  requires) into the profile's plugin data, and the hook prefers that copy.
+  requires) into the plugin's data directory (`ctx.state.data_dir`), and the
+  hook prefers that copy; on load, a connected plugin with no CLI downloads
+  it too.
   Raise the pin, with hashes checked against the release, whenever the
   plugin needs a newer CLI: on load, the plugin replaces a copy setup
   downloaded that is older than the pin, in a background thread, so

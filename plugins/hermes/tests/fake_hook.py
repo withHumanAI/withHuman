@@ -1,22 +1,36 @@
 """A stand-in for `withhuman hook hermes`. FAKE_HOOK_MODE picks the answer;
-the payload and AAP_CONFIG_DIR it saw are written to FAKE_HOOK_LOG."""
+the payload, the AAP variables and the names of every variable it saw are
+written to FAKE_HOOK_LOG. The plugin gives the CLI a minimal environment, so
+the FAKE_* settings come from a file the tests write."""
 
 import json
 import os
 import signal
 import sys
 import time
+from pathlib import Path
+
+# The tests write this file and bake its path into each copy of the fake CLI.
+settings_file = Path(globals().get("FAKE_HOOK_SETTINGS", "fake-hook.json"))
+settings = json.loads(settings_file.read_text(encoding="utf-8")) if settings_file.exists() else {}
+
+
+def setting(name, default=None):
+    return settings.get(name, default)
+
 
 if sys.argv[1:] == ["version"]:
-    print(os.environ.get("FAKE_CLI_VERSION", "withhuman 1.0.43"))
+    print(setting("FAKE_CLI_VERSION", "withhuman 1.0.43"))
     sys.exit(0)
 
 payload = json.loads(sys.stdin.read())
-with open(os.environ["FAKE_HOOK_LOG"], "w", encoding="utf-8") as log:
-    json.dump({"payload": payload, **{name: os.environ.get(name) for name in
-                                      ("AAP_CONFIG_DIR", "AAP_INSTANCE_TOKEN", "AAP_BASE_URL")}}, log)
+log_path = setting("FAKE_HOOK_LOG")
+with open(log_path, "w", encoding="utf-8") as log:
+    json.dump({"payload": payload, "env": sorted(os.environ),
+               **{name: os.environ.get(name) for name in ("AAP_CONFIG_DIR", "AAP_INSTANCE_TOKEN", "AAP_BASE_URL")}},
+              log)
 
-mode = os.environ.get("FAKE_HOOK_MODE", "approve")
+mode = setting("FAKE_HOOK_MODE", "approve")
 
 
 def answer(verdict):
@@ -25,6 +39,7 @@ def answer(verdict):
 
 
 def withdraw(*_args):
+    Path(log_path + ".withdrawn").touch()
     answer({"action": "block", "message": "Withdrawn before anyone decided."})
 
 
@@ -36,8 +51,11 @@ elif mode == "refused":
     answer({"action": "block", "message": "The approval provider refused this runtime's credential, so no tool call can run. The call was not run."})
 elif mode == "garbage":
     print("not json")
+elif mode == "expired":
+    answer({"action": "block", "message": "The approval window or permission to start this call expired. "
+                                          "The call was not run."})
 elif mode == "slow":
-    time.sleep(float(os.environ["FAKE_HOOK_SLEEP"]))
+    time.sleep(float(setting("FAKE_HOOK_SLEEP")))
     answer({"action": "modify", "args": payload["tool_input"]})
 elif mode == "wait":
     signal.signal(signal.SIGTERM, withdraw)

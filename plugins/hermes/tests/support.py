@@ -21,15 +21,26 @@ class PluginTestCase(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
         self.binary = self.tmp / "withhuman"
-        self.binary.write_text(f"#!{sys.executable}\n" + FAKE_HOOK.read_text(encoding="utf-8"), encoding="utf-8")
+        self.binary.write_text(f"#!{sys.executable}\nFAKE_HOOK_SETTINGS = {str(self.tmp / 'fake-hook.json')!r}\n"
+                               + FAKE_HOOK.read_text(encoding="utf-8"), encoding="utf-8")
         self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
         self.log = self.tmp / "hook.json"
         self.hermes_home = self.tmp / "hermes-home"
+        self.hermes_home.mkdir()
+        # No hook limit unless a test sets one, as after setup.
+        (self.hermes_home / "config.yaml").write_text("plugins:\n  hook_callback_timeout: 0\n", encoding="utf-8")
+        self.fake_settings = {}
         self.set_env(FAKE_HOOK_LOG=str(self.log), FAKE_HOOK_MODE="approve", HERMES_HOME=str(self.hermes_home))
         os.environ.pop("WITHHUMAN_AGENT_TOKEN", None)
 
     def set_env(self, **values):
+        """Set environment variables. FAKE_* settings go to the fake hook's
+        settings file, since the CLI never sees them in its environment."""
         for key, value in values.items():
+            if key.startswith("FAKE_"):
+                self.fake_settings[key] = value
+                (self.tmp / "fake-hook.json").write_text(json.dumps(self.fake_settings), encoding="utf-8")
+                continue
             previous = os.environ.get(key)
             os.environ[key] = value
             self.addCleanup(self._restore, key, previous)

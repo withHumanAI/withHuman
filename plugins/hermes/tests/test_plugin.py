@@ -74,6 +74,46 @@ class PluginTest(PluginTestCase):
         plugin.EXIT_GRACE_SECONDS = 1
         self.assertEqual(self.call(plugin), {"action": "block", "message": "Withdrawn before anyone decided."})
 
+    def test_the_cli_sees_a_minimal_environment(self):
+        self.set_env(OPENAI_API_KEY="sk-test", SOME_PLUGIN_SECRET="secret", HTTPS_PROXY="http://proxy.example:3128",
+                     LC_ALL="C")
+        plugin = self.load_plugin()
+        self.call(plugin)
+        seen = set(self.hook_saw()["env"])
+        self.assertNotIn("OPENAI_API_KEY", seen)
+        self.assertNotIn("SOME_PLUGIN_SECRET", seen)
+        self.assertTrue({"PATH", "HOME", "HTTPS_PROXY", "LC_ALL", "AAP_CONFIG_DIR"} <= seen, seen)
+
+
+class HookLimitTest(PluginTestCase):
+    """Hermes's hook limit left on: the request expires before it."""
+
+    def call(self, plugin):
+        return plugin.pre_tool_call(tool_name="terminal", args={"command": "ls"}, session_id="session-1")
+
+    def plugin_under_limit(self, limit):
+        plugin = self.load_plugin()
+        plugin.hook_limit = lambda: limit
+        return plugin
+
+    def test_the_request_expires_before_the_limit(self):
+        plugin = self.plugin_under_limit(30)
+        self.call(plugin)
+        # The CLI expires the request 30 seconds before timeout_ms: 27 seconds in.
+        self.assertEqual(self.hook_saw()["payload"]["timeout_ms"], 57 * 1000)
+
+    def test_an_expired_request_names_the_limit(self):
+        self.set_env(FAKE_HOOK_MODE="expired")
+        plugin = self.plugin_under_limit(30)
+        self.assertEqual(self.call(plugin), {"action": "block", "message": plugin.HOOK_LIMIT_TEXT.format(limit=30)})
+
+    def test_the_cli_is_stopped_before_the_limit(self):
+        self.set_env(FAKE_HOOK_MODE="wait")
+        plugin = self.plugin_under_limit(2)
+        started = time.monotonic()
+        self.assertEqual(self.call(plugin), {"action": "block", "message": "Withdrawn before anyone decided."})
+        self.assertLess(time.monotonic() - started, 2)
+
 
 class HermesKeyTest(PluginTestCase):
     """Connected by `hermes withhuman setup`: the key is in this profile's secrets."""

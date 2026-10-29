@@ -138,7 +138,8 @@ class SetupTest(PluginTestCase):
 
     def test_sign_in_saves_the_key_turns_off_the_timeout_and_tests(self):
         self.serve_skills_locally()
-        self.assertEqual(self.setup_command(["1", "y", "y"]), 0)
+        # Sign in, install the skills, turn the hook limit off, send the test.
+        self.assertEqual(self.setup_command(["1", "y", "y", "y"]), 0)
         env, config = self.saved()
         self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_signed_in", env)
         self.assertEqual(config["plugins"]["hook_callback_timeout"], 0)
@@ -165,9 +166,26 @@ class SetupTest(PluginTestCase):
         env, config = self.saved()
         self.assertNotIn("WITHHUMAN_AGENT_TOKEN", env)
         self.assertNotEqual(config["plugins"]["hook_callback_timeout"], 0)
-        self.assertEqual(self.setup_command(["2", "n", "n"], key="whc_pasted"), 0)
-        env, _ = self.saved()
+        self.assertEqual(self.setup_command(["2", "n", "", "n"], key="whc_pasted"), 0)
+        env, config = self.saved()
         self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_pasted", env)
+        self.assertEqual(config["plugins"]["hook_callback_timeout"], 0)
+
+    def test_declining_keeps_the_hook_limit(self):
+        self.assertEqual(self.setup_command(["2", "n", "n", "n"], key="whc_pasted"), 0)
+        env, config = self.saved()
+        self.assertIn("WITHHUMAN_AGENT_TOKEN=whc_pasted", env)
+        self.assertEqual(config["plugins"]["hook_callback_timeout"], 30)
+
+    def test_an_unlimited_profile_is_not_asked(self):
+        (self.hermes_home / "config.yaml").write_text(
+            "plugins:\n  enabled:\n    - withhuman\n  hook_callback_timeout: 0\n", encoding="utf-8")
+        with mock.patch("builtins.input", side_effect=["2", "n", "n"]) as answers, \
+                mock.patch("getpass.getpass", return_value="whc_pasted"):
+            command = self.manager._cli_commands["withhuman"]
+            args = argparse.Namespace(withhuman_action="setup", url=self.origin, agent=None)
+            self.assertEqual(command["handler_fn"](args), 0)
+        self.assertNotIn("Turn the limit off", " ".join(str(call) for call in answers.call_args_list))
 
     def test_the_address_defaults_to_cloud(self):
         command = self.manager._cli_commands["withhuman"]
