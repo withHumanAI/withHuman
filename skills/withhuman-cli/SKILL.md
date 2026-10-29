@@ -1,6 +1,6 @@
 ---
 name: withhuman-cli
-description: Connect coding agents and other agent runtimes to withHuman with the withhuman CLI so their tool calls wait for human approval. Covers installing the CLI, guided onboarding, connecting a runtime to an existing agent, checking the connection, refreshing the tool catalogue, upgrading, and removing the adapter. Use for Claude Code, Codex, OpenClaw, Pi, Hermes and DeepSeek on macOS or Linux, hosted or self-hosted. Trigger keywords - withhuman, withHuman CLI, install withhuman, connect agent to withhuman, withhuman onboard, withhuman agent install, agent eject, refresh-tools, approval hook, calls not gated, human approval for tool calls.
+description: Connect coding agents and other agent runtimes to withHuman with the withhuman CLI so their tool calls wait for human approval. Covers installing the CLI, guided onboarding, connecting a runtime to an existing agent, checking the connection, refreshing the tool catalogue, upgrading, and removing the adapter. Use for Claude Code, Codex, OpenClaw, Pi, Hermes, DeepSeek, Gemini CLI and Antigravity on macOS or Linux, hosted or self-hosted. Trigger keywords - withhuman, withHuman CLI, install withhuman, connect agent to withhuman, withhuman onboard, withhuman agent install, agent eject, refresh-tools, approval hook, calls not gated, human approval for tool calls.
 ---
 
 # withHuman CLI
@@ -12,8 +12,8 @@ decides whether the call runs at once, is denied, or waits for a person to
 approve it.
 
 Each installation connects one runtime (`claude-code`, `codex`, `openclaw`,
-`pi`, `hermes` or `deepseek`) as one **instance** of an **agent** in the
-organization. The CLI runs on macOS and Linux, Intel and ARM.
+`pi`, `hermes`, `deepseek`, `gemini` or `antigravity`) as one **instance** of
+an **agent** in the organization. The CLI runs on macOS and Linux, Intel and ARM.
 
 ## Ground rules
 
@@ -92,6 +92,24 @@ manages rules (see the `withhuman-pipelines` skill).
 The app's **Agents** page also has **New instance**, which prints the same
 command with the agent and origin filled in.
 
+## Gemini CLI and Antigravity
+
+These two run withHuman's own extension or plugin, which the person
+installs with the runtime's command before connecting. Until it is
+connected, it checks no calls.
+
+- **Gemini CLI:** `gemini extensions install https://github.com/withHumanAI/withHuman`
+  asks for an **Agent API key** (from **New instance**, **Generate an API
+  key**) and the withHuman address. With a key, nothing else is needed. With
+  the key left empty, connect with `withhuman agent install gemini`.
+- **Antigravity:** clone the repository and run `agy plugin install` on the
+  folder, then connect with `withhuman agent install antigravity`.
+
+Install refuses to connect either runtime until its extension or plugin is
+installed. On hosted withHuman, the extension or plugin adds the MCP Gateway
+itself. Guides: <https://withhuman.ai/docs/getting-started/connect-gemini-cli.md>
+and <https://withhuman.ai/docs/getting-started/connect-antigravity.md>.
+
 ## Check it works
 
 ```sh
@@ -143,6 +161,7 @@ withhuman agent eject <runtime>
 | --- | --- |
 | `withhuman: command not found` after install | The installer used `~/.local/bin`; add it to `PATH` or open a new shell. |
 | The runtime was not found | Install the runtime first, or name it: `withhuman agent install claude-code`. |
+| Gemini CLI or Antigravity refused to connect | Install withHuman's extension or plugin first (see above), then rerun install. |
 | Browser code expired | Run the same command again for a new code. |
 | `--agent` refused | The slug must exist in the organization the person signs in to, and they need permission to connect it. Check the slug on the **Agents** page. |
 | Adapter `incomplete` | Follow the printed restart, consent or repair steps, restart the runtime, rerun `withhuman agent install <runtime>`. |

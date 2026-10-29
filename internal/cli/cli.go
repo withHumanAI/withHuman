@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -385,16 +386,38 @@ func (a *app) mcpEnv() (mcpservers.Env, error) {
 }
 
 // mcp is the relay a runtime starts for one provider-offered MCP server:
-// it reads the instance credential the install stored and forwards the
-// runtime's frames to the server with it.
+// it forwards the runtime's frames to the server with the instance
+// credential. That is the one the install stored, or, for a runtime plugin
+// that keeps the agent key itself (the Gemini CLI extension), the key in
+// WITHHUMAN_AGENT_TOKEN.
 func (a *app) mcp(ctx context.Context, args []string) error {
 	if len(args) != 2 {
 		return errUsage
 	}
 	runtime, name := args[0], args[1]
+	var client http.Client
+	if a.http != nil {
+		client = *a.http
+	}
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	endpoint, token, err := a.mcpTarget(ctx, &client, runtime, name)
+	if err != nil {
+		return err
+	}
+	// A tool call waits as long as its approval does, so no timeout; the
+	// runtime closing stdin ends every call.
+	client.Timeout = 0
+	return mcpproxy.Run(ctx, a.stdin, a.stdout, runtime, endpoint, token, &client)
+}
+
+// mcpTarget is the server's endpoint and the credential to send it.
+func (a *app) mcpTarget(ctx context.Context, client *http.Client, runtime, name string) (string, string, error) {
+	if key := a.getenv("WITHHUMAN_AGENT_TOKEN"); key != "" {
+		return a.mcpTargetForKey(ctx, client, name, key)
+	}
 	cred, err := credential.Load(a.configDir, runtime)
 	if err != nil {
-		return fmt.Errorf("%w; run withhuman agent install %s", err, runtime)
+		return "", "", fmt.Errorf("%w; run withhuman agent install %s", err, runtime)
 	}
 	var server *domain.AgentMCPServer
 	for i := range cred.MCPServers {
@@ -403,20 +426,48 @@ func (a *app) mcp(ctx context.Context, args []string) error {
 		}
 	}
 	if server == nil {
-		return fmt.Errorf("%s is not registered for %s; run withhuman agent install %s", name, runtime, runtime)
+		return "", "", fmt.Errorf("%s is not registered for %s; run withhuman agent install %s", name, runtime, runtime)
 	}
 	if !cred.ExpiresAt.After(time.Now()) {
-		return fmt.Errorf("the %s instance credential has expired; run withhuman agent install %s", runtime, runtime)
+		return "", "", fmt.Errorf("the %s instance credential has expired; run withhuman agent install %s", runtime, runtime)
 	}
-	var client http.Client
-	if a.http != nil {
-		client = *a.http
+	return server.URL, cred.Token, nil
+}
+
+// mcpTargetForKey finds the server in the runtime-config of WITHHUMAN_URL
+// (hosted withHuman by default). The key goes only to a server on that
+// origin, never to one the configuration points elsewhere.
+func (a *app) mcpTargetForKey(ctx context.Context, client *http.Client, name, key string) (string, string, error) {
+	origin := a.getenv("WITHHUMAN_URL")
+	if origin == "" {
+		origin = defaultProviderURL
 	}
-	// A tool call waits as long as its approval does, so no timeout; the
-	// runtime closing stdin ends every call.
-	client.Timeout = 0
-	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return mcpproxy.Run(ctx, a.stdin, a.stdout, runtime, server.URL, cred.Token, &client)
+	origin, err := installation.Origin(origin)
+	if err != nil {
+		return "", "", err
+	}
+	lookup := *client
+	lookup.Timeout = 30 * time.Second
+	provider, err := runtimeconfig.Fetch(ctx, &lookup, origin)
+	if err != nil {
+		return "", "", err
+	}
+	for _, server := range provider.AgentMCPServers {
+		if server.Name != name {
+			continue
+		}
+		if !sameOrigin(server.URL, origin) {
+			return "", "", fmt.Errorf("%s is not served from %s", name, origin)
+		}
+		return server.URL, key, nil
+	}
+	return "", "", fmt.Errorf("%s does not offer %s", origin, name)
+}
+
+// sameOrigin reports whether raw is a URL on origin.
+func sameOrigin(raw, origin string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && u.User == nil && strings.TrimRight(u.Scheme+"://"+u.Host, "/") == origin
 }
 
 // chooseRuntime only inspects the local machine; enrollment starts after a choice.
@@ -439,7 +490,7 @@ func (a *app) chooseRuntime(ctx context.Context, manager *adapters.Manager) (str
 		}
 	}
 	if len(found) == 0 {
-		return "", errors.New("no supported runtimes found; install claude-code, codex, openclaw, pi, hermes, or deepseek first")
+		return "", errors.New("no supported runtimes found; install claude-code, codex, openclaw, pi, hermes, deepseek, gemini or antigravity first")
 	}
 	if len(found) == 1 {
 		fmt.Fprintf(a.stdout, "Found %s.\n", found[0])

@@ -20,12 +20,14 @@ import (
 type Key string
 
 const (
-	ClaudeCode Key = "claude-code"
-	Codex      Key = "codex"
-	OpenClaw   Key = "openclaw"
-	Pi         Key = "pi"
-	Hermes     Key = "hermes"
-	DeepSeek   Key = "deepseek"
+	ClaudeCode  Key = "claude-code"
+	Codex       Key = "codex"
+	OpenClaw    Key = "openclaw"
+	Pi          Key = "pi"
+	Hermes      Key = "hermes"
+	DeepSeek    Key = "deepseek"
+	Gemini      Key = "gemini"
+	Antigravity Key = "antigravity"
 )
 
 // ToolKind is the coarse classification onboarding uses to suggest which
@@ -61,6 +63,12 @@ const (
 	MCPDoubleUnderscoreSanitized MCPNaming = "mcp__server__tool_sanitized"
 	// MCPServerPrefixed is OpenClaw's convention: <server>__<tool>.
 	MCPServerPrefixed MCPNaming = "server__tool"
+	// MCPSingleUnderscore is Gemini CLI's convention: mcp_<server>_<tool>.
+	// Its hook also sends the server and tool apart, which the adapter uses.
+	MCPSingleUnderscore MCPNaming = "mcp_server_tool"
+	// MCPCallTool is Antigravity's: every MCP call is one call_mcp_tool
+	// step whose arguments name the server and the tool.
+	MCPCallTool MCPNaming = "call_mcp_tool"
 	// MCPNone marks a runtime without an MCP client.
 	MCPNone MCPNaming = ""
 )
@@ -170,6 +178,32 @@ var catalog = []Runtime{
 			{Name: "read", Description: "Read a file", Kind: ToolRead},
 		},
 	},
+	{
+		Key: Gemini, DisplayName: "Gemini CLI", Binary: "gemini", HomeDir: ".gemini",
+		MCPNaming: MCPSingleUnderscore, HookMatcher: true,
+		Builtins: []BuiltinTool{
+			{Name: "run_shell_command", Description: "Run shell commands", Kind: ToolShell},
+			{Name: "write_file", Description: "Create or overwrite a file", Kind: ToolEdit},
+			{Name: "replace", Description: "Edit an existing file", Kind: ToolEdit},
+			{Name: "read_file", Description: "Read a file", Kind: ToolRead},
+			{Name: "read_many_files", Description: "Read several files", Kind: ToolRead},
+			{Name: "list_directory", Description: "List a directory", Kind: ToolRead},
+			{Name: "glob", Description: "Find files by pattern", Kind: ToolRead},
+			{Name: "grep_search", Description: "Search file contents", Kind: ToolRead},
+			{Name: "web_fetch", Description: "Fetch a web page", Kind: ToolRead},
+			{Name: "google_web_search", Description: "Search the web", Kind: ToolRead},
+		},
+	},
+	{
+		Key: Antigravity, DisplayName: "Antigravity", Binary: "agy", HomeDir: ".gemini",
+		MCPNaming: MCPCallTool, HookMatcher: true,
+		Builtins: []BuiltinTool{
+			{Name: "run_command", Description: "Run shell commands", Kind: ToolShell},
+			{Name: "write_file", Description: "Create or overwrite a file", Kind: ToolEdit},
+			{Name: "edit_file", Description: "Edit an existing file", Kind: ToolEdit},
+			{Name: "read_file", Description: "Read a file", Kind: ToolRead},
+		},
+	},
 }
 
 // All returns every runtime in catalog order.
@@ -221,6 +255,10 @@ func RuntimeToolName(key Key, ref MCPRef) string {
 		return ref.Server + "__" + ref.Name
 	case MCPDoubleUnderscore:
 		return "mcp__" + ref.Server + "__" + ref.Name
+	case MCPSingleUnderscore:
+		return "mcp_" + ref.Server + "_" + ref.Name
+	case MCPCallTool:
+		return "call_mcp_tool"
 	case MCPDoubleUnderscoreSanitized:
 		return "mcp__" + strings.TrimRight(sanitizeIdentifier(ref.Server), "_") + "__" + strings.TrimLeft(sanitizeIdentifier(ref.Name), "_")
 	default:
@@ -340,6 +378,18 @@ func TestCommand(key Key, tool SelectedTool) (Command, bool) {
 		return Command{
 			Shell: "dsh -p " + shellQuote(prompt),
 			Note:  "Run it under the profile that mounts the withHuman hooks bridge.",
+		}, true
+	// Both run interactively so their own confirmation can follow the
+	// approval; print mode refuses a call it cannot confirm.
+	case Gemini:
+		return Command{
+			Shell: "gemini -i " + shellQuote(prompt),
+			Note:  "Start it after installing the withHuman extension.",
+		}, true
+	case Antigravity:
+		return Command{
+			Shell: "agy -i " + shellQuote(prompt),
+			Note:  "Start it after installing the withHuman plugin.",
 		}, true
 	default:
 		return Command{}, false

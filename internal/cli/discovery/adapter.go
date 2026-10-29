@@ -115,7 +115,7 @@ type Adapter interface {
 
 // All returns every adapter in catalog order.
 func All() []Adapter {
-	return []Adapter{claudeCode{}, codex{}, openClaw{}, pi{}, hermes{}, deepSeek{}}
+	return []Adapter{claudeCode{}, codex{}, openClaw{}, pi{}, hermes{}, deepSeek{}, gemini{}, antigravity{}}
 }
 
 // Lookup finds an adapter by runtime key.

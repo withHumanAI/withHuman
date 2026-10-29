@@ -50,12 +50,14 @@ func TestCatalogInvariants(t *testing.T) {
 func TestRuntimeToolName(t *testing.T) {
 	ref := MCPRef{Server: "stripe", Name: "create_refund"}
 	cases := map[Key]string{
-		ClaudeCode: "mcp__stripe__create_refund",
-		Codex:      "mcp__stripe__create_refund",
-		OpenClaw:   "stripe__create_refund",
-		Hermes:     "mcp__stripe__create_refund",
-		DeepSeek:   "mcp__stripe__create_refund",
-		Pi:         "create_refund",
+		ClaudeCode:  "mcp__stripe__create_refund",
+		Codex:       "mcp__stripe__create_refund",
+		OpenClaw:    "stripe__create_refund",
+		Hermes:      "mcp__stripe__create_refund",
+		DeepSeek:    "mcp__stripe__create_refund",
+		Pi:          "create_refund",
+		Gemini:      "mcp_stripe_create_refund",
+		Antigravity: "call_mcp_tool",
 	}
 	for key, want := range cases {
 		if got := RuntimeToolName(key, ref); got != want {

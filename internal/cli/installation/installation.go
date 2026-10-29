@@ -13,6 +13,7 @@ import (
 	"github.com/withHumanAI/withHuman/domain"
 	"github.com/withHumanAI/withHuman/internal/cli/credential"
 	"github.com/withHumanAI/withHuman/internal/cli/mcpservers"
+	"github.com/withHumanAI/withHuman/plugins"
 	"github.com/withHumanAI/withHuman/plugins/hermes"
 	"github.com/withHumanAI/withHuman/plugins/openclaw"
 )
@@ -88,6 +89,10 @@ func Install(manager *adapters.Manager, configDir, key string, cred credential.C
 		options = append(options, adapters.WithPlugin(hermes.Name, hermes.Files()))
 	case agentruntime.OpenClaw:
 		options = append(options, adapters.WithPlugin(openclaw.Name, openclaw.Files()))
+	case agentruntime.Gemini, agentruntime.Antigravity:
+		// The person installs withHuman's extension or plugin with the
+		// runtime's own command; the install saves the credential its hook reads.
+		options = append(options, adapters.WithRuntimePlugin(plugins.Name))
 	}
 	installed, err := adapter.Install(cred.Token, origin+"/api/aap", options...)
 	result.Complete, result.Changes, result.Notes = installed.Complete, installed.Changes, installed.Notes

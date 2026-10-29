@@ -1,0 +1,28 @@
+{
+  "name": "withhuman",
+  "version": "1.0.0",
+  "description": "Approve or deny Gemini CLI's tool calls in withHuman before they run.",
+  "settings": [
+    {
+      "name": "Agent API key",
+      "description": "Generate one from your agent's New instance page in withHuman. Leave it empty to connect with the withHuman CLI instead.",
+      "envVar": "WITHHUMAN_AGENT_TOKEN",
+      "sensitive": true
+    },
+    {
+      "name": "withHuman address",
+      "description": "Your self-hosted withHuman address. Leave it empty for hosted withHuman.",
+      "envVar": "WITHHUMAN_URL"
+    }
+  ],
+  "mcpServers": {
+    "withhuman-gateway": {
+      "command": "node",
+      "args": ["${extensionPath}${/}plugins${/}gemini${/}launcher.mjs", "mcp"],
+      "env": {
+        "WITHHUMAN_AGENT_TOKEN": "${WITHHUMAN_AGENT_TOKEN}",
+        "WITHHUMAN_URL": "${WITHHUMAN_URL}"
+      }
+    }
+  }
+}

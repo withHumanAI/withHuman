@@ -6164,7 +6164,7 @@ components:
       type: object
       required: [runtime, installed, already_hooked, mcp_servers]
       properties:
-        runtime: { type: string, enum: [claude-code, codex, openclaw, pi, hermes, deepseek] }
+        runtime: { type: string, enum: [claude-code, codex, openclaw, pi, hermes, deepseek, gemini, antigravity] }
         installed: { type: boolean }
         version: { type: string }
         binary_path: { type: string }

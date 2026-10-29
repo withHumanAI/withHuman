@@ -70,6 +70,8 @@ const RUNTIME_NAMES: Record<string, string> = {
   pi: "Pi",
   hermes: "Hermes Agent",
   deepseek: "DeepSeek Harness",
+  gemini: "Gemini CLI",
+  antigravity: "Antigravity",
 };
 
 export function runtimeName(key: string): string {

@@ -1,0 +1,16 @@
+{
+  "withhuman": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ./plugins/antigravity/launcher.sh hook",
+            "timeout": 604860
+          }
+        ]
+      }
+    ]
+  }
+}
