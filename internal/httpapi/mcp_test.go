@@ -422,6 +422,20 @@ func TestMCPListsTheManagementCatalog(t *testing.T) {
 			t.Errorf("tool %s lacks a description or annotations", want)
 		}
 	}
+	// Directories list a connector only when every tool has a title and
+	// says whether it reads or changes data.
+	for _, tool := range listed.Tools {
+		if tool.Title == "" || tool.Annotations == nil || tool.Annotations.Title != tool.Title {
+			t.Errorf("tool %s has title %q, want it repeated in its annotations", tool.Name, tool.Title)
+			continue
+		}
+		if !tool.Annotations.ReadOnlyHint && tool.Annotations.DestructiveHint == nil {
+			t.Errorf("tool %s changes data but does not say whether destructively", tool.Name)
+		}
+	}
+	if got := names["list_pipelines"].Title; got != "List pipelines" {
+		t.Errorf("list_pipelines title = %q", got)
+	}
 	// The published skills (skills/*/SKILL.md) name these tools; a
 	// renamed or removed tool must take the skill's text with it.
 	skills, err := filepath.Glob(filepath.Join("..", "..", "skills", "*", "SKILL.md"))
@@ -446,6 +460,16 @@ func TestMCPListsTheManagementCatalog(t *testing.T) {
 	for _, name := range []string{"archive_agent", "revoke_agent_credential", "remove_member", "archive_team", "rotate_webhook_endpoint_secret"} {
 		if hint := names[name].Annotations.DestructiveHint; hint == nil || !*hint {
 			t.Errorf("%s ends something for good but is not marked destructive", name)
+		}
+	}
+	for _, name := range []string{"update_agent", "update_member", "set_team_members", "activate_pipeline_revision"} {
+		if hint := names[name].Annotations.DestructiveHint; hint == nil || !*hint {
+			t.Errorf("%s replaces a value but is not marked destructive", name)
+		}
+	}
+	for _, name := range []string{"create_agent", "update_pipeline", "test_webhook_endpoint"} {
+		if hint := names[name].Annotations.DestructiveHint; hint == nil || *hint {
+			t.Errorf("%s only adds but is marked destructive", name)
 		}
 	}
 	// Routes a key can never use have no tool: handing out authority
@@ -488,7 +512,9 @@ func TestMCPServesTheEditionsTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.ContainsFunc(listed.Tools, func(tool *mcp.Tool) bool { return tool.Name == "list_edition_records" }) ||
+	if !slices.ContainsFunc(listed.Tools, func(tool *mcp.Tool) bool {
+		return tool.Name == "list_edition_records" && tool.Title == "List edition records" && tool.Annotations.Title == tool.Title
+	}) ||
 		!slices.ContainsFunc(listed.Tools, func(tool *mcp.Tool) bool { return tool.Name == "get_pipeline" }) {
 		t.Fatal("the edition's tool must join core's catalog")
 	}

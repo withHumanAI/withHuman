@@ -204,10 +204,32 @@ type Handler[In any] func(call *Call, input In) (*mcp.CallToolResult, any, error
 // Add registers one typed tool. Its input schema comes from In's json
 // and jsonschema tags, and its handler answers with raw JSON from the
 // product API, so every tool shares the same result and error shaping.
+// A tool without a title is titled after its name ("list_pipelines" is
+// "List pipelines"), and the title is repeated in its annotations, where
+// clients that predate Tool.Title read it.
 func Add[In any](catalog *Catalog, tool *mcp.Tool, handler Handler[In]) {
-	mcp.AddTool(catalog.server, tool, func(ctx context.Context, request *mcp.CallToolRequest, input In) (*mcp.CallToolResult, any, error) {
+	if tool.Annotations == nil {
+		panic("mcp tool " + tool.Name + " has no annotations")
+	}
+	titled := *tool
+	if titled.Title == "" {
+		titled.Title = title(titled.Name)
+	}
+	annotations := *titled.Annotations
+	annotations.Title = titled.Title
+	titled.Annotations = &annotations
+	mcp.AddTool(catalog.server, &titled, func(ctx context.Context, request *mcp.CallToolRequest, input In) (*mcp.CallToolResult, any, error) {
 		return handler(catalog.newCall(ctx, request), input)
 	})
+}
+
+// title reads a tool name as a title: "list_pipelines" is "List pipelines".
+func title(name string) string {
+	words := strings.ReplaceAll(name, "_", " ")
+	if words == "" {
+		return ""
+	}
+	return strings.ToUpper(words[:1]) + words[1:]
 }
 
 // Result turns a JSON answer into the tool result: the structured
@@ -290,8 +312,9 @@ var (
 	// earlier is lost, so a retry at worst adds another revision.
 	Additive = &mcp.ToolAnnotations{DestructiveHint: boolPointer(false), OpenWorldHint: boolPointer(false)}
 	// Replacing writes: the call sets the whole value and repeating it
-	// changes nothing further.
-	Replacing = &mcp.ToolAnnotations{DestructiveHint: boolPointer(false), IdempotentHint: true, OpenWorldHint: boolPointer(false)}
+	// changes nothing further. The value it replaces is gone, which MCP
+	// counts as destructive, so clients confirm the call first.
+	Replacing = &mcp.ToolAnnotations{DestructiveHint: boolPointer(true), IdempotentHint: true, OpenWorldHint: boolPointer(false)}
 	// Destructive writes end or revoke something for good, even though
 	// its history stays: an archive, a revoked credential, a rotated
 	// secret.
