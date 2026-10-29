@@ -1,0 +1,35 @@
+{
+  "id": "withhuman",
+  "name": "withHuman",
+  "description": "Human approval for OpenClaw tool calls. Set rules for what runs automatically, and send the rest to your team to approve or deny.",
+  "categories": ["security"],
+  "activation": {
+    "onStartup": true
+  },
+  "cliCommands": [
+    {
+      "name": "withhuman",
+      "description": "Connect OpenClaw to withHuman",
+      "hasSubcommands": true
+    }
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "type": "string",
+        "default": "https://app.withhuman.ai",
+        "description": "Change it only for self-hosted withHuman."
+      },
+      "agentKey": {
+        "type": "string",
+        "description": "Set by openclaw withhuman setup."
+      }
+    }
+  },
+  "uiHints": {
+    "url": { "label": "withHuman address" },
+    "agentKey": { "label": "Agent key", "sensitive": true }
+  }
+}
