@@ -3,7 +3,7 @@ module github.com/withHumanAI/withHuman
 go 1.26.4
 
 require (
-	github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.5
+	github.com/agentapprovalprotocol/agentapprovalprotocol v0.3.6
 	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/cel-go v0.25.0
