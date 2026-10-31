@@ -1648,8 +1648,12 @@ Examples:
   submission portal takes; `plugins/openai` tests fail when a copy drifts
   from `skills/` or the package breaks a directory limit. `mcp.json`
   declares no auth block: Codex refuses `extensions` there and drops the
-  server, and the server's OAuth discovery is enough. Bump `version` in
-  `plugin.json` for each upload.
+  server, and the server's OAuth discovery is enough. The review cases
+  and release notes sit in `plugin.json` too (`extensions.com.openai`
+  `review` and `publication`), because the portal imports them read-only
+  from the package; they describe the reviewer organization's seeded
+  data, so change both together. Bump `version` in `plugin.json` for
+  each upload.
 - `examples/` holds user-facing examples that connect an agent framework
   to withHuman through the AAP SDKs: one self-contained refund agent per
   framework (`python/` runs with `uv run`, `typescript/` on Node's type
