@@ -450,7 +450,13 @@ Examples:
   themselves (`/auth/sso/begin` with a client, `/auth/sessions/exchange`,
   the `native_sso` runtime-config flag) are the hosted edition's, beside
   its social native flows. Password login needs nothing special: the app
-  calls the same endpoints and keeps the cookie itself.
+  calls the same endpoints and keeps the cookie itself. The desktop app
+  (client `desktop`, callback `withhuman-desktop://auth/callback`) shows
+  this web app in its own window, so the sign-in screen hands off
+  through it: when its preload exposes `window.withhumanDesktop`
+  (`frontend/src/app/desktop-bridge.ts`), the social and SSO buttons call
+  `signIn` instead of leaving the page, and the exchange's answer joins
+  the same exits as the web's continue step.
 - Social login is edition wiring. Core exports
   `authn.Service.RegisterSocialAuthenticator` (a `SocialAuthenticator` is
   an `Authenticator` with a button `Label`), `SocialProviders` (reported

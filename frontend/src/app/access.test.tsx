@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, RequestError } from "../api";
 import { AccessScreen } from "./access";
+import type { DesktopSignInResult } from "./desktop-bridge";
 import { registerExtensions, type SSODoor } from "./extensions";
 import { stubWebStorage } from "./test-storage";
 import { ensureRuntimeConfig } from "./use-runtime-config";
@@ -280,5 +281,67 @@ describe("a social sign-in without an account", () => {
     fireEvent.click(screen.getByRole("button", { name: "No, use a different account" }));
     expect(screen.getByRole("heading", { name: "Sign in" })).toBeTruthy();
     expect(found).not.toHaveBeenCalled();
+  });
+});
+
+describe("in the desktop app", () => {
+  beforeEach(() => {
+    registerExtensions({ loginMethods: { sso: SSO_DOOR } });
+  });
+
+  function stubDesktop(result: DesktopSignInResult) {
+    const signIn = vi.fn().mockResolvedValue(result);
+    vi.stubGlobal("withhumanDesktop", { signIn });
+    return signIn;
+  }
+
+  it("hands a provider sign-in to the app and signs in with its answer", async () => {
+    const principal = { actor_id: "user-1" } as never;
+    const signIn = stubDesktop({ status: "answered", response: { status: "complete", principal } });
+    const begin = vi.spyOn(api, "socialBegin");
+    const onAuthenticated = vi.fn();
+    render(<AccessScreen onAuthenticated={onAuthenticated} initialError="" />);
+    fireEvent.click(await screen.findByRole("button", { name: /Continue with Google/ }));
+    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith(principal));
+    expect(signIn).toHaveBeenCalledWith({ kind: "social", provider: "google" });
+    expect(begin).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("wh-staged-login-method")).toBe("social:google");
+  });
+
+  it("offers the organization picker when the answer carries a ticket", async () => {
+    stubDesktop({
+      status: "answered",
+      response: {
+        status: "select_organization",
+        ticket: "whl_ticket",
+        expires_at: "2026-11-03T12:00:00Z",
+        organizations: [{ id: "3", slug: "initech", name: "Initech", sso: false }],
+      },
+    });
+    renderAccess();
+    fireEvent.click(await screen.findByRole("button", { name: /Continue with GitHub/ }));
+    expect(await screen.findByRole("heading", { name: "Choose an organization" })).toBeTruthy();
+    expect(screen.getByText("Initech")).toBeTruthy();
+  });
+
+  it("explains the code a failed hand-off came back with", async () => {
+    stubDesktop({ status: "failed", code: "provider_denied" });
+    renderAccess();
+    fireEvent.click(await screen.findByRole("button", { name: /Continue with Google/ }));
+    expect(await screen.findByText("The sign-in was cancelled at the provider.")).toBeTruthy();
+  });
+
+  it("hands SSO to the app instead of leaving the page", async () => {
+    localStorage.setItem("wh-email", "ada@acme.example");
+    vi.spyOn(api, "loginMethods").mockResolvedValue({ password: true, sso_organizations: SSO_ORGANIZATIONS });
+    const signIn = stubDesktop({ status: "failed", code: "invitation_required" });
+    const assign = vi.fn();
+    vi.stubGlobal("location", { href: window.location.href, search: "", assign });
+    renderAccess();
+    await submitEmail();
+    fireEvent.click(await screen.findByRole("button", { name: /Continue with SSO \(Acme\)/ }));
+    expect(await screen.findByText("You need an invitation first")).toBeTruthy();
+    expect(signIn).toHaveBeenCalledWith({ kind: "sso", organization: "acme" });
+    expect(assign).not.toHaveBeenCalled();
   });
 });

@@ -205,6 +205,7 @@ func TestNativeClientsGetTheNativeSessionLifetimeUnderThePolicyCap(t *testing.T)
 		{application.SessionClient{}, 0, 7 * 24 * time.Hour},
 		{application.SessionClient{Kind: "ios"}, 0, 30 * 24 * time.Hour},
 		{application.SessionClient{Kind: "android"}, 0, 30 * 24 * time.Hour},
+		{application.SessionClient{Kind: "desktop"}, 0, 30 * 24 * time.Hour},
 		{application.SessionClient{Kind: "ios"}, 24 * time.Hour, 24 * time.Hour},
 	} {
 		identities.policy.SessionMaxAge = tc.cap
@@ -218,7 +219,7 @@ func TestNativeClientsGetTheNativeSessionLifetimeUnderThePolicyCap(t *testing.T)
 func TestLoginLocalRefusesAnUnregisteredClientKind(t *testing.T) {
 	service := invitationTestService(&identityRepositoryStub{}, &membershipRepositoryStub{})
 	_, err := service.LoginLocal(context.Background(), LocalLoginInput{
-		Email: "person@example.com", Password: "secret", Client: application.SessionClient{Kind: "desktop"},
+		Email: "person@example.com", Password: "secret", Client: application.SessionClient{Kind: "watch"},
 	})
 	if !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("unregistered client = %v, want invalid", err)

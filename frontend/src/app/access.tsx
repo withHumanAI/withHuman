@@ -20,6 +20,7 @@ import { focusRing } from "@/ds/lib/focus";
 import { api, RequestError } from "../api";
 import type { LoginOrganization, LoginResponse, Principal, SocialProvider } from "../types";
 import { lastLoginMethod, stageLoginMethod, type LoginMethod } from "./login-method";
+import { desktopBridge, type DesktopBridge, type DesktopSignIn } from "./desktop-bridge";
 import { ssoDoor, useSignupDoor, type SSODoor } from "./extensions";
 import { useRuntimeConfig } from "./use-runtime-config";
 import { useTitle } from "./use-title";
@@ -126,11 +127,13 @@ function loginErrorMessage(reason: unknown): string {
   return reason instanceof Error ? reason.message : "Authentication failed";
 }
 
-/* Leaves for the organization's identity provider through the
- * edition's door. */
-function beginSSO(door: SSODoor, slug: string) {
-  stageLoginMethod({ kind: "sso", organization: slug });
-  window.location.assign(door.beginURL(slug));
+/* What a desktop hand-off's error code means: the callback's provider
+ * or SSO code, else the exchange's login refusal. */
+function desktopSignInError(sso: SSODoor | null, request: DesktopSignIn, code: string): string {
+  if (request.kind === "sso") {
+    return sso?.errors[code] ?? LOGIN_ERRORS[code] ?? sso?.errors.sso_failed ?? "Authentication failed";
+  }
+  return SOCIAL_ERRORS[code] ?? LOGIN_ERRORS[code] ?? SOCIAL_ERRORS.social_failed;
 }
 
 /* The login half walks email -> methods -> organization selection. The
@@ -229,6 +232,33 @@ export function AccessScreen({
     setError(loginErrorMessage(reason));
   }
 
+  /* Leaves for the organization's identity provider through the
+   * edition's door, or hands the sign-in to the desktop app. */
+  function beginSSO(door: SSODoor, slug: string) {
+    stageLoginMethod({ kind: "sso", organization: slug });
+    const desktop = desktopBridge();
+    if (desktop) {
+      void signInThroughDesktop(desktop, { kind: "sso", organization: slug });
+      return;
+    }
+    window.location.assign(door.beginURL(slug));
+  }
+
+  /* The desktop app signs in through the default browser and comes back
+   * with the exchange's answer. The form stays usable meanwhile, since
+   * the person may close the browser: starting again replaces the
+   * hand-off. */
+  async function signInThroughDesktop(desktop: DesktopBridge, request: DesktopSignIn) {
+    clearError();
+    try {
+      const result = await desktop.signIn(request);
+      if (result.status === "answered") applyLoginResponse(result.response);
+      else if (result.status === "failed") setError(desktopSignInError(sso, request, result.code));
+    } catch (reason) {
+      failLogin(reason);
+    }
+  }
+
   /* The organization signs in only through SSO and this edition serves
    * no SSO door: the same sentence the server's refusal would carry. */
   function showSSORequired() {
@@ -290,6 +320,12 @@ export function AccessScreen({
   }
 
   async function beginSocial(provider: SocialProvider) {
+    const desktop = desktopBridge();
+    if (desktop) {
+      stageLoginMethod({ kind: "social", provider: provider.key });
+      await signInThroughDesktop(desktop, { kind: "social", provider: provider.key });
+      return;
+    }
     clearError();
     setSubmitting(true);
     try {
