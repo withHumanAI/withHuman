@@ -19,12 +19,14 @@ import (
 
 // NativeClients is the allowlist of client kinds that may ask for the
 // native hand-off and the callbacks each may name. A custom URL scheme can
-// be claimed by any app on a phone, which is why the exchange also
+// be claimed by any app on the device, which is why the exchange also
 // requires PKCE; the allowlist keeps the callback from being an open
-// redirect.
+// redirect. The desktop app has its own scheme so it never competes with
+// a phone app installed on the same Mac.
 var NativeClients = map[string][]string{
 	"ios":     {"withhuman://auth/callback"},
 	"android": {"withhuman://auth/callback"},
+	"desktop": {"withhuman-desktop://auth/callback"},
 }
 
 // ErrNativeClientUnknown is returned when the client kind or its callback
