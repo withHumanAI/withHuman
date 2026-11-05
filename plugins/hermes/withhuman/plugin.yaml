@@ -7,7 +7,7 @@ description: >-
   rules for what runs automatically, and send the rest to your team to approve
   or deny from Slack, Discord or your phone. Keep an audit log of every call.
 author: withHumanAI
-license: Elastic-2.0
+license: Apache-2.0
 homepage: https://withhuman.ai/docs
 tags: [approvals, human-in-the-loop, security]
 requires_hermes: ">=0.21.5"
