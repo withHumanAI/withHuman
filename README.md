@@ -12,7 +12,7 @@ agents can do real work.</p>
   <a href="https://github.com/withHumanAI/withHuman/actions/workflows/release.yml"><img src="https://github.com/withHumanAI/withHuman/actions/workflows/release.yml/badge.svg" alt="Release build"></a>
   <a href="https://quay.io/repository/withhuman/bundle"><img src="https://img.shields.io/badge/docker-quay.io%2Fwithhuman%2Fbundle-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
   <a href="go.mod"><img src="https://img.shields.io/github/go-mod/go-version/withHumanAI/withHuman" alt="Go version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Elastic%202.0-blue" alt="License: Elastic 2.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License: Apache 2.0"></a>
   <a href="https://agentapprovalprotocol.io"><img src="https://img.shields.io/badge/protocol-AAP-6c47ff" alt="Agent Approval Protocol"></a>
   <a href="https://discord.gg/3QWECnEvrk"><img src="https://img.shields.io/badge/chat-Discord-5865F2?logo=discord&logoColor=white" alt="Chat on Discord"></a>
   <a href="https://x.com/withHumanAI"><img src="https://img.shields.io/badge/follow-%40withHumanAI-000000?logo=x&logoColor=white" alt="Follow @withHumanAI on X"></a>
@@ -162,4 +162,9 @@ agents or requests is sent. Set `WITHHUMAN_TELEMETRY=off` (or
 
 ## License
 
-withHuman is licensed under the [Elastic License 2.0](LICENSE).
+withHuman is licensed under the [Apache License 2.0](LICENSE).
+
+## Trademarks
+
+withHuman and the withHuman logo are trademarks of Metoro, Inc. The license
+does not cover them. See [TRADEMARKS.md](TRADEMARKS.md).

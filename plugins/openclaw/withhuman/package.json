@@ -2,7 +2,7 @@
   "name": "@withhuman/openclaw",
   "version": "1.0.0",
   "description": "Human approval for OpenClaw tool calls, with human in the loop guardrails. Set rules for what runs automatically, and send the rest to your team to approve or deny from Slack, Discord or your phone.",
-  "license": "Elastic-2.0",
+  "license": "Apache-2.0",
   "author": "withHumanAI",
   "homepage": "https://withhuman.ai/docs",
   "repository": {

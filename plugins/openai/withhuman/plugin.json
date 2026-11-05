@@ -9,7 +9,7 @@
   },
   "homepage": "https://withhuman.ai/docs",
   "repository": "https://github.com/withHumanAI/withHuman",
-  "license": "Elastic-2.0",
+  "license": "Apache-2.0",
   "keywords": ["approvals", "human-in-the-loop", "guardrails", "ai-agents", "security", "mcp"],
   "extensions": {
     "com.openai": {
