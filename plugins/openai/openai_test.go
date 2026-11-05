@@ -93,10 +93,11 @@ func readListing(t *testing.T) (manifest, listing) {
 	for key := range m.Extensions.OpenAI {
 		keys = append(keys, key)
 	}
-	// apps and hooks are refused in public submissions; the interface is
-	// the only OpenAI setting the plugin needs.
-	if !slices.Equal(keys, []string{"interface"}) {
-		t.Fatalf("extensions.com.openai has %q, want only interface", keys)
+	// apps and hooks are refused in public submissions; the plugin needs
+	// only its listing and what the reviewers read.
+	slices.Sort(keys)
+	if !slices.Equal(keys, []string{"interface", "publication", "review"}) {
+		t.Fatalf("extensions.com.openai has %q, want interface, publication and review", keys)
 	}
 	var l listing
 	decoder := json.NewDecoder(strings.NewReader(string(m.Extensions.OpenAI["interface"])))
@@ -192,6 +193,73 @@ func TestListingFitsTheDirectory(t *testing.T) {
 		if strings.Contains(text, "—") {
 			t.Errorf("listing copy uses an em dash: %q", text)
 		}
+	}
+}
+
+type testCase struct {
+	Description        string   `json:"description"`
+	Prompt             string   `json:"prompt"`
+	ToolsTriggered     string   `json:"tools_triggered"`
+	ExpectedBehavior   string   `json:"expected_behavior"`
+	FileAttachmentURLs []string `json:"file_attachment_urls"`
+	ExpectedOutputURL  string   `json:"expected_output_url"`
+}
+
+// The portal imports the review cases from the package and shows them
+// read-only, so they are checked here like the listing. The demo
+// recording URL is entered once the video exists; an upload without it
+// keeps the saved one.
+func TestReviewCasesFitTheSubmission(t *testing.T) {
+	m, _ := readListing(t)
+	var review struct {
+		TestCases struct {
+			Positive []testCase `json:"positive"`
+			Negative []testCase `json:"negative"`
+		} `json:"test_cases"`
+		DemoRecordingURL string `json:"demo_recording_url"`
+		Commerce         bool   `json:"commerce"`
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(m.Extensions.OpenAI["review"])))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&review); err != nil {
+		t.Fatalf("review: %v", err)
+	}
+	if len(review.TestCases.Positive) != 5 || len(review.TestCases.Negative) != 3 {
+		t.Fatalf("want 5 positive and 3 negative cases, have %d and %d",
+			len(review.TestCases.Positive), len(review.TestCases.Negative))
+	}
+	toolName := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	for _, c := range review.TestCases.Positive {
+		if c.ExpectedBehavior == "" {
+			t.Errorf("positive case %q needs expected_behavior", c.Prompt)
+		}
+		tools := strings.Split(c.ToolsTriggered, ", ")
+		for _, tool := range tools {
+			if !toolName.MatchString(tool) {
+				t.Errorf("positive case %q names tool %q; list MCP tool names separated by \", \"", c.Prompt, tool)
+			}
+		}
+	}
+	for _, c := range append(review.TestCases.Positive, review.TestCases.Negative...) {
+		if c.Description == "" || c.Prompt == "" || utf8.RuneCountInString(c.Description) > 4000 {
+			t.Errorf("case %q needs a prompt and a description of at most 4,000 characters", c.Prompt)
+		}
+		for _, text := range []string{c.Description, c.Prompt, c.ExpectedBehavior} {
+			if strings.Contains(text, "—") {
+				t.Errorf("review case uses an em dash: %q", text)
+			}
+		}
+	}
+	if review.DemoRecordingURL != "" && !strings.HasPrefix(review.DemoRecordingURL, "https://") {
+		t.Errorf("demo_recording_url %q must be an HTTPS URL", review.DemoRecordingURL)
+	}
+	var publication struct {
+		ReleaseNotes string `json:"release_notes"`
+	}
+	decoder = json.NewDecoder(strings.NewReader(string(m.Extensions.OpenAI["publication"])))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&publication); err != nil || publication.ReleaseNotes == "" {
+		t.Errorf("publication needs release_notes: %v", err)
 	}
 }
 
