@@ -409,7 +409,10 @@ Examples:
   link to create an account). The answer stays `invalid_credentials`
   either way, so the form never says which emails have accounts, and
   runtime-config's `password_login_offers_signup` lets the form point
-  to the inbox in every refusal. Whether an organization signs in
+  to the inbox in every refusal. Which addresses may be invited is the
+  edition's say too (`ServerOptions.InvitationGuard`; the hosted edition
+  refuses throwaway mail providers): inviting and resending ask it, and
+  so does accepting for a person without an account. Whether an organization signs in
   only through an external method is the edition's say, asked at every
   login-shaped door through `authn.LoginPolicy`
   (`Service.RegisterLoginPolicy`): `RequiresExternalLogin` (a password or

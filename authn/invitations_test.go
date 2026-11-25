@@ -3,6 +3,7 @@ package authn
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -122,6 +123,40 @@ func TestAcceptInvitationRejectsShortPassword(t *testing.T) {
 		Token: testToken, DisplayName: "New Person", Password: "short",
 	}); !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("short password error = %v", err)
+	}
+}
+
+type refusingInvitationGuard struct{}
+
+func (refusingInvitationGuard) CheckInvitationEmail(context.Context, string) error {
+	return fmt.Errorf("use a permanent email address: %w", domain.ErrInvalid)
+}
+
+// An invitation that went out before the edition refused its address
+// creates no account. A person who already has one still accepts.
+func TestAcceptInvitationAsksTheGuardForANewAccount(t *testing.T) {
+	memberships := &membershipRepositoryStub{preview: pendingPreview("new@example.com", false)}
+	service := invitationTestService(&identityRepositoryStub{}, memberships)
+	service.RegisterInvitationGuard(refusingInvitationGuard{})
+	if _, err := service.AcceptInvitation(context.Background(), AcceptInvitationInput{
+		Token: testToken, DisplayName: "New Person", Password: "a-long-password!",
+	}); !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("refused address error = %v", err)
+	}
+	if memberships.accepted != nil {
+		t.Fatal("a refused address gained an account")
+	}
+
+	memberships = &membershipRepositoryStub{
+		preview:      pendingPreview("member@example.com", true),
+		acceptResult: domain.Principal{ActorType: domain.ActorHuman, ActorID: "user-1", OrganizationID: "org-1"},
+	}
+	service = invitationTestService(&identityRepositoryStub{user: &domain.User{ID: "user-1", PrimaryEmail: "member@example.com"}}, memberships)
+	service.RegisterInvitationGuard(refusingInvitationGuard{})
+	if _, err := service.AcceptInvitation(context.Background(), AcceptInvitationInput{
+		Token: testToken, Session: &domain.Principal{ActorType: domain.ActorHuman, ActorID: "user-1"},
+	}); err != nil {
+		t.Fatalf("an existing account was refused: %v", err)
 	}
 }
 

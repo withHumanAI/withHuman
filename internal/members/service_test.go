@@ -3,6 +3,7 @@ package members
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -194,6 +195,36 @@ func TestCreateInvitationDefaultsToReviewerEverywhere(t *testing.T) {
 	}
 	if result.InviteURL == "" || result.Invitation.Grants[0] != want[0] {
 		t.Fatalf("result = %#v", result)
+	}
+}
+
+type guardStub struct{ refused string }
+
+func (g guardStub) CheckInvitationEmail(_ context.Context, email string) error {
+	if email == g.refused {
+		return fmt.Errorf("use a permanent email address: %w", domain.ErrInvalid)
+	}
+	return nil
+}
+
+func TestInvitationsAskTheGuard(t *testing.T) {
+	h := newHarness()
+	h.service.config.Guard = guardStub{refused: "person@throwaway.example"}
+	if _, err := h.service.CreateInvitation(context.Background(), principal(domain.RoleAdmin, time.Minute), " Person@Throwaway.example ", nil); !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("refused address error = %v", err)
+	}
+	if h.memberships.created != nil {
+		t.Fatal("a refused address was invited")
+	}
+	if _, err := h.service.CreateInvitation(context.Background(), principal(domain.RoleAdmin, time.Minute), "person@example.com", nil); err != nil {
+		t.Fatalf("an admitted address: %v", err)
+	}
+	h.memberships.pending = domain.Invitation{
+		ID: "invitation-1", OrganizationID: organizationID, Email: "person@throwaway.example", Status: domain.InvitationPending,
+		Grants: []domain.AssignmentSpec{{RoleID: domain.RoleReviewerID, ScopeKind: domain.ScopeOrganization}},
+	}
+	if _, err := h.service.ResendInvitation(context.Background(), principal(domain.RoleAdmin, time.Minute), "invitation-1"); !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("resend to a refused address error = %v", err)
 	}
 }
 

@@ -30,6 +30,9 @@ type Config struct {
 	// with no email delivery, which has no other way to pass it on, should
 	// set this.
 	ExposeInviteLinks bool
+	// Guard refuses addresses the edition does not invite. Nil admits
+	// every address.
+	Guard application.InvitationGuard
 }
 
 type Service struct {
@@ -187,6 +190,9 @@ func (s *Service) CreateInvitation(ctx context.Context, principal domain.Princip
 		return InvitationWithURL{}, err
 	}
 	email = strings.ToLower(strings.TrimSpace(email))
+	if err := s.checkEmail(ctx, email); err != nil {
+		return InvitationWithURL{}, err
+	}
 	invitationID := domain.ID(uuid.NewString())
 	rawToken, tokenHash, err := authn.MintOpaqueToken("whi", invitationID)
 	if err != nil {
@@ -208,6 +214,13 @@ func (s *Service) CreateInvitation(ctx context.Context, principal domain.Princip
 	url := s.inviteURL(rawToken)
 	s.notifyInvitation(ctx, principal.OrganizationID, email, url, invitation.ExpiresAt)
 	return s.withLink(invitation, url), nil
+}
+
+func (s *Service) checkEmail(ctx context.Context, email string) error {
+	if s.config.Guard == nil {
+		return nil
+	}
+	return s.config.Guard.CheckInvitationEmail(ctx, email)
 }
 
 // withLink attaches the raw link to the API result only where the
@@ -246,6 +259,9 @@ func (s *Service) ResendInvitation(ctx context.Context, principal domain.Princip
 		return InvitationWithURL{}, err
 	}
 	if err := s.authorizeGrants(ctx, principal, existing.Grants); err != nil {
+		return InvitationWithURL{}, err
+	}
+	if err := s.checkEmail(ctx, existing.Email); err != nil {
 		return InvitationWithURL{}, err
 	}
 	rawToken, tokenHash, err := authn.MintOpaqueToken("whi", invitationID)
