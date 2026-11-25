@@ -110,6 +110,10 @@ type ServerOptions struct {
 	// before the server starts. Additive routes only; the shared HTTP
 	// contract is never forked.
 	RegisterRoutes func(*Server)
+	// InvitationGuard refuses email addresses the edition does not invite
+	// (the hosted edition refuses throwaway mail providers). Nil admits
+	// every address.
+	InvitationGuard application.InvitationGuard
 	// Permissions are edition-owned keys (the hosted edition's billing
 	// and audit permissions) added to the registry before anything reads
 	// it, so the built-in roles and the OpenAPI conformance checks see
@@ -352,7 +356,10 @@ func NewServer(ctx context.Context, options ServerOptions) (*Server, error) {
 		return nil, err
 	}
 	authService.RegisterNotifications(notifier)
-	memberService := members.NewService(store, store, store, store, notifier, plan, clock, logger, members.Config{PublicOrigin: cfg.PublicOrigin, ExposeInviteLinks: !cfg.SMTPConfigured()})
+	if options.InvitationGuard != nil {
+		authService.RegisterInvitationGuard(options.InvitationGuard)
+	}
+	memberService := members.NewService(store, store, store, store, notifier, plan, clock, logger, members.Config{PublicOrigin: cfg.PublicOrigin, ExposeInviteLinks: !cfg.SMTPConfigured(), Guard: options.InvitationGuard})
 	teamService := teams.NewService(store, clock)
 	contactService := contacts.NewService(store, store, store, notifier, clock, logger, contacts.Config{})
 	// The catalogue's external tool source is the edition's to register

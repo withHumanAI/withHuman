@@ -67,6 +67,7 @@ type Service struct {
 	social        []SocialAuthenticator
 	loginPolicy   LoginPolicy
 	signupOffer   SignupOffer
+	inviteGuard   application.InvitationGuard
 	roles         application.RoleRepository
 	gatewayToken  string
 	onboarding    application.OnboardingRepository

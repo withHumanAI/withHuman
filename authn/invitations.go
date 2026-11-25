@@ -51,6 +51,13 @@ type AcceptInvitationInput struct {
 	Session     *domain.Principal
 }
 
+// RegisterInvitationGuard wires the edition's say over which addresses may
+// be invited. Accepting checks it again for a person without an account,
+// so an invitation sent before a rule does not outlive it. A person who
+// has an account, or whose organization's identity provider admits them,
+// is not checked.
+func (s *Service) RegisterInvitationGuard(guard application.InvitationGuard) { s.inviteGuard = guard }
+
 func (s *Service) AcceptInvitation(ctx context.Context, input AcceptInvitationInput) (AuthenticationResult, error) {
 	invitationID, secret, err := ParseOpaqueToken(input.Token, "whi")
 	if err != nil {
@@ -117,6 +124,11 @@ func (s *Service) AcceptInvitation(ctx context.Context, input AcceptInvitationIn
 		// open edition.
 		if ssoRequired {
 			return AuthenticationResult{}, fmt.Errorf("%w: %w", ErrSSORequired, domain.ErrForbidden)
+		}
+		if s.inviteGuard != nil {
+			if err := s.inviteGuard.CheckInvitationEmail(ctx, invitation.Email); err != nil {
+				return AuthenticationResult{}, err
+			}
 		}
 		displayName := strings.TrimSpace(input.DisplayName)
 		if displayName == "" {
