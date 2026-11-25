@@ -298,18 +298,26 @@ func registeredClient(client domain.OAuthClient) RegisteredClient {
 
 // validateRedirectURI admits what RFC 8252 native apps use: https
 // anywhere, http only on the loopback interface, and private-use schemes
-// (cursor://...) that cannot run script. No fragments.
+// (cursor://...) that cannot run script. No fragments, no credentials,
+// which would show one host and send the code to another, and no
+// wildcard hosts: a redirect URI names one address.
 func validateRedirectURI(raw string) error {
-	parsed, err := url.Parse(strings.TrimSpace(raw))
+	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme == "" {
 		return fmt.Errorf("redirect URI %q is not an absolute URI", raw)
 	}
-	if parsed.Fragment != "" {
+	if strings.Contains(raw, "#") {
 		return fmt.Errorf("redirect URI %q must not carry a fragment", raw)
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("redirect URI %q must not carry a user name or password", raw)
+	}
+	if strings.Contains(parsed.Hostname(), "*") {
+		return fmt.Errorf("redirect URI %q must not carry a wildcard host", raw)
 	}
 	switch strings.ToLower(parsed.Scheme) {
 	case "https":
-		if parsed.Host == "" {
+		if parsed.Hostname() == "" {
 			return fmt.Errorf("redirect URI %q needs a host", raw)
 		}
 	case "http":
@@ -524,6 +532,10 @@ func (s *Service) validate(ctx context.Context, request AuthorizationRequest) (d
 	}
 	if request.RedirectURI == "" {
 		return domain.OAuthClient{}, invalidRequest("redirect_uri is required.")
+	}
+	// A client registered before a rule was added is held to it too.
+	if err := validateRedirectURI(request.RedirectURI); err != nil {
+		return domain.OAuthClient{}, invalidRequest(err.Error())
 	}
 	if !slices.ContainsFunc(client.RedirectURIs, func(registered string) bool { return redirectURIMatches(registered, request.RedirectURI) }) {
 		return domain.OAuthClient{}, invalidRequest("redirect_uri does not match one the client registered.")

@@ -270,7 +270,8 @@ func TestRegistrationAdmitsNativeAppRedirectsOnly(t *testing.T) {
 			t.Errorf("%s refused: %v", uri, err)
 		}
 	}
-	for _, uri := range []string{"http://example.com/cb", "javascript:alert(1)", "https://example.com/cb#frag", "not a url"} {
+	for _, uri := range []string{"http://example.com/cb", "javascript:alert(1)", "https://example.com/cb#frag", "https://example.com/cb#", "not a url", " https://example.com/cb",
+		"https://*.example.com/cb", "https://trusted.example.com@example.com/cb", "https://user:password@example.com/cb", "http://user@localhost/cb", "https://:443/cb"} {
 		_, err := service.RegisterClient(context.Background(), ClientRegistration{RedirectURIs: []string{uri}})
 		if refusal := oauthCode(t, err); refusal.Code != "invalid_redirect_uri" {
 			t.Errorf("%s: %v", uri, err)
@@ -376,7 +377,7 @@ func TestExchangeRefusalsBurnTheCode(t *testing.T) {
 }
 
 func TestAuthorizationRequestIsCheckedBeforeAnythingShows(t *testing.T) {
-	service, _, minter := fixture(t, true)
+	service, repository, minter := fixture(t, true)
 	client := register(t, service, "https://example.com/cb")
 	_, challenge := pkce(t)
 	valid := AuthorizationRequest{ClientID: client.ClientID, RedirectURI: "https://example.com/cb", CodeChallenge: challenge, CodeChallengeMethod: "S256"}
@@ -394,6 +395,19 @@ func TestAuthorizationRequestIsCheckedBeforeAnythingShows(t *testing.T) {
 			t.Errorf("%s admitted", name)
 		} else if _, err := service.Authorize(context.Background(), principal(), Decision{AuthorizationRequest: request, Approve: true}); err == nil {
 			t.Errorf("%s authorized", name)
+		}
+	}
+	// A client registered before its redirect URI was refused stays stored,
+	// but no longer authorizes.
+	for _, uri := range []string{"https://*.example.com/cb", "https://trusted.example.com@example.com/cb"} {
+		stored, err := repository.CreateOAuthClient(context.Background(), application.CreateOAuthClientInput{ClientID: domain.ID(uuid.NewString()), Name: "Old", RedirectURIs: []string{uri}, Now: time.Now()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := valid
+		request.ClientID, request.RedirectURI = string(stored.ID), uri
+		if _, err := service.Authorize(context.Background(), principal(), Decision{AuthorizationRequest: request, Approve: true}); err == nil {
+			t.Errorf("%s authorized", uri)
 		}
 	}
 	if len(minter.requests) != 0 {

@@ -387,7 +387,7 @@ func (s *Service) Test(ctx context.Context, principal domain.Principal, endpoint
 	})
 	result := classifyTest(response, deliverErr)
 	if deliverErr != nil {
-		s.logger.WarnContext(ctx, "webhook endpoint test failed", "endpoint_key", endpointKey, "endpoint_revision", revision, "error", deliverErr)
+		s.logger.WarnContext(ctx, "webhook endpoint test failed - "+result.Problem, "organization_id", string(principal.OrganizationID), "endpoint_key", endpointKey, "endpoint_revision", revision, "error", deliverErr)
 	}
 	record, _ := json.Marshal(map[string]any{
 		"endpoint_key": endpointKey, "revision": revision,
